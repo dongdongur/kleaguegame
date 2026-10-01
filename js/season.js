@@ -1,4 +1,4 @@
-/* K-레전드 38 시즌 엔진: 리그(12팀 38라운드) + FA컵 + ACL, 체력·카드·부상, 시상 통계. 화면과 무관한 순수 로직 */
+/* K-레전드 38 시즌 엔진: K리그1(12팀)/K리그2(17팀) 리그 + FA컵 + ACL + 승강, 체력·카드·부상, 시상 통계. 화면과 무관한 순수 로직 */
 (function(){
 "use strict";
 
@@ -15,11 +15,14 @@ const flip = rounds => rounds.map(pr=>pr.map(([a,b])=>[b,a]));
 
 /*
  * o = { form, mgr, xi:[11], bench:[0~5], diff:"easy"|"hard", teamName, year, seasonNo,
- *       aclQualified:boolean, boost:{구단명:능력치 보정} }
+ *       div:1|2, k1:[K리그1 상대팀 정의], k2:[K리그2 상대팀 정의], aclQualified:boolean, boost:{구단명:능력치 보정} }
+ *   - div 1: k1은 나를 뺀 K리그1 11팀, k2는 K리그2 17팀
+ *   - div 2: k1은 K리그1 12팀, k2는 나를 뺀 K리그2 16팀
  */
 function run(o){
   const K=window.KLCore, CFG=K.CONFIG, G=K.GROUP;
   const hardDiff=o.diff==="hard";
+  const div=o.div||1;
   const ctx={form:o.form,mgr:o.mgr};
   const slots=K.FORMS[o.form];
   const xi=o.xi.slice(), bench=o.bench.filter(Boolean);
@@ -27,24 +30,26 @@ function run(o){
   const stM=new Map(roster.map(p=>[p,100]));
   const ps=new Map(roster.map(p=>[p,{apps:0,g:0,lg:0,a:0,la:0,y:0,r:0,susp:0,inj:0,missed:0,injOut:0,injN:0,cs:0}]));
   const youth=g=>({name:"유스 선수",pos:g,ovr:CFG.YOUTH_OVR,alt:null,det:null,sq:-1,youth:true});
-  const rnd=a=>a[Math.floor(Math.random()*a.length)];
 
   /* ---- 팀 만들기 ---- */
   const jit=()=> (Math.random()-.5)*2;
-  const k1=K.TEAMS26.map(t=>{ const s=K.oppStrength(t,hardDiff,(o.boost&&o.boost[t.club])||0); const j=jit();
-    return {name:t.club, short:t.short, kind:"K리그1", att:s.att+j, def:s.def+j*.5, players:s.players}; });
-  const me={name:o.teamName||"레전드 FC", short:o.teamName||"내 팀", me:true, att:0, def:0, sub:o.form+(o.mgr?" · 감독 "+o.mgr.name:"")};
-  const teams=[me].concat(k1);
-  teams.forEach(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
-  const N=teams.length;
+  const mkTeam=def=>{ const s=K.oppStrength(def,hardDiff,(o.boost&&o.boost[def.club])||0); const j=jit();
+    return {name:def.club, short:def.short||def.club, kind:def.div===2?"K리그2":"K리그1", att:s.att+j, def:s.def+j*.5,
+      players:(def.players&&def.players.length)?s.players:null, p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; };
   const mkExt=t=>{ const j=jit(), b=t.base+(hardDiff?CFG.CUP_HARD:0); return {name:t.name,short:t.name,kind:t.kind,att:b+j,def:b+j*.5}; };
+  const leagueName = div===1?"K리그1":"K리그2";
+  const me={name:o.teamName||"레전드 FC", short:o.teamName||"내 팀", me:true, att:0, def:0, sub:o.form+(o.mgr?" · 감독 "+o.mgr.name:""),
+    p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};
+  const myLeagueDefs = div===1 ? o.k1 : o.k2;
+  const teams=[me].concat(myLeagueDefs.map(mkTeam));
+  const N=teams.length;
 
   const log=[]; const goalsAll={}; let matchNo=0;
   const aiStats=new Map();
   const tally=(team,s,field)=>{ const key=team.name+"|"+s.name; let r=aiStats.get(key);
     if(!r){ r={team:team.name,short:team.short,name:s.name,pos:s.pos,ovr:s.ovr,g:0,a:0}; aiStats.set(key,r); } r[field]++; };
   const derbies=[];
-  let rotations=0, totY=0, totR=0, injured=[];
+  let rotations=0, totY=0, totR=0; const injured=[];
 
   const avail=p=>{ const s=ps.get(p); return !!s && s.susp<=0 && s.inj<=0; };
   const effOvr=p=>p.ovr-K.fatigue(stM.get(p));
@@ -53,27 +58,23 @@ function run(o){
   function myMatch(m){
     const opp=m.opp;
     const lineup=xi.slice(); const used=new Set(); let rot=0; const outS=[], outI=[];
-    /* 1) 결장(징계·부상) 중인 선발은 후보로 교체: 같은 자리 > 아무 후보 > 유스 */
     xi.forEach((p,i)=>{ const s=ps.get(p); if(s.susp<=0 && s.inj<=0) return;
       (s.inj>0?outI:outS).push(p.name); const lab=slots[i][0];
       let c=bench.filter(b=>!used.has(b) && avail(b) && K.fitsSlot(b,lab));
       if(!c.length) c=bench.filter(b=>!used.has(b) && avail(b));
       if(c.length){ c.sort((x,y)=>effOvr(y)-effOvr(x)); lineup[i]=c[0]; used.add(c[0]); } else lineup[i]=youth(G[lab]); });
-    /* 2) 지친 선발은 같은 자리를 설 수 있는 후보로 교체 */
     xi.forEach((p,i)=>{ if(!avail(p) || stM.get(p)>=CFG.STAM_ROTATE) return;
       const lab=slots[i][0];
       const c=bench.filter(b=>!used.has(b) && avail(b) && stM.get(b)>stM.get(p)+10 && K.fitsSlot(b,lab));
       if(c.length){ c.sort((x,y)=>effOvr(y)-effOvr(x)); lineup[i]=c[0]; used.add(c[0]); rot++; } });
     rotations+=rot;
 
-    /* 카드 추첨 (내 팀은 선수별, 상대는 팀 단위) */
     const ys=[], rs=[];
     lineup.forEach((p,i)=>{ if(p.youth) return; const g=G[slots[i][0]];
       if(Math.random()<CFG.CARD_R){ rs.push(p); return; }
       if(Math.random()<CFG.CARD_Y[g]){ ys.push(p); if(Math.random()<CFG.CARD_Y2) rs.push(p); } });
     const oy=K.poisson(CFG.OPP_YELLOW), orr=Math.random()<CFG.OPP_RED?1:0;
 
-    /* 득점 기대값 */
     const cur=K.rate(lineup,stM,ctx); me.att=cur.att; me.def=cur.def;
     const pen=CFG.RED_PEN;
     const mA=cur.att-pen*rs.length, mD=cur.def-pen*rs.length, oA=opp.att-pen*orr, oD=opp.def-pen*orr;
@@ -88,7 +89,6 @@ function run(o){
     const res = pk ? (pk[0]>pk[1]?"W":"L") : (f>a?"W":f===a?"D":"L");
     const advance = m.ko ? ((f+aggF>a+aggA) || (f+aggF===a+aggA && !!pk && pk[0]>pk[1])) : null;
 
-    /* 득점·도움 */
     const myP=lineup.map((p,i)=>Object.assign({},p,{g:G[slots[i][0]],ref:p}));
     const league=m.comp==="리그";
     const ms=[], as=[];
@@ -97,12 +97,11 @@ function run(o){
       if(Math.random()<.72){ const asst=K.pickAssist(myP,s); if(asst){ as.push(asst.name); const a2=ps.get(asst.ref); if(a2){ a2.a++; if(league) a2.la++; } } } }
     const os=[];
     for(let k=0;k<a;k++){
-      if(opp.players){ const s=K.pickScorer(opp.players); os.push(s.name);
+      if(opp.players && opp.players.length){ const s=K.pickScorer(opp.players); os.push(s.name);
         if(league && Math.random()<.72){ tally(opp,s,"g"); if(Math.random()<.55){ const asst=K.pickAssist(opp.players,s); if(asst) tally(opp,asst,"a"); } } }
       else os.push("상대 선수"); }
     if(a===0 && lineup[0] && ps.has(lineup[0])) ps.get(lineup[0]).cs++;
 
-    /* 사후 처리: 징계·부상 소화, 체력, 출전, 새 카드·부상 */
     const serving=roster.filter(p=>ps.get(p).susp>0 || ps.get(p).inj>0);
     const hurt=[];
     lineup.forEach((p,i)=>{ if(p.youth) return; const s=ps.get(p); const g=G[slots[i][0]];
@@ -117,9 +116,8 @@ function run(o){
     rs.forEach(p=>{ const s=ps.get(p); s.r++; totR++; s.susp++; });
 
     matchNo++;
-    const entry={n:matchNo, comp:m.comp, stage:m.stage, round:m.round||null, home:m.home, opp:{name:opp.name,kind:opp.kind||"K리그1"}, f, a, et, pk, res, advance,
-      ms, os, as, rot, ys:ys.map(p=>p.name), rs:rs.map(p=>p.name), oy, or:orr, outS, outI, hurt,
-      derby:null};
+    const entry={n:matchNo, comp:m.comp, stage:m.stage, round:m.round||null, home:m.home, opp:{name:opp.name,kind:opp.kind||leagueName}, f, a, et, pk, res, advance,
+      ms, os, as, rot, ys:ys.map(p=>p.name), rs:rs.map(p=>p.name), oy, or:orr, outS, outI, hurt, derby:null};
     log.push(entry);
     return entry;
   }
@@ -129,13 +127,27 @@ function run(o){
     const spread=derby?CFG.DERBY_SPREAD:CFG.SPREAD, ha=derby?CFG.DERBY_HOME:CFG.HOME_ADV;
     return [K.poisson(CFG.GOAL_BASE*Math.exp((H.att+ha-A.def)/spread)), K.poisson(CFG.GOAL_BASE*Math.exp((A.att-H.def-ha)/spread))];
   }
+  const upd=(T,f,g)=>{T.p++;T.gf+=f;T.ga+=g; if(f>g){T.w++;T.pts+=3;} else if(f===g){T.d++;T.pts++;} else T.l++;};
   function aiLeague(H,A){
     const dn=K.derbyName(H.name,A.name);
     const [gh,ga]=aiGoals(H,A,!!dn);
-    [[H,gh,ga],[A,ga,gh]].forEach(([T,f,g])=>{T.p++;T.gf+=f;T.ga+=g; if(f>g){T.w++;T.pts+=3;} else if(f===g){T.d++;T.pts++;} else T.l++;});
-    [[H,gh],[A,ga]].forEach(([T,n])=>{ for(let k=0;k<n;k++){ if(Math.random()<.72){ const s=K.pickScorer(T.players); tally(T,s,"g");
+    upd(H,gh,ga); upd(A,ga,gh);
+    [[H,gh],[A,ga]].forEach(([T,n])=>{ if(!T.players) return; for(let k=0;k<n;k++){ if(Math.random()<.72){ const s=K.pickScorer(T.players); tally(T,s,"g");
       if(Math.random()<.55){ const asst=K.pickAssist(T.players,s); if(asst) tally(T,asst,"a"); } } } });
     if(dn) derbies.push({name:dn,home:H.name,away:A.name,hg:gh,ag:ga});
+  }
+  const sortFn=(x,y)=>y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)||y.gf-x.gf;
+  /* 내가 속하지 않은 리그는 빠르게 한 시즌만 돌려서 최종 순위를 정해요 (승강 계산용) */
+  function simAITable(defs){
+    const ts=defs.map(mkTeam); const n=ts.length; const m=n%2?n+1:n; const r1=roundRobin(m);
+    r1.concat(flip(r1)).forEach(pr=>pr.forEach(([h,a])=>{ if(h>=n||a>=n) return; const [gh,ga]=aiGoals(ts[h],ts[a],false); upd(ts[h],gh,ga); upd(ts[a],ga,gh); }));
+    return ts.sort(sortFn);
+  }
+  /* 상대팀끼리의 2경기 합산 승강 플레이오프. 승자를 돌려줘요 */
+  function aiTie(A,B){
+    const [a1,b1]=aiGoals(A,B,false), [b2,a2]=aiGoals(B,A,false);
+    const ta=a1+a2, tb=b1+b2; if(ta!==tb) return ta>tb?A:B;
+    return Math.random()<.5+K.clamp((A.att+A.def-B.att-B.def)/2/60,-.15,.15)?A:B;
   }
 
   /* ---- 대회 일정 ---- */
@@ -144,7 +156,9 @@ function run(o){
 
   /* FA컵: 16강은 K리그2 팀, 이후는 K리그1 팀 */
   const fa={stages:[],alive:true,champion:false,exit:null};
-  { const k2=K.shuffle(K.K2).map(mkExt); const pool=K.shuffle(k1); const opps=[k2[0],pool[0],pool[1],pool[2]];
+  { const k2pool=K.shuffle(div===2?o.k2:o.k2).map(d=>mkTeam(d));   // K리그2 팀
+    const k1pool=K.shuffle(div===1?teams.slice(1):o.k1.map(mkTeam));     // K리그1 팀
+    const opps=[k2pool[0],k1pool[0],k1pool[1],k1pool[2]];
     const names=["16강","8강","4강","결승"];
     CFG.FA_AFTER.forEach((after,i)=>addEv(after,()=>{
       if(!fa.alive) return;
@@ -154,12 +168,11 @@ function run(o){
     })); }
 
   /* ACL: 조별리그(4팀, 6경기) → 16강·8강·4강 2경기 합산 → 결승 */
-  const acl={qualified:!!o.aclQualified,alive:!!o.aclQualified,group:null,ko:[],champion:false,exit:null,reached:null};
+  const acl={qualified:!!o.aclQualified && div===1,alive:!!o.aclQualified && div===1,group:null,ko:[],champion:false,exit:null,reached:null};
   if(acl.qualified){
     const pool=K.shuffle(K.ACL_POOL); const gOpp=pool.slice(0,3).map(mkExt); const koPool=pool.slice(3).map(mkExt);
     const gt=[{name:me.name,me:true},...gOpp.map(t=>({name:t.name}))].map(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
     const seq=[[0,true],[1,false],[2,true],[0,false],[1,true],[2,false]];
-    const upd=(T,f,g)=>{T.p++;T.gf+=f;T.ga+=g; if(f>g){T.w++;T.pts+=3;} else if(f===g){T.d++;T.pts++;} else T.l++;};
     let advanced=false;
     CFG.ACL_GROUP_AFTER.forEach((after,i)=>addEv(after,()=>{
       if(!acl.alive) return;
@@ -195,33 +208,72 @@ function run(o){
   const playLeague=(pairs,stage)=>{
     lr++;
     pairs.forEach(([h,a])=>{
+      if(h>=N||a>=N) return;   // 홀수 팀 리그의 부전 라운드
       const H=teams[h], A=teams[a];
       if(H.me||A.me){
         const opp=H.me?A:H; const e=myMatch({comp:"리그",stage,opp,home:H.me,ko:false,round:lr});
-        const dn=null; e.derby=dn;
         const f=H.me?e.f:e.a, g=H.me?e.a:e.f;
-        [[H,f,g],[A,g,f]].forEach(([T,x,y])=>{T.p++;T.gf+=x;T.ga+=y; if(x>y){T.w++;T.pts+=3;} else if(x===y){T.d++;T.pts++;} else T.l++;});
+        upd(H,f,g); upd(A,g,f);
       } else aiLeague(H,A);
     });
     (events[lr]||[]).forEach(fn=>fn());
   };
-  const leg1=roundRobin(N), leg2=flip(leg1);
-  const leg3=leg1.slice().reverse().map(pr=>pr.map(([a,b],i)=>i%2?[b,a]:[a,b]));
-  leg1.concat(leg2,leg3).forEach(pr=>playLeague(pr,"정규"));
-  const sortFn=(x,y)=>y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)||y.gf-x.gf;
-  const ordered=teams.map((t,i)=>i).sort((a,b)=>sortFn(teams[a],teams[b]));
-  const groupA=ordered.slice(0,N/2), groupB=ordered.slice(N/2);
-  groupA.forEach(i=>teams[i].grp="A"); groupB.forEach(i=>teams[i].grp="B");
-  const finals=g=>roundRobin(g.length).map(pr=>pr.map(([a,b])=>[g[a],g[b]]));
-  const fa5=finals(groupA), fb5=finals(groupB);
-  fa5.forEach((pr,k)=>playLeague(pr.concat(fb5[k]),"파이널"+me.grp));
-  const table=groupA.slice().sort((a,b)=>sortFn(teams[a],teams[b])).concat(groupB.slice().sort((a,b)=>sortFn(teams[a],teams[b]))).map(i=>teams[i]);
+  let table;
+  if(div===1){
+    const leg1=roundRobin(N), leg2=flip(leg1);
+    const leg3=leg1.slice().reverse().map(pr=>pr.map(([a,b],i)=>i%2?[b,a]:[a,b]));
+    leg1.concat(leg2,leg3).forEach(pr=>playLeague(pr,"정규"));
+    const ordered=teams.map((t,i)=>i).sort((a,b)=>sortFn(teams[a],teams[b]));
+    const groupA=ordered.slice(0,N/2), groupB=ordered.slice(N/2);
+    groupA.forEach(i=>teams[i].grp="A"); groupB.forEach(i=>teams[i].grp="B");
+    const finals=g=>roundRobin(g.length).map(pr=>pr.map(([a,b])=>[g[a],g[b]]));
+    const fa5=finals(groupA), fb5=finals(groupB);
+    fa5.forEach((pr,k)=>playLeague(pr.concat(fb5[k]),"파이널"+me.grp));
+    table=groupA.slice().sort((a,b)=>sortFn(teams[a],teams[b])).concat(groupB.slice().sort((a,b)=>sortFn(teams[a],teams[b]))).map(i=>teams[i]);
+  } else {
+    const m=N%2?N+1:N; const r1=roundRobin(m);
+    r1.concat(flip(r1)).forEach(pr=>playLeague(pr,"정규"));
+    table=teams.slice().sort(sortFn);
+  }
   const rank=table.indexOf(me)+1;
   const rankOf={}; table.forEach((t,i)=>rankOf[t.name]=i+1);
 
+  /* ---- 승강 ---- */
+  const moves={up:[],down:[]}; let promo={status:"none",text:""};
+  const nm=t=>t.me?"@me":t.name;
+  /* 승강 플레이오프: 내가 끼면 내 경기로, 아니면 빠르게 계산 */
+  function playoff(upper,lower){   // upper: K리그1 11위, lower: K리그2 2위. 이기는 쪽이 K리그1에서 뛰어요
+    if(upper.me||lower.me){
+      const opp=upper.me?lower:upper; const home1=Math.random()<.5;
+      const e1=myMatch({comp:"승강PO",stage:"1차전",opp,home:home1,ko:false});
+      const e2=myMatch({comp:"승강PO",stage:"2차전",opp,home:!home1,ko:true,agg:{f:e1.f,a:e1.a}});
+      return {winner:e2.advance?me:opp, played:true};
+    }
+    return {winner:aiTie(upper,lower), played:false};
+  }
+  if(div===1){
+    const k2t=simAITable(o.k2); const last=table[N-1], elev=table[N-2];
+    moves.up.push(k2t[0].name); moves.down.push(nm(last));
+    const po=playoff(elev,k2t[1]);
+    if(po.winner!==elev){ moves.up.push(k2t[1].name); moves.down.push(nm(elev)); }
+    if(last.me) promo={status:"relegated",text:"최하위로 K리그2 강등"};
+    else if(elev.me) promo = po.winner===me ? {status:"po_stay",text:"승강 플레이오프에서 승리해 K리그1 잔류"} : {status:"relegated",text:"승강 플레이오프에서 패배해 K리그2 강등"};
+    else promo={status:"safe",text:"K리그1 잔류"};
+  } else {
+    const k1t=simAITable(o.k1); const last=k1t[k1t.length-1], elev=k1t[k1t.length-2];
+    const champ=table[0], second=table[1];
+    moves.up.push(nm(champ)); moves.down.push(last.name);
+    const po=playoff(elev,second);
+    if(po.winner===second){ moves.up.push(nm(second)); moves.down.push(elev.name); }
+    if(champ.me) promo={status:"promoted",text:"K리그2 우승, K리그1 직행 승격"};
+    else if(second.me) promo = po.winner===me ? {status:"po_promoted",text:"승강 플레이오프에서 승리해 K리그1 승격"} : {status:"po_failed",text:"승강 플레이오프에서 패배, K리그2 잔류"};
+    else promo={status:"stay",text:"K리그2 잔류"};
+  }
+  const nextDiv = moves.up.includes("@me") ? 1 : moves.down.includes("@me") ? 2 : div;
+
   /* ---- 대회 결과 요약 ---- */
   const trophies=[];
-  if(rank===1) trophies.push("리그 우승");
+  if(rank===1) trophies.push(div===1?"리그 우승":"K리그2 우승");
   if(fa.champion) trophies.push("FA컵 우승");
   if(acl.champion) trophies.push("ACL 우승");
 
@@ -229,9 +281,8 @@ function run(o){
   const pool=[];
   roster.forEach(p=>{ const s=ps.get(p); pool.push({key:"me|"+p.uid,mine:true,name:p.name,team:me.name,short:me.name,pos:p.pos,ovr:p.ovr,g:s.lg,a:s.la,ref:p,cs:s.cs,apps:s.apps}); });
   aiStats.forEach(r=>pool.push(Object.assign({key:r.team+"|"+r.name,mine:false},r)));
-  /* 득점이 한 번도 없는 상대 선수도 베스트 11 후보가 될 수 있게 */
-  teams.slice(1).forEach(t=>t.players.forEach(p=>{ if(!aiStats.has(t.name+"|"+p.name)) pool.push({key:t.name+"|"+p.name,mine:false,name:p.name,team:t.name,short:t.short,pos:p.pos,ovr:p.ovr,g:0,a:0}); }));
-  const rk=x=>13-(rankOf[x.team]||12);
+  teams.slice(1).forEach(t=>{ if(t.players) t.players.forEach(p=>{ if(!aiStats.has(t.name+"|"+p.name)) pool.push({key:t.name+"|"+p.name,mine:false,name:p.name,team:t.name,short:t.short,pos:p.pos,ovr:p.ovr,g:0,a:0}); }); });
+  const rk=x=>(N+1)-(rankOf[x.team]||N);
   const mvpScore=x=>x.pos==="GK"?-99:x.g*2+x.a*1.3+rk(x)*.6+(x.ovr-70)*.05+(x.apps||0)*0.02;
   const byScore=(arr,fn)=>arr.slice().sort((a,b)=>fn(b)-fn(a));
   const scorers=pool.filter(x=>x.g>0).sort((a,b)=>b.g-a.g||b.a-a.a).slice(0,10);
@@ -241,7 +292,7 @@ function run(o){
     byScore(pool.filter(x=>x.pos===g),x=>x.ovr*.6+x.g*.4+x.a*.25+rk(x)*.4+(x.cs||0)*.05).slice(0,n).forEach(x=>bestXI.push(x)); });
   const champ=table[0];
   const coach={team:champ.name, name: champ.me ? (o.mgr?o.mgr.name:"내 감독") : champ.name+" 감독", mine:!!champ.me};
-  const awards={scorer:scorers[0]||null, assister:assisters[0]||null, mvp, bestXI, coach, topScorers:scorers, topAssists:assisters};
+  const awards={scorer:scorers[0]||null, assister:assisters[0]||null, mvp, bestXI, coach, topScorers:scorers, topAssists:assisters, partial:div===2};
 
   /* ---- 내 팀 선수 기록 ---- */
   const stam=roster.map(p=>{ const s=ps.get(p); return {p,starter:xi.includes(p),apps:s.apps,st:stM.get(p),y:s.y,r:s.r,missed:s.missed,injOut:s.injOut,injN:s.injN,g:s.g,a:s.a,lg:s.lg,la:s.la,cs:s.cs}; })
@@ -257,13 +308,12 @@ function run(o){
   const league=log.filter(e=>e.comp==="리그");
   const unbeaten=league.every(e=>e.res!=="L");
   const rating0=K.rate(xi,null,ctx);
+  const aclNext = (div===1 && rank<=CFG.ACL_QUAL_RANK) || fa.champion || acl.champion;
 
-  /* 다음 시즌 ACL 진출권 */
-  const aclNext = rank<=CFG.ACL_QUAL_RANK || fa.champion || acl.champion;
-
-  return {year:o.year, seasonNo:o.seasonNo, diff:o.diff, N, teams, table, log, me, rank, rate:rating0,
+  return {year:o.year, seasonNo:o.seasonNo, diff:o.diff, div, leagueName, N, teams, table, log, me, rank, rate:rating0,
     fa, acl, trophies, awards, mine, stam, rotations, cards:cardsTot, inj:injTot, derbies, goals:goalsAll, aclNext,
-    flags:{unbeaten, perfect:me.w===38, league:{w:me.w,d:me.d,l:me.l,pts:me.pts,gf:me.gf,ga:me.ga}}};
+    promo, moves, nextDiv,
+    flags:{unbeaten, perfect:div===1&&me.w===38, league:{w:me.w,d:me.d,l:me.l,pts:me.pts,gf:me.gf,ga:me.ga}}};
 }
 
 window.KLSeason={run};

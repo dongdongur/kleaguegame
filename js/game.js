@@ -17,7 +17,7 @@ const hard = () => $("hard").checked;
 
 /* ================= 상태 ================= */
 let S;
-function newCareer(){ return {no:1,year:2026,history:[],trophies:{league:0,fa:0,acl:0},aclQ:false,prevAclQ:false,boost:{},moves:0}; }
+function newCareer(){ return {no:1,year:2026,div:1,k1:K.TEAMS26.slice(),k2:K.K2_DEFS.slice(),history:[],trophies:{league:0,k2:0,fa:0,acl:0},aclQ:false,prev:null,boost:{},moves:0}; }
 function newState(form,mode,diff,rm){
   K.setRatingMode(rm||"season");
   S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", rm:rm||"season", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
@@ -62,7 +62,10 @@ function idleHint(){
 function idleReel(){
   setReel(S.mode==="pos" ? "연도 + 포지션" : "연도 + 팀","스핀을 눌러 시작", S.mode==="pos" ? "그 해 그 포지션을 뛴 선수 중에서 선택" : "그 팀 선수 전원이 공개돼요");
 }
-function setReel(y,club,sub){ $("reelYear").textContent=y; $("reelClub").textContent=club; $("reelEra").textContent=sub; }
+function setReel(y,club,sub,crestName){
+  $("reelYear").textContent=y; $("reelClub").textContent=club; $("reelEra").textContent=sub;
+  const rc=$("reelCrest"); rc.innerHTML=""; if(crestName && crestFile(crestName)){ rc.appendChild(crest(crestName,48)); }
+}
 
 function renderSeg(id,map,cur,locked,onPick){
   const seg=$(id); seg.innerHTML="";
@@ -88,6 +91,7 @@ function renderDiffs(){ renderSeg("diffSeg",DIFFS,S.diff,S.done||S.career.no>1&&
 function renderBadge(){
   const c=S.career; const b=$("seasonBadge"); b.innerHTML="";
   b.append(el("span","sb-k","SEASON"), el("b",null,String(c.no)), el("span","sb-y",String(c.year)));
+  b.appendChild(el("span","chip lg"+c.div,c.div===1?"K리그1":"K리그2"));
   if(c.aclQ) b.appendChild(el("span","chip acl","ACL 진출"));
 }
 function saveBest(R){
@@ -275,7 +279,7 @@ function spin(isRespin,toMgr){
   const tick=()=>{
     k++;
     const [y,a,b] = k>=steps && target ? [target.year+"년",target.club,target.sub] : faces();
-    setReel(y,a,b);
+    setReel(y,a,b,k>=steps&&target&&S.mode!=="pos"?target.club:null);
     if(k<steps){ setTimeout(tick, 40+k*k*1.4); }
     else{
       reel.classList.remove("spin"); S.spinning=false;
@@ -332,23 +336,28 @@ function placeBench(){
 }
 
 /* ================= 상대팀 스쿼드 보기 ================= */
-let selOpp=null;
-function renderOpp(sel){
+let selOpp=null, selDiv=1;
+const oppList = d => d===1 ? S.career.k1 : S.career.k2;
+function renderOpp(sel,div){
+  if(div!==undefined){ selDiv=div; if(sel===undefined) sel=null; }
   if(sel!==undefined) selOpp=sel;
   const hardD=S.diff==="hard";
   $("oppDiffLabel").textContent="적용 중인 상대 능력치: "+(hardD?"전성기":"2026 현재");
   const tabs=$("oppTabs"); tabs.innerHTML="";
-  TEAMS26.forEach((t,i)=>{
-    const b=document.createElement("button"); b.type="button"; b.textContent=t.short;
+  [[1,"K리그1"],[2,"K리그2"]].forEach(([d,t])=>{ const b=el("button","divtab",t+" ("+oppList(d).length+(S.career.div===d?"+나":"")+")"); b.type="button"; b.setAttribute("aria-pressed",String(d===selDiv)); b.onclick=()=>renderOpp(null,d); tabs.appendChild(b); });
+  oppList(selDiv).forEach((t,i)=>{
+    const b=document.createElement("button"); b.type="button"; b.className="teamtab";
+    const cr=crest(t.club,18); b.append(cr, document.createTextNode(" "+t.short));
     b.setAttribute("aria-pressed",String(i===selOpp)); b.onclick=()=>renderOpp(i===selOpp?null:i);
     tabs.appendChild(b);
   });
   const view=$("oppView"); view.innerHTML="";
-  if(selOpp==null){ view.appendChild(el("p","hint","팀을 누르면 대표 선수단과 능력치를 볼 수 있어요. 시즌마다 팀 전력이 조금씩 달라져요.")); return; }
-  const t=TEAMS26[selOpp], boost=S.career.boost[t.club]||0, o=K.oppStrength(t,hardD,boost);
-  view.appendChild(el("p","oppsum",t.club+" · 공격 "+o.att.toFixed(1)+" / 수비 "+o.def.toFixed(1)+" · 목록에 없는 자리는 기본 "+(t.base+(hardD?CFG.HARD_FILL:0))+"으로 계산"+(boost?" · 이번 시즌 전력 보정 "+sgn(boost):"")));
+  if(selOpp==null || !oppList(selDiv)[selOpp]){ view.appendChild(el("p","hint","팀을 누르면 선수단과 능력치를 볼 수 있어요. 시즌마다 팀 전력이 조금씩 달라지고, 승강으로 팀이 K리그1과 K리그2를 오가요.")); return; }
+  const t=oppList(selDiv)[selOpp], boost=S.career.boost[t.club]||0, o=K.oppStrength(t,hardD,boost);
+  view.appendChild(el("p","oppsum",t.club+" ("+(selDiv===1?"K리그1":"K리그2")+") · 공격 "+o.att.toFixed(1)+" / 수비 "+o.def.toFixed(1)+(t.players.length?" · 목록에 없는 자리는 기본 "+(t.base+(hardD?CFG.HARD_FILL:0))+"으로 계산":" · 선수 명단 없이 팀 기본 능력치 "+(t.base+(hardD?CFG.HARD_FILL:0))+"로 계산")+(boost?" · 이번 시즌 전력 보정 "+sgn(boost):"")));
   const rivals=K.DERBIES.filter(d=>d[0]===t.club||d[1]===t.club).map(d=>(d[0]===t.club?d[1]:d[0])+" ("+d[2]+")");
   if(rivals.length) view.appendChild(el("p","oppsum","라이벌: "+rivals.join(", ")));
+  if(!t.players.length) return;
   const tb=el("table","tbl oppt");
   tb.innerHTML="<thead><tr><th class='t'>포지션</th><th class='t'>이름</th><th class='t'>세부</th><th>2026 현재</th><th>전성기</th></tr></thead>";
   const body=el("tbody"); const order={GK:0,DF:1,MF:2,FW:3};
@@ -363,27 +372,38 @@ function renderOpp(sel){
 /* ================= 시즌 진행 ================= */
 function runSeason(){
   const c=S.career;
-  c.prevAclQ=c.aclQ;
+  c.prev={aclQ:c.aclQ,div:c.div,k1:c.k1.slice(),k2:c.k2.slice()};
   const R=window.KLSeason.run({form:S.form,mgr:S.mgr,xi:S.xi,bench:S.bench,diff:S.diff,teamName:$("teamName").value.trim()||"레전드 FC",
-    year:c.year,seasonNo:c.no,aclQualified:c.aclQ,boost:c.boost});
+    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost});
   recordSeason(R);
   showResults(R);
 }
+/* 승강으로 K리그1·K리그2 팀 목록과 내 소속 리그를 바꿔요 */
+function applyMoves(R){
+  const c=S.career; const defOf=n=>c.k1.concat(c.k2).find(d=>d.club===n);
+  const up=R.moves.up, down=R.moves.down;
+  const nk1=c.k1.filter(d=>!down.includes(d.club)), nk2=c.k2.filter(d=>!up.includes(d.club));
+  up.filter(x=>x!=="@me").forEach(n=>{ const d=defOf(n); if(d) nk1.push(Object.assign({},d,{div:1})); });
+  down.filter(x=>x!=="@me").forEach(n=>{ const d=defOf(n); if(d) nk2.push(Object.assign({},d,{div:2})); });
+  c.k1=nk1; c.k2=nk2; c.div=R.nextDiv;
+}
 function recordSeason(R){
   const c=S.career, m=R.me;
-  c.history.push({no:c.no,year:c.year,rank:R.rank,pts:m.pts,w:m.w,d:m.d,l:m.l,gf:m.gf,ga:m.ga,
+  c.history.push({no:c.no,year:c.year,div:R.div,rank:R.rank,pts:m.pts,w:m.w,d:m.d,l:m.l,gf:m.gf,ga:m.ga,promo:R.promo.text,
     fa:R.fa.champion?"우승":(R.fa.exit||"-"), acl:R.acl.qualified?(R.acl.champion?"우승":(R.acl.exit||R.acl.reached||"-")):"불참", trophies:R.trophies.slice()});
-  if(R.rank===1) c.trophies.league++; if(R.fa.champion) c.trophies.fa++; if(R.acl.champion) c.trophies.acl++;
+  if(R.trophies.includes("리그 우승")) c.trophies.league++; if(R.trophies.includes("K리그2 우승")) c.trophies.k2++;
+  if(R.fa.champion) c.trophies.fa++; if(R.acl.champion) c.trophies.acl++;
   c.aclQ=R.aclNext;
+  applyMoves(R);
   S.last=R; S.done=true; S.phase="results";
   R.newAch = window.KLAch ? window.KLAch.check(R,{career:c,mode:S.mode,diff:S.diff,moves:c.moves}) : [];
   saveBest(R);
 }
 function resim(){
-  /* 같은 선수단으로 이번 시즌만 다시 돌려요 (커리어 기록은 이번 시즌 결과로 교체) */
+  /* 같은 선수단으로 이번 시즌만 다시 돌려요 (커리어 기록과 승강은 이번 시즌 결과로 교체) */
   const c=S.career, last=c.history.pop();
-  if(last){ if(last.rank===1) c.trophies.league--; if(last.trophies.includes("FA컵 우승")) c.trophies.fa--; if(last.trophies.includes("ACL 우승")) c.trophies.acl--; }
-  c.aclQ=c.prevAclQ;
+  if(last){ if(last.trophies.includes("리그 우승")) c.trophies.league--; if(last.trophies.includes("K리그2 우승")) c.trophies.k2--; if(last.trophies.includes("FA컵 우승")) c.trophies.fa--; if(last.trophies.includes("ACL 우승")) c.trophies.acl--; }
+  if(c.prev){ c.aclQ=c.prev.aclQ; c.div=c.prev.div; c.k1=c.prev.k1; c.k2=c.prev.k2; }
   runSeason();
 }
 function resetGame(){
@@ -428,6 +448,9 @@ function renderWinter(){
     const r=el("span","dv "+(p.delta>0?"up":p.delta<0?"down":"flat")); r.append(el("b",null,p.name), document.createTextNode(" "+p.ovr+" "), el("i",null,p.delta>0?"▲"+p.delta:p.delta<0?"▼"+Math.abs(p.delta):"–"));
     list.appendChild(r); });
   dev.appendChild(list); body.appendChild(dev);
+  const lgn=el("div","w-sec"); lgn.appendChild(el("h3",null,"다음 시즌 소속"));
+  lgn.appendChild(el("p","hint",(S.last&&S.last.promo.text?S.last.promo.text+". ":"")+"다음 시즌은 "+(S.career.div===1?"K리그1":"K리그2")+"에서 시작해요."+(S.career.div===2?" 1위가 되면 1부로 직행 승격해요.":"")+(S.career.aclQ?" ACL에도 출전해요.":"")));
+  body.appendChild(lgn);
   /* 2) 영입 */
   const tr=el("div","w-sec"); tr.appendChild(el("h3",null,"선수 영입"));
   tr.appendChild(el("p","hint","영입권 "+w.moves+"장 · 후보 새로고침 "+w.rerolls+"회. 마음에 드는 카드를 고르고, 내보낼 선수를 왼쪽 스쿼드에서 눌러 교체하세요."));
@@ -490,16 +513,29 @@ function startNextSeason(){
   /* 지난 시즌 변화 표시 제거 */
   S.xi.concat(S.bench).filter(Boolean).forEach(p=>{ p.delta=0; });
   $("deskWinter").hidden=true; $("deskDraft").hidden=false;
-  setReel("SEASON "+c.no,"시즌 진행 중","2026 K리그1 · FA컵"+(c.aclQ?" · ACL":""));
+  setReel("SEASON "+c.no,"시즌 진행 중",(c.div===1?"K리그1":"K리그2")+" · FA컵"+(c.aclQ?" · ACL":""));
   runSeason();
 }
 
 /* ================= 결과 화면 ================= */
 const hue=s=>{ let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))%360; return h; };
-function crest(name,size){ const c=el("span","crest",name.replace(/[^\p{L}\p{N}]/gu,"").slice(0,2)); c.style.setProperty("--h",hue(name)); if(size) c.style.setProperty("--s",size+"px"); return c; }
+function crestFile(name){ return window.KL_CRESTS_ON && window.KL_CRESTS && window.KL_CRESTS[name] ? "img/crests/"+window.KL_CRESTS[name] : null; }
+function crest(name,size){
+  const c=el("span","crest",name.replace(/[^\p{L}\p{N}]/gu,"").slice(0,2)); c.style.setProperty("--h",hue(name)); if(size) c.style.setProperty("--s",size+"px");
+  const f=crestFile(name);
+  if(f){ const img=new Image(); img.alt=""; img.onload=()=>{ c.textContent=""; c.classList.add("img"); c.appendChild(img); }; img.src=f; }
+  return c;
+}
 function verdict(R){
-  const m=R.me; const hd=R.diff==="hard"?" (어려움)":"";
+  const m=R.me; const hd=R.diff==="hard"?" (어려움)":""; const P=R.promo.status;
   if(R.trophies.length===3) return ["트레블 달성"+hd,"리그, FA컵, ACL을 모두 들어 올렸어요."];
+  if(R.div===2){
+    if(P==="promoted") return ["K리그2 우승, 1부 승격"+hd,"K리그1 직행! 다음 시즌은 1부에서 뛰어요."];
+    if(P==="po_promoted") return [R.rank+"위, 승강PO 승리 · 승격"+hd,"플레이오프를 이기고 1부로 올라가요."];
+    if(P==="po_failed") return [R.rank+"위, 승격 실패"+hd,"승강 플레이오프에서 졌어요. 다음 시즌 다시 도전해요."];
+    return [R.rank+"위, K리그2 잔류"+hd,"우승해서 1부로 올라가 보세요."];
+  }
+  if(P==="relegated") return [R.rank+"위, K리그2 강등"+hd,R.promo.text+". 다음 시즌은 K리그2에서 시작해요."];
   if(m.w===38) return ["38전 38승. 전설이 됐어요."+hd,"K리그 역사에 없는 완벽한 시즌이에요."];
   if(m.l===0 && R.rank===1) return ["무패 우승"+hd,"리그를 한 번도 지지 않고 정상에 올랐어요."];
   if(R.rank===1 && R.fa.champion) return ["더블 우승"+hd,"리그와 FA컵을 모두 차지했어요."];
@@ -509,6 +545,7 @@ function verdict(R){
   if(R.rank<=3) return [R.rank+"위, 아시아 무대 진출"+hd,"우승까지 승점 "+(R.table[0].pts-m.pts)+"점이 모자랐어요."];
   if(R.rank<=6) return [R.rank+"위, 파이널A 마감"+hd,"상위 스플릿에는 들었지만 우승 경쟁에서는 밀렸어요."];
   if(R.rank<=9) return [R.rank+"위, 중위권 마감"+hd,"레전드라고 해서 쉬운 리그는 아니에요."];
+  if(P==="po_stay") return [R.rank+"위, 승강PO 끝에 잔류"+hd,"플레이오프에서 이겨 1부에 남았어요."];
   return [R.rank+"위, 강등권 위기"+hd,"포지션 밸런스와 후보 로테이션을 다시 점검해 보세요."];
 }
 function showResults(R){
@@ -518,9 +555,9 @@ function showResults(R){
   const [v1,v2]=verdict(R);
   const hero=el("section","panel hero");
   const hl=el("div","hero-l");
-  hl.append(el("div","label","SEASON "+R.seasonNo+" · "+R.year+" · 상대 "+(R.diff==="hard"?"어려움":"쉬움")+" · 내 능력치 "+(S.rm==="prime"?"프라임":"시즌")), el("h2","verdict",v1), el("p","vsub",v2));
+  hl.append(el("div","label","SEASON "+R.seasonNo+" · "+R.year+" · "+R.leagueName+" · 상대 "+(R.diff==="hard"?"어려움":"쉬움")+" · 내 능력치 "+(S.rm==="prime"?"프라임":"시즌")), el("h2","verdict",v1), el("p","vsub",v2));
   const tro=el("div","trophies");
-  [["리그",R.rank===1],["FA컵",R.fa.champion],["ACL",R.acl.champion]].forEach(([n,w])=>{ const t=el("div","trophy"+(w?" won":"")); t.append(el("span","tr-i",w?"🏆":"·"), el("span","tr-n",n)); tro.appendChild(t); });
+  [[R.leagueName,R.rank===1],["FA컵",R.fa.champion],["ACL",R.acl.champion]].forEach(([n,w])=>{ const t=el("div","trophy"+(w?" won":"")); t.append(el("span","tr-i",w?"🏆":"·"), el("span","tr-n",n)); tro.appendChild(t); });
   hero.append(hl,tro); box.appendChild(hero);
   const tabs=el("div","tabs"); const pane=el("div","tabpane");
   const defs=[["sum","요약"],["fx","경기"],["tbl","순위"],["awd","시상식"],["plr","선수단"]];
@@ -540,7 +577,8 @@ function paneSum(R){
   wrap.appendChild(board);
   /* 대회별 */
   const comps=el("div","comps");
-  const lg=el("div","comp"); lg.append(el("h4",null,"K리그1"), el("p",null,R.rank+"위 · "+(m.grp?"파이널"+m.grp:"")+" · 승점 "+m.pts));
+  const lg=el("div","comp"); lg.append(el("h4",null,R.leagueName), el("p",null,R.rank+"위 / "+R.N+"팀"+(m.grp?" · 파이널"+m.grp:"")+" · 승점 "+m.pts));
+  if(R.promo.text) lg.appendChild(el("p","promo "+R.promo.status,R.promo.text));
   comps.appendChild(lg);
   const fa=el("div","comp"); fa.appendChild(el("h4",null,"FA컵"));
   const fl=el("div","stages"); R.fa.stages.forEach(e=>fl.appendChild(el("span","stg "+(e.advance?"ok":"no"),e.stage+" "+e.f+":"+e.a+(e.pk?" (PK "+e.pk[0]+"-"+e.pk[1]+")":"")+" "+e.opp.name)));
@@ -569,36 +607,40 @@ function paneSum(R){
   wrap.appendChild(shareBlock(R));
   return wrap;
 }
-const COMP_CLS={"리그":"lg","FA컵":"fa","ACL":"acl"};
+const COMP_CLS={"리그":"lg","FA컵":"fa","ACL":"acl","승강PO":"po"};
 function paneFx(R){
   const wrap=el("div","pane-fx"); const chips=el("div","seg"); const ul=el("ul","matches");
   let cur="전체";
   const paint=()=>{ ul.innerHTML=""; [...chips.children].forEach(b=>b.setAttribute("aria-pressed",String(b.textContent===cur)));
     R.log.filter(g=>cur==="전체"||g.comp===cur).forEach(g=>{
-      const li=el("li","m"); li.append(el("span","r",g.comp==="리그"?g.round+"R":"#"+g.n), el("span","cp "+COMP_CLS[g.comp],g.comp),
+      const li=el("li","m"); li.append(el("span","r",g.comp==="리그"?g.round+"R":"#"+g.n), el("span","cp "+COMP_CLS[g.comp],g.comp==="승강PO"?"PO":g.comp),
         el("span","ha",g.home===true?"홈":g.home===false?"원정":"중립"));
       const o=el("span","o",g.opp.name+" · "+(g.comp==="리그"?(g.stage==="정규"?"정규":g.stage):g.stage)+(g.rot?" · 교체 "+g.rot:""));
-      const sc=[g.ms.length?g.ms.join(", "):"", g.os.length?"상대 "+g.os.join(", "):""].filter(Boolean).join(" · ");
+      const sc=[g.ms.length?g.ms.join(", "):"", g.os.length?(g.os.every(x=>x==="상대 선수")?"상대 "+g.os.length+"골":"상대 "+g.os.join(", ")):""].filter(Boolean).join(" · ");
       o.appendChild(el("span",null,sc||"득점 없음"));
       const cd=[g.ys.length?"경고 "+g.ys.join(", "):"", g.rs.length?"퇴장 "+g.rs.join(", "):"", g.outS.length?"징계결장 "+g.outS.join(", "):"", g.outI.length?"부상결장 "+g.outI.join(", "):"", g.hurt.length?"부상 "+g.hurt.join(", "):""].filter(Boolean).join(" · ");
       if(cd) o.appendChild(el("span","cdl",cd));
       li.appendChild(o);
       li.appendChild(el("span","sc "+g.res,g.f+" : "+g.a+(g.pk?" ("+g.pk[0]+"-"+g.pk[1]+")":"")));
       ul.appendChild(li); }); };
-  ["전체","리그","FA컵","ACL"].forEach(n=>{ if(n==="ACL"&&!R.acl.qualified) return; const b=el("button",null,n); b.type="button"; b.onclick=()=>{ cur=n; paint(); }; chips.appendChild(b); });
+  ["전체","리그","FA컵","ACL","승강PO"].forEach(n=>{ if(n==="ACL"&&!R.acl.qualified) return; if(n==="승강PO"&&!R.log.some(e=>e.comp==="승강PO")) return; const b=el("button",null,n); b.type="button"; b.onclick=()=>{ cur=n; paint(); }; chips.appendChild(b); });
   wrap.append(chips,ul); paint(); return wrap;
 }
 function paneTbl(R){
   const wrap=el("div","pane-tbl");
   const tb=el("table","tbl"); tb.innerHTML="<thead><tr><th>#</th><th class='t'>팀</th><th>승</th><th>무</th><th>패</th><th>득실</th><th>승점</th></tr></thead>";
   const body=el("tbody");
-  R.table.forEach((t,i)=>{ const tr=el("tr",t.me?"me":"link"+(i===5?" cut":""));
-    if(!t.me){ const ti=TEAMS26.findIndex(x=>x.club===t.name); tr.title="눌러서 스쿼드 보기"; tr.onclick=()=>{ renderOpp(ti); $("oppWrap").scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}); }; }
+  const zone=i=>R.div===1 ? (i===R.N-1?" down":i===R.N-2?" po":(i===5?" cut":"")) : (i===0?" up":i===1?" po":"");
+  R.table.forEach((t,i)=>{ const tr=el("tr",(t.me?"me":"link")+zone(i));
+    if(!t.me){ const d=R.div; let li=oppList(d).findIndex(x=>x.club===t.name), dd=d; if(li<0){ dd=d===1?2:1; li=oppList(dd).findIndex(x=>x.club===t.name); }
+      tr.title="눌러서 스쿼드 보기"; tr.onclick=()=>{ renderOpp(li,dd); $("oppWrap").scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}); }; }
     const nm=el("td","t"); nm.append(crest(t.name,22), document.createTextNode(" "+t.name+(t.grp?" ("+t.grp+")":"")));
     tr.append(el("td","num",String(i+1)), nm, el("td","num",String(t.w)), el("td","num",String(t.d)), el("td","num",String(t.l)), el("td","num",(t.gf-t.ga>0?"+":"")+(t.gf-t.ga)), el("td","num pts",String(t.pts)));
     body.appendChild(tr); });
   tb.appendChild(body); const tw=el("div","tablewrap"); tw.appendChild(tb); wrap.appendChild(tw);
-  wrap.appendChild(el("p","hint","팀 이름을 누르면 스쿼드를 볼 수 있어요. 33라운드 후 상위 6팀은 파이널A, 하위 6팀은 파이널B로 갈라 5라운드를 더 치러요."));
+  wrap.appendChild(el("p","hint", R.div===1
+    ? "팀 이름을 누르면 스쿼드를 볼 수 있어요. 33라운드 후 상위 6팀은 파이널A, 하위 6팀은 파이널B로 갈라 5라운드를 더 치러요. 12위는 K리그2로 강등, 11위는 K리그2 2위와 승강 플레이오프를 해요."
+    : "팀 이름을 누르면 스쿼드를 볼 수 있어요. 17팀이 2번씩(32경기) 겨루고, 1위는 K리그1 직행, 2위는 K리그1 11위와 승강 플레이오프를 해요."));
   if(R.derbies.length){ const d=el("div","derbies"); d.appendChild(el("h4",null,"더비 결과 (상대팀끼리)")); R.derbies.forEach(x=>d.appendChild(el("p",null,x.name+" · "+x.home+" "+x.hg+" : "+x.ag+" "+x.away))); wrap.appendChild(d); }
   return wrap;
 }
@@ -655,10 +697,10 @@ function renderCareer(){
   const c=S.career, w=$("careerWrap");
   w.hidden = c.history.length===0;
   if(w.hidden) return;
-  $("careerLabel").textContent="리그 "+c.trophies.league+" · FA컵 "+c.trophies.fa+" · ACL "+c.trophies.acl;
+  $("careerLabel").textContent="K리그1 "+c.trophies.league+" · K리그2 "+c.trophies.k2+" · FA컵 "+c.trophies.fa+" · ACL "+c.trophies.acl;
   const box=$("career"); box.innerHTML="";
-  const tb=el("table","tbl"); tb.innerHTML="<thead><tr><th>시즌</th><th>순위</th><th>승점</th><th>전적</th><th class='t'>FA컵</th><th class='t'>ACL</th></tr></thead>";
-  const body=el("tbody"); c.history.forEach(h=>{ const tr=el("tr"); tr.append(el("td","num",h.no+" ("+h.year+")"),el("td","num"+(h.rank===1?" pts":""),h.rank+"위"),el("td","num",String(h.pts)),el("td","num",h.w+"-"+h.d+"-"+h.l),el("td","t",h.fa),el("td","t",h.acl)); body.appendChild(tr); });
+  const tb=el("table","tbl"); tb.innerHTML="<thead><tr><th>시즌</th><th class='t'>리그</th><th>순위</th><th>승점</th><th>전적</th><th class='t'>FA컵</th><th class='t'>ACL</th><th class='t'>승강</th></tr></thead>";
+  const body=el("tbody"); c.history.forEach(h=>{ const tr=el("tr"); tr.append(el("td","num",h.no+" ("+h.year+")"),el("td","t",h.div===2?"K리그2":"K리그1"),el("td","num"+(h.rank===1?" pts":""),h.rank+"위"),el("td","num",String(h.pts)),el("td","num",h.w+"-"+h.d+"-"+h.l),el("td","t",h.fa),el("td","t",h.acl),el("td","t",h.promo||"-")); body.appendChild(tr); });
   tb.appendChild(body); const tw=el("div","tablewrap"); tw.appendChild(tb); box.appendChild(tw);
 }
 function renderAch(){
@@ -685,7 +727,7 @@ function shareBlock(R){
 }
 function teamSnapshot(){
   const pk=p=>[p.name,K.squadKey(SQUADS[p.sq])];
-  return {f:S.form,m:S.mgr?S.mgr.name:null,rm:S.rm,xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
+  return {f:S.form,d:S.career.div,m:S.mgr?S.mgr.name:null,rm:S.rm,xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
 }
 async function uploadResult(R,btn){
   const nick=$("nick").value.trim();
@@ -701,7 +743,7 @@ async function uploadResult(R,btn){
 function summaryText(R){
   const m=R.me, top=Object.entries(R.goals).sort((a,b)=>b[1]-a[1])[0];
   return "K-레전드 38 시즌 "+R.seasonNo+" ("+R.year+" · "+(R.diff==="hard"?"어려움":"쉬움")+")\n"+m.name+" ("+S.form+(S.mgr?", 감독 "+S.mgr.name:"")+(S.mode==="pos"?", 연도+포지션":"")+")\n"+
-    "리그 "+m.w+"승 "+m.d+"무 "+m.l+"패 · 승점 "+m.pts+" · "+R.rank+"위"+(R.trophies.length?"\n🏆 "+R.trophies.join(" · "):"")+
+    R.leagueName+" "+m.w+"승 "+m.d+"무 "+m.l+"패 · 승점 "+m.pts+" · "+R.rank+"위"+(R.promo.text?" ("+R.promo.text+")":"")+(R.trophies.length?"\n🏆 "+R.trophies.join(" · "):"")+
     (top?"\n팀 득점 1위: "+top[0]+" "+top[1]+"골":"")+"\n베스트 11: "+S.xi.map(p=>p.name).join(", ")+"\n후보: "+(S.bench.filter(Boolean).map(p=>p.name).join(", ")||"없음");
 }
 function copyText(R,btn){

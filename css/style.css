@@ -309,3 +309,20 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:80ch}
 .pitch .fc-name{font-size:max(8.5px,12.5cqw)}
 .pitch .fc-sub{font-size:max(6.5px,8.5cqw)}
 .bench .fc-name{font-size:max(8px,12.5cqw)}
+
+/* K리그2 · 승강 */
+.chip.lg1{background:linear-gradient(90deg,#19f2a3,#13d38c);color:#04281b}
+.chip.lg2{background:linear-gradient(90deg,#ffcf4a,#ff9d2e);color:#2b1a00}
+.seg .divtab{margin-right:6px}
+.seg .teamtab{display:inline-flex;align-items:center;gap:4px}
+.tbl tr.up td{box-shadow:inset 3px 0 0 var(--win)}
+.tbl tr.po td{box-shadow:inset 3px 0 0 var(--gold)}
+.tbl tr.down td{box-shadow:inset 3px 0 0 var(--loss)}
+.promo{font-weight:700}
+.promo.relegated,.promo.po_failed{color:var(--red)}
+.promo.promoted,.promo.po_promoted,.promo.po_stay{color:var(--win)}
+.cp.po{background:#c9a0ff}
+.reel-crest{display:flex;justify-content:center;margin-bottom:6px}.reel-crest:empty{display:none}
+/* 엠블럼 이미지가 있을 때 */
+.crest.img{background:none;box-shadow:none}
+.crest img{width:100%;height:100%;object-fit:contain;display:block}

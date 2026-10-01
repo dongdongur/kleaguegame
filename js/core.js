@@ -90,6 +90,8 @@ function yearsOf(era){
 }
 const overlap=(x,y,tol)=>x[0]-tol<=y[1] && y[0]-tol<=x[1];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+/* 팀 전체 능력치는 선수 바닥(R_MIN)에 걸리지 않게 따로 변환 */
+const teamScale = x => Math.round(CONFIG.R_BASE+(x-CONFIG.R_ANCHOR)*CONFIG.R_SCALE);
 const rescale = x => clamp(Math.round(CONFIG.R_BASE+(x-CONFIG.R_ANCHOR)*CONFIG.R_SCALE), CONFIG.R_MIN, CONFIG.R_MAX);
 const BORN = window.KL_BORN||{};
 /* 나이에 따른 능력치 감점 */
@@ -132,13 +134,14 @@ const YEARS = (()=>{ const a=SQUADS.map(q=>q.yrs[0]), b=SQUADS.map(q=>q.yrs[1]);
 const coversYear = (q,y) => q.yrs[0]<=y && y<=q.yrs[1];
 
 /* 2026 K리그1 상대팀. 프라임 능력치: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치+PRIME_DEFAULT (모두 원본 척도로 정한 뒤 한꺼번에 변환) */
-const TEAMS26 = (window.KL_2026||[]).map(t=>({club:t[0],short:t[1],base:rescale(t[2]),
+const TEAMS26 = (window.KL_2026||[]).map(t=>({club:t[0],short:t[1],div:1,base:teamScale(t[2]),
   players:t[3].map(p=>{ const legend=LEGEND_BEST[p[0]+"|"+p[1]];
     const primeRaw = p[4]!=null ? p[4] : (legend ? Math.max(p[2],legend) : p[2]+CONFIG.PRIME_DEFAULT);
     const ovr=rescale(p[2]);
     return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,rescale(primeRaw))}; })}));
-const K2 = (window.KL_K2||[]).map(t=>({name:t[0],kind:t[1],base:rescale(t[2])}));
-const ACL_POOL = (window.KL_ACL||[]).map(t=>({name:t[0],kind:t[1],base:rescale(t[2])}));
+/* K리그2 팀: 선수 명단 없이 팀 기본 능력치만 있어요 (1부로 올라오면 그 능력치 그대로 K리그1 팀이 돼요) */
+const K2_DEFS = (window.KL_K2||[]).map(t=>({club:t[0],short:t[0],div:2,base:teamScale(t[2]),players:[]}));
+const ACL_POOL = (window.KL_ACL||[]).map(t=>({name:t[0],kind:t[1],base:teamScale(t[2])}));
 const DERBIES = window.KL_DERBIES||[];
 function derbyName(a,b){ const d=DERBIES.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)); return d?d[2]:null; }
 
@@ -238,7 +241,7 @@ function oppStrength(t,hardDiff,boost){
     players:t.players.map(p=>({name:p.name,pos:p.pos,ovr:val(p)+b}))};
 }
 
-window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2, ACL_POOL, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
+window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
   clone, mgrFx, fatigue, rate, oppStrength, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();
