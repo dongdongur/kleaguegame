@@ -5,6 +5,7 @@ const K=window.KLCore, CFG=K.CONFIG;
 const {FORMS,GROUP,SQUADS,TEAMS26,MGRS,STYLE_NAME,tag,shuffle,clone,fitsSlot,YEARS,coversYear}=K;
 const MODES={team:"연도 + 팀", pos:"연도 + 포지션"};
 const DIFFS={easy:"쉬움 · 2026 현재", hard:"어려움 · 전성기"};
+const RATINGS={season:"시즌 (그 시즌 능력치)", prime:"프라임 (전성기 능력치)"};
 const TIER_NAME={bronze:"브론즈",silver:"실버",gold:"골드",elite:"엘리트",icon:"아이콘"};
 
 const $ = id => document.getElementById(id);
@@ -17,8 +18,9 @@ const hard = () => $("hard").checked;
 /* ================= 상태 ================= */
 let S;
 function newCareer(){ return {no:1,year:2026,history:[],trophies:{league:0,fa:0,acl:0},aclQ:false,prevAclQ:false,boost:{},moves:0}; }
-function newState(form,mode,diff){
-  S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
+function newState(form,mode,diff,rm){
+  K.setRatingMode(rm||"season");
+  S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", rm:rm||"season", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
     squad:null, selected:null, respins:CFG.RESPINS, spinning:false, done:false, picks:0, mgr:null, mgrOffer:null,
     phase:"draft", career:newCareer(), last:null, winter:null};
 }
@@ -41,6 +43,7 @@ function cardEl(p,o){
   const bl = o.blind!==undefined ? o.blind : blind();
   const t = bl ? "blind" : K.tier(p.ovr);
   const c=el("div","fcard t-"+t+(o.cls?" "+o.cls:""));
+  if(!bl && p.ovrP!=null) c.title=p.name+" · 이 시즌 "+p.ovrS+" / 전성기 "+p.ovrP;
   c.append(el("span","fc-ovr",bl?"?":String(p.ovr)), el("span","fc-pos",o.pos||(p.det?p.det[0]:p.pos)));
   const art=el("span","fc-art"); art.innerHTML=SIL; c.appendChild(art);
   c.appendChild(el("span","fc-name",p.name));
@@ -80,6 +83,7 @@ function renderForms(){
   });
 }
 function renderModes(){ renderSeg("modeSeg",MODES,S.mode,started(),m=>{ S.mode=m; idleReel(); $("hint").textContent=idleHint(); renderModes(); }); }
+function renderRatings(){ renderSeg("ratingSeg",RATINGS,S.rm,started(),r=>{ S.rm=r; K.setRatingMode(r); renderRatings(); renderOffers(); renderPitch(); }); }
 function renderDiffs(){ renderSeg("diffSeg",DIFFS,S.diff,S.done||S.career.no>1&&S.phase==="winter",d=>{ S.diff=d; renderDiffs(); renderBest(); renderOpp(); }); }
 function renderBadge(){
   const c=S.career; const b=$("seasonBadge"); b.innerHTML="";
@@ -383,7 +387,7 @@ function resim(){
   runSeason();
 }
 function resetGame(){
-  const f=S.form, md=S.mode, df=S.diff; newState(f,md,df);
+  const f=S.form, md=S.mode, df=S.diff, rm=S.rm; newState(f,md,df,rm);
   $("results").hidden=true; $("results").innerHTML=""; $("careerWrap").hidden=true;
   $("deskDraft").hidden=false; $("deskWinter").hidden=true;
   idleReel(); $("hint").textContent=idleHint();
@@ -395,8 +399,12 @@ function enterWinter(){
   const c=S.career;
   /* 선수 성장·하락 */
   S.xi.concat(S.bench).filter(Boolean).forEach(p=>{
-    const d=K.clamp(Math.round(p.trend*1.0+K.randn()*1.2),CFG.DEV_RANGE[0],CFG.DEV_RANGE[1]);
-    p.ovr=K.clamp(p.ovr+d,55,96); p.delta=d; });
+    if(S.rm==="prime"){ p.delta=0; return; }
+    p.age=(p.age||27)+1;
+    const curve=-(K.agePen(p.age,p.pos)-K.agePen(p.age-1,p.pos));
+    const d=K.clamp(Math.round(curve+K.randn()*1.1+p.trend*.5),CFG.DEV_RANGE[0],CFG.DEV_RANGE[1]);
+    const next=K.clamp(p.ovr+d,CFG.R_MIN,p.ovrP);
+    p.delta=next-p.ovr; p.ovr=next; });
   /* 상대팀 전력 변화 */
   TEAMS26.forEach(t=>{ c.boost[t.club]=K.clamp((c.boost[t.club]||0)+K.randn()*.9,-4,4); });
   S.phase="winter";
@@ -510,7 +518,7 @@ function showResults(R){
   const [v1,v2]=verdict(R);
   const hero=el("section","panel hero");
   const hl=el("div","hero-l");
-  hl.append(el("div","label","SEASON "+R.seasonNo+" · "+R.year+" · "+(R.diff==="hard"?"어려움":"쉬움")), el("h2","verdict",v1), el("p","vsub",v2));
+  hl.append(el("div","label","SEASON "+R.seasonNo+" · "+R.year+" · 상대 "+(R.diff==="hard"?"어려움":"쉬움")+" · 내 능력치 "+(S.rm==="prime"?"프라임":"시즌")), el("h2","verdict",v1), el("p","vsub",v2));
   const tro=el("div","trophies");
   [["리그",R.rank===1],["FA컵",R.fa.champion],["ACL",R.acl.champion]].forEach(([n,w])=>{ const t=el("div","trophy"+(w?" won":"")); t.append(el("span","tr-i",w?"🏆":"·"), el("span","tr-n",n)); tro.appendChild(t); });
   hero.append(hl,tro); box.appendChild(hero);
@@ -677,7 +685,7 @@ function shareBlock(R){
 }
 function teamSnapshot(){
   const pk=p=>[p.name,K.squadKey(SQUADS[p.sq])];
-  return {f:S.form,m:S.mgr?S.mgr.name:null,xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
+  return {f:S.form,m:S.mgr?S.mgr.name:null,rm:S.rm,xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
 }
 async function uploadResult(R,btn){
   const nick=$("nick").value.trim();
@@ -746,7 +754,7 @@ async function drawCard(R){
 function snapshotNow(){ return teamSnapshot(); }
 
 /* ================= 전체 렌더 · 시작 ================= */
-function renderAll(){ renderModes(); renderForms(); renderDiffs(); renderPitch(); renderOffers(); renderBest(); renderAch(); renderCareer(); }
+function renderAll(){ renderModes(); renderRatings(); renderForms(); renderDiffs(); renderPitch(); renderOffers(); renderBest(); renderAch(); renderCareer(); }
 
 $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);

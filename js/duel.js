@@ -13,7 +13,8 @@ function resolve(entry){
 function buildFriend(snap){
   if(!snap || !snap.xi) return null;
   const xi=snap.xi.map(resolve); if(xi.length!==11 || xi.some(x=>!x)) return null;
-  return {form:snap.f, xi:xi.map(K.clone), mgr:K.MGRS.find(m=>m.name===snap.m)||null};
+  const fit=p=>{ const c=K.clone(p); c.ovr = snap.rm==="prime" ? p.ovrP : p.ovrS; return c; };   // 친구가 고른 능력치 기준(시즌/프라임)으로 복원
+  return {form:snap.f, xi:xi.map(fit), mgr:K.MGRS.find(m=>m.name===snap.m)||null};
 }
 const sideRate = t => K.rate(t.xi,null,{form:t.form,mgr:t.mgr});
 

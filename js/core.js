@@ -6,20 +6,30 @@
 const CONFIG = {
   RESPINS: 2,          // 게임당 다시 스핀 횟수
   GOAL_BASE: 1.3,      // 실력이 같을 때 한 팀의 평균 득점
-  SPREAD: 15,          // 작을수록 실력 차이가 결과에 크게 반영됨
-  HOME_ADV: 0.6,       // 홈 어드밴티지 (능력치 점수)
-  CHEM_PER_PAIR: 0.4,  // 같은 팀(시즌) 출신 2명당 케미 보너스
-  NAT_PER_PAIR: 0.25,  // 같은 시기 국가대표 2명당 케미 보너스
-  CHEM_MAX: 2.5,       // 케미 보너스 상한
-  OUT_OF_POS: 2,       // 주 포지션이 아닌 자리에 세웠을 때 능력치 감점
-  FORCED_POS: 6,       // 아예 못 서는 포지션에 억지로 세웠을 때 감점
+  SPREAD: 21,          // 작을수록 실력 차이가 결과에 크게 반영됨
+  HOME_ADV: 0.85,      // 홈 어드밴티지 (능력치 점수)
+  CHEM_PER_PAIR: 0.55, // 같은 팀(시즌) 출신 2명당 케미 보너스
+  NAT_PER_PAIR: 0.35,  // 같은 시기 국가대표 2명당 케미 보너스
+  CHEM_MAX: 3.5,       // 케미 보너스 상한
+  OUT_OF_POS: 3,       // 주 포지션이 아닌 자리에 세웠을 때 능력치 감점
+  FORCED_POS: 8,       // 아예 못 서는 포지션에 억지로 세웠을 때 감점
+
+  /* 능력치 척도: 원본 데이터의 70점이 62점, 점수 차이는 1.4배로 벌려요. 바닥은 R_MIN */
+  R_BASE: 62, R_ANCHOR: 70, R_SCALE: 1.4, R_MIN: 58, R_MAX: 94,
+  /* 시즌별 능력치 = 나이 곡선 + 그 시즌 평가 + 컨디션 (프라임 모드는 전성기 능력치 그대로) */
+  W_AGE: .65,          // 나이 곡선 비중 (나머지는 원본 시즌 평가)
+  NOISE: 2.4,          // 시즌마다 조금씩 달라지는 컨디션 폭
+  AGE_PEAK: {GK:[27,35], DF:[26,32], MF:[25,31], FW:[24,30]},  // 전성기 나이대
+  AGE_UP: 1.8,         // 전성기 전, 1살 어릴 때마다 깎이는 능력치
+  AGE_DOWN1: 1.0,      // 전성기 후 처음 3년, 1살마다 깎이는 능력치
+  AGE_DOWN2: 1.5,      // 그 뒤로 1살마다 깎이는 능력치
   POS_CANDS: 5,        // 연도+포지션 스핀에서 보여줄 후보 선수 수
   TEAM_CANDS: 0,       // 연도+팀 스핀에서 공개할 선수 수 (0이면 그 팀 선수 전원 공개)
   BENCH_CANDS: 6,      // 후보 뽑기에서 라운드마다 보여줄 선수 수
   MGR_CANDS: 3,        // 감독 뽑기에서 보여줄 후보 감독 수
-  MGR_PER_OVR: 0.12,   // 감독 능력치 1당 공격·수비 보정 (80이 기준)
-  MGR_STYLE: 0.6,      // 공격형/수비형 감독의 공격↔수비 보정
-  MGR_FORM: 0.5,       // 선호 포메이션과 맞을 때 공격·수비 보너스
+  MGR_PER_OVR: 0.17,   // 감독 능력치 1당 공격·수비 보정 (80이 기준)
+  MGR_STYLE: 0.85,     // 공격형/수비형 감독의 공격↔수비 보정
+  MGR_FORM: 0.7,       // 선호 포메이션과 맞을 때 공격·수비 보너스
   BENCH: 5,            // 후보 선수 수 (포메이션과 상관없이 아무 포지션이나 가능)
 
   /* 체력: 경기마다 뛴 선수는 닳고 쉰 선수는 회복해요. 임계값 아래로 떨어진 선발은 같은 자리를 설 수 있는 후보와 교체돼요. */
@@ -29,16 +39,16 @@ const CONFIG = {
   STAM_ROTATE: 60,     // 이 아래면 후보와 교체
   STAM_MIN: 20,        // 체력 하한
   FATIGUE_FROM: 70,    // 이 아래부터 능력치가 깎여요
-  FATIGUE_PER: 0.1,    // 체력 1이 모자랄 때마다 깎이는 능력치
+  FATIGUE_PER: 0.14,   // 체력 1이 모자랄 때마다 깎이는 능력치
 
   /* 카드: 퇴장은 그 경기를 10명으로 치르고 다음 경기 결장, 경고 5장 누적마다 1경기 결장 */
   CARD_Y: {GK:.02, DF:.13, MF:.14, FW:.08},  // 경기당 경고 확률
   CARD_R: .004,        // 경기당 다이렉트 퇴장 확률
   CARD_Y2: .03,        // 경고를 받은 선수가 같은 경기에서 한 번 더 받아 퇴장당할 확률
-  RED_PEN: 4,          // 퇴장 1명당 그 경기 공격·수비 감점
+  RED_PEN: 5.5,        // 퇴장 1명당 그 경기 공격·수비 감점
   OPP_RED: .06,        // 상대팀이 한 경기에서 퇴장을 당할 확률
   OPP_YELLOW: 1.8,     // 상대팀 경기당 평균 경고 수
-  YOUTH_OVR: 62,       // 결장자를 대신할 후보조차 없을 때 투입되는 유스 선수 능력치
+  YOUTH_OVR: 60,       // 결장자를 대신할 후보조차 없을 때 투입되는 유스 선수 능력치
 
   /* 부상: 체력이 낮을수록 잘 다쳐요. [확률, 최소 결장, 최대 결장] */
   INJ_BASE: .005,      // 경기당 선수 1명의 부상 확률
@@ -46,13 +56,13 @@ const CONFIG = {
   INJ_LEN: [[.55,1,3],[.35,4,8],[.10,9,16]],
 
   /* 더비(상대팀끼리의 경기) */
-  DERBY_SPREAD: 24,    // 더비는 이 값으로 계산해서 이변이 잘 나와요
-  DERBY_HOME: .9,      // 더비 홈 이점
+  DERBY_SPREAD: 34,    // 더비는 이 값으로 계산해서 이변이 잘 나와요
+  DERBY_HOME: 1.3,     // 더비 홈 이점
 
   /* 상대팀(2026 K리그1) */
-  HARD_FILL: 9,        // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
-  PRIME_DEFAULT: 7,    // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값
-  CUP_HARD: 3,         // 어려움: FA컵/ACL 상대 팀 능력치 가산
+  HARD_FILL: 12,       // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
+  PRIME_DEFAULT: 7,    // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값 (원본 척도)
+  CUP_HARD: 4,         // 어려움: FA컵/ACL 상대 팀 능력치 가산
 
   /* 대회 일정: 리그 N라운드를 치른 뒤에 열려요 */
   FA_AFTER: [6,14,22,31],                   // FA컵 16강, 8강, 4강, 결승
@@ -79,24 +89,56 @@ function yearsOf(era){
   return [a,b];
 }
 const overlap=(x,y,tol)=>x[0]-tol<=y[1] && y[0]-tol<=x[1];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rescale = x => clamp(Math.round(CONFIG.R_BASE+(x-CONFIG.R_ANCHOR)*CONFIG.R_SCALE), CONFIG.R_MIN, CONFIG.R_MAX);
+const BORN = window.KL_BORN||{};
+/* 나이에 따른 능력치 감점 */
+function agePen(age,pos){
+  const pk=CONFIG.AGE_PEAK[pos]||[25,31];
+  if(age<pk[0]) return (pk[0]-age)*CONFIG.AGE_UP;
+  if(age<=pk[1]) return 0;
+  const y=age-pk[1]; return Math.min(y,3)*CONFIG.AGE_DOWN1+Math.max(0,y-3)*CONFIG.AGE_DOWN2;
+}
+/* 같은 입력이면 항상 같은 값이 나오는 컨디션 편차 (-NOISE ~ +NOISE, 가운데로 몰려요) */
+function jitter(key){
+  let h=2166136261; for(let i=0;i<key.length;i++){ h^=key.charCodeAt(i); h=Math.imul(h,16777619); }
+  const u=((h>>>0)%10000)/10000; h=Math.imul(h^(h>>>15),2246822519); const v=((h>>>0)%10000)/10000;
+  return (u+v-1)*CONFIG.NOISE;
+}
 const SQUADS = RAW.map((r,i)=>({id:i,club:r[0],short:r[1],era:r[2],str:r[3],
   nat:r[0]==="대한민국 대표팀", yrs:yearsOf(r[2]),
-  players:r[4].map(p=>({name:p[0],pos:p[1],ovr:p[2],alt:p[3]||null,det:p[4]?p[4].split("/"):null,sq:i}))}));
+  players:r[4].map(p=>({name:p[0],pos:p[1],raw:p[2],alt:p[3]||null,det:p[4]?p[4].split("/"):null,sq:i}))}));
+/* 원본 데이터에서 같은 선수의 최고 능력치(전성기)와 처음 등장한 해 */
+const LEGEND_BEST = {}, BEST_BY_NAME = {}, FIRST_YEAR = {};
+SQUADS.forEach(q=>q.players.forEach(p=>{ const k=p.name+"|"+p.pos; LEGEND_BEST[k]=Math.max(LEGEND_BEST[k]||0,p.raw); BEST_BY_NAME[p.name]=Math.max(BEST_BY_NAME[p.name]||0,p.raw); FIRST_YEAR[p.name]=Math.min(FIRST_YEAR[p.name]||9999,q.yrs[0]); }));
+SQUADS.forEach(q=>q.players.forEach(p=>{
+  p.yr=(q.yrs[0]+q.yrs[1])/2;
+  const born = BORN[p.name]!=null ? BORN[p.name] : FIRST_YEAR[p.name]-27;   // 모르면 처음 등장한 해에 27살로 가정
+  p.age=Math.round(p.yr-born);
+  const primeS=rescale(BEST_BY_NAME[p.name]);
+  const curve=primeS-agePen(p.age,p.pos);
+  const mixed=CONFIG.W_AGE*curve+(1-CONFIG.W_AGE)*rescale(p.raw)+jitter(p.name+"|"+q.short+"|"+q.era);
+  p.ovrP=primeS;                                   // 전성기(프라임) 능력치
+  p.ovrS=clamp(Math.round(mixed),CONFIG.R_MIN,primeS); // 그 시즌 능력치
+  p.ovr=p.ovrS;
+}));
+let RATING_MODE="season";
+/* 내 선수 능력치 기준: "season"(그 시즌) 또는 "prime"(전성기) */
+function setRatingMode(m){ RATING_MODE=m==="prime"?"prime":"season"; SQUADS.forEach(q=>q.players.forEach(p=>{ p.ovr = RATING_MODE==="prime"?p.ovrP:p.ovrS; })); }
 const NATS = SQUADS.filter(q=>q.nat).map(q=>({id:q.id,yrs:q.yrs,names:new Set(q.players.map(p=>p.name))}));
 const tag = s => s.short+" "+s.era.replace(/^20|^19/,"'").replace(/–(20|19)?/,"–");
 const squadKey = s => s.short+"|"+s.era;
 const YEARS = (()=>{ const a=SQUADS.map(q=>q.yrs[0]), b=SQUADS.map(q=>q.yrs[1]); const out=[]; for(let y=Math.min(...a);y<=Math.max(...b);y++) out.push(y); return out; })();
 const coversYear = (q,y) => q.yrs[0]<=y && y<=q.yrs[1];
 
-/* 2026 K리그1 상대팀. 프라임 능력치: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치+PRIME_DEFAULT */
-const LEGEND_BEST = {};
-SQUADS.forEach(q=>q.players.forEach(p=>{ const k=p.name+"|"+p.pos; LEGEND_BEST[k]=Math.max(LEGEND_BEST[k]||0,p.ovr); }));
-const TEAMS26 = (window.KL_2026||[]).map(t=>({club:t[0],short:t[1],base:t[2],
+/* 2026 K리그1 상대팀. 프라임 능력치: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치+PRIME_DEFAULT (모두 원본 척도로 정한 뒤 한꺼번에 변환) */
+const TEAMS26 = (window.KL_2026||[]).map(t=>({club:t[0],short:t[1],base:rescale(t[2]),
   players:t[3].map(p=>{ const legend=LEGEND_BEST[p[0]+"|"+p[1]];
-    const prime = p[4]!=null ? p[4] : (legend ? Math.max(p[2],legend) : p[2]+CONFIG.PRIME_DEFAULT);
-    return {name:p[0],pos:p[1],ovr:p[2],det:p[3]||"",prime}; })}));
-const K2 = (window.KL_K2||[]).map(t=>({name:t[0],kind:t[1],base:t[2]}));
-const ACL_POOL = (window.KL_ACL||[]).map(t=>({name:t[0],kind:t[1],base:t[2]}));
+    const primeRaw = p[4]!=null ? p[4] : (legend ? Math.max(p[2],legend) : p[2]+CONFIG.PRIME_DEFAULT);
+    const ovr=rescale(p[2]);
+    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,rescale(primeRaw))}; })}));
+const K2 = (window.KL_K2||[]).map(t=>({name:t[0],kind:t[1],base:rescale(t[2])}));
+const ACL_POOL = (window.KL_ACL||[]).map(t=>({name:t[0],kind:t[1],base:rescale(t[2])}));
 const DERBIES = window.KL_DERBIES||[];
 function derbyName(a,b){ const d=DERBIES.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)); return d?d[2]:null; }
 
@@ -130,7 +172,6 @@ function avg(a){return a.length? a.reduce((x,y)=>x+y,0)/a.length : 60;}
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function poisson(l){ const L=Math.exp(-l); let k=0,p=1; do{k++; p*=Math.random();}while(p>L); return k-1; }
 function randn(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function pickScorer(players){
   const w={GK:0,DF:.5,MF:2.4,FW:5};
   const ws=players.map(p=>w[p.g||p.pos]*Math.max(1,p.ovr-62)); const tot=ws.reduce((a,b)=>a+b,0);
@@ -199,5 +240,5 @@ function oppStrength(t,hardDiff,boost){
 
 window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2, ACL_POOL, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
-  clone, mgrFx, fatigue, rate, oppStrength};
+  clone, mgrFx, fatigue, rate, oppStrength, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();
