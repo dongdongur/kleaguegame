@@ -127,6 +127,58 @@ function renderMgr(){
   box.appendChild(el("div","mc-fx","보정 공격 "+(bl?"??":sgn(fx.att))+" · 수비 "+(bl?"??":sgn(fx.def))+" · 케미 ×"+fx.mult.toFixed(2)));
 }
 
+/* ================= 선수 상세 (FM 스타일 능력치) ================= */
+const POS_KO={GK:"골키퍼",DF:"수비수",MF:"미드필더",FW:"공격수"};
+function infoBtn(p){
+  const b=el("button","info-btn","ⓘ"); b.type="button"; b.title="상세 능력치"; b.setAttribute("aria-label",p.name+" 상세 보기");
+  b.onclick=e=>{ e.stopPropagation(); showInfo(p); }; return b;
+}
+function infoDot(p){   // 경기장·후보석 카드 위의 작은 ⓘ (버튼 안에 버튼을 넣을 수 없어서 span으로)
+  const d=el("span","info-dot","i"); d.title="상세 능력치 (오른쪽 클릭도 가능)";
+  d.onclick=e=>{ e.stopPropagation(); e.preventDefault(); showInfo(p); }; return d;
+}
+function attrRow(label,v){
+  const r=el("div","attr t-"+(window.KLAttrs?KLAttrs.tierOf(v):"c")); const bar=el("span","a-bar"); const i=el("i"); i.style.width=Math.max(4,v)+"%"; bar.appendChild(i);
+  r.append(el("span","a-l",label), bar, el("b","a-v",String(v))); return r;
+}
+function showInfo(p){
+  const A=window.KLAttrs?KLAttrs.get(p.name):null;
+  const m=$("modal"); m.innerHTML=""; m.hidden=false;
+  m.onclick=e=>{ if(e.target===m) m.hidden=true; };
+  const box=el("div","m-box"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; };
+  const head=el("div","m-head");
+  const cw=el("div","m-card"); cw.appendChild(cardEl(p,{blind:false,sub:p.sq>=0&&SQUADS[p.sq]?tag(SQUADS[p.sq]):""})); head.appendChild(cw);
+  const info=el("div","m-info");
+  info.appendChild(el("h3",null,p.name+(A&&A.name_en?"  ·  "+A.name_en:"")));
+  const sq=p.sq>=0&&SQUADS[p.sq]?SQUADS[p.sq]:null;
+  const lines=[
+    "포지션  "+(p.det?p.det.join(" / "):p.pos)+" ("+(POS_KO[p.pos]||p.pos)+")",
+    sq?"소속  "+sq.club+" "+sq.era+(sq.nat?"":" 시즌"):"",
+    "능력치  이 시즌 "+(p.ovrS!=null?p.ovrS:p.ovr)+" / 전성기 "+(p.ovrP!=null?p.ovrP:p.ovr)+(p.age?"  ·  나이 "+p.age:"")
+  ];
+  if(A){
+    lines.push("출생  "+A.birth_date+" · "+A.nationality+" · "+A.height_cm+"cm / "+A.weight_kg+"kg");
+    lines.push("FM식 능력  현재 "+A.current_ability+" / 잠재 "+A.potential_ability+(KLAttrs.overallFromAttrs(A.attributes,A.positions.main)!=null?"  ·  세부 능력으로 계산한 종합 "+KLAttrs.overallFromAttrs(A.attributes,A.positions.main):""));
+    if(A.kleague_clubs&&A.kleague_clubs.length) lines.push("K리그 구단  "+A.kleague_clubs.join(", "));
+  }
+  lines.filter(Boolean).forEach(t=>info.appendChild(el("p","m-line",t)));
+  if(A&&A.traits&&A.traits.length){ const tr=el("div","m-traits"); A.traits.forEach(t=>tr.appendChild(el("span","tg",t))); info.appendChild(tr); }
+  if(A&&A._example) info.appendChild(el("p","m-warn","예시 데이터예요. 실제 기록으로 검증된 값이 아니에요."));
+  head.appendChild(info); box.append(x,head);
+  if(A){
+    const grid=el("div","attr-grid");
+    KLAttrs.GROUPS.forEach(gr=>{
+      if(gr.id==="goalkeeping" && A.positions.main!=="GK") return;
+      const col=el("div","attr-col"); col.appendChild(el("h4",null,gr.label));
+      gr.keys.forEach(([k,l])=>{ const v=A.attributes[gr.id]&&A.attributes[gr.id][k]; if(v!=null) col.appendChild(attrRow(l,v)); });
+      grid.appendChild(col); });
+    box.appendChild(grid);
+  } else {
+    box.appendChild(el("p","hint","이 선수의 세부 능력치(패스, 드리블 등) 데이터는 아직 없어요. 지금은 종합 능력치만 쓰고 있어요. 실제 데이터가 준비되면 같은 형식으로 추가돼요."));
+  }
+  m.appendChild(box);
+}
+
 /* ================= 배치 가능 자리 ================= */
 function eligibleSlots(p){
   if(!p) return [];
@@ -151,6 +203,7 @@ function renderPitch(){
     if(p){
       const dl = S.phase==="winter" && p.delta ? (p.delta>0?"▲"+p.delta:"▼"+Math.abs(p.delta)) : null;
       b.appendChild(cardEl(p,{pos:s[0],badge:dl,badgeCls:p.delta>0?"up":"down"}));
+      b.appendChild(infoDot(p)); b.oncontextmenu=e=>{ e.preventDefault(); showInfo(p); };
       b.setAttribute("aria-label", s[0]+" "+p.name);
     } else { b.appendChild(emptyCard(s[0])); b.setAttribute("aria-label", s[0]+" 빈 자리"+(can.has(i)?", 여기에 배치":"")); }
     if(can.has(i)) b.onclick=()=> W ? winterPick({xi:i}) : place(i);
@@ -188,7 +241,7 @@ function renderBench(){
     b.className="bslot"+(can?" can":"")+(tgt?" target":"");
     if(p){
       const dl = S.phase==="winter" && p.delta ? (p.delta>0?"▲"+p.delta:"▼"+Math.abs(p.delta)) : null;
-      b.appendChild(cardEl(p,{badge:dl,badgeCls:p.delta>0?"up":"down"})); b.setAttribute("aria-label","후보 "+p.name);
+      b.appendChild(cardEl(p,{badge:dl,badgeCls:p.delta>0?"up":"down"})); b.appendChild(infoDot(p)); b.oncontextmenu=e=>{ e.preventDefault(); showInfo(p); }; b.setAttribute("aria-label","후보 "+p.name);
     } else { b.appendChild(emptyCard("+")); b.setAttribute("aria-label","후보석 "+(i+1)+" 비어 있음"); }
     if(can) b.onclick=()=>winterPick({bench:i}); else b.disabled=true;
     row.appendChild(b);
@@ -226,7 +279,7 @@ function renderOffers(){
     b.appendChild(cardEl(p,{sub: showTag?tag(SQUADS[p.sq]):dp, cls:(ok?"":"dim")+(S.selected===p?" sel":""), badge: used.has(p.name)?"선택됨":(!ok?"자리 없음":null), badgeCls:"gray"}));
     if(showTag) b.appendChild(el("span","offer-pos",dp));
     b.onclick=()=>pickPlayer(p);
-    li.appendChild(b); ul.appendChild(li);
+    li.appendChild(b); li.appendChild(infoBtn(p)); ul.appendChild(li);
   });
 }
 function pickPlayer(p){
@@ -495,7 +548,7 @@ function renderWinter(){
       b.appendChild(cardEl(p,{blind:false,sub:tag(SQUADS[p.sq]),cls:(w.cand===p?"sel":"")}));
       b.appendChild(el("span","offer-pos",(p.det?p.det.join("/"):p.pos)+(fitsAny?"":" · 후보로만")));
       b.onclick=()=>{ w.cand=(w.cand===p?null:p); w.target=null; renderPitch(); renderWinter(); };
-      li.appendChild(b); ul.appendChild(li); });
+      li.appendChild(b); li.appendChild(infoBtn(p)); ul.appendChild(li); });
     tr.appendChild(ul);
   }
   if(w.cand && w.target){
@@ -751,6 +804,7 @@ function panePlr(R){
   const body=el("tbody");
   R.stam.forEach(o=>{ const tr=el("tr"); const nm=el("td","t"); nm.append(el("span","pos "+o.p.pos,o.p.pos), document.createTextNode(" "+o.p.name+(o.starter?"":" (후보)")));
     const bar=el("td","t"); const sb=el("span","sbar"); const fl=el("i"); fl.style.width=Math.round(o.st)+"%"; fl.className=o.st<CFG.STAM_ROTATE?"low":""; sb.appendChild(fl); bar.appendChild(sb);
+    nm.classList.add("plink"); nm.title="눌러서 상세 능력치 보기"; nm.onclick=()=>showInfo(o.p);
     tr.append(nm, el("td","num",String(o.p.ovr)), el("td","num",String(o.apps)), el("td","num",String(o.g)), el("td","num",String(o.a)), el("td","num",String(o.y)), el("td","num",String(o.r)), el("td","num",String(o.missed)), el("td","num",o.injN?o.injN+"회/"+o.injOut+"경기":"-"), bar);
     body.appendChild(tr); });
   tb.appendChild(body); const tw=el("div","tablewrap"); tw.appendChild(tb); wrap.appendChild(tw);
@@ -875,5 +929,5 @@ newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; }
 idleReel(); $("hint").textContent=idleHint();
 renderAll(); renderOpp(null);
 window.__KL38 = {K, S:()=>S, snapshot:snapshotNow, runSeason, enterWinter};
-window.KLGame = {state:()=>S, snapshot:snapshotNow, cardEl, el, crest, renderAch, matchLogEl};
+window.KLGame = {showInfo, state:()=>S, snapshot:snapshotNow, cardEl, el, crest, renderAch, matchLogEl};
 })();

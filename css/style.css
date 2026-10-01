@@ -363,3 +363,35 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:80ch}
 .duel-leg.clickable{cursor:pointer;transition:background .15s}
 .duel-leg.clickable:hover,.duel-leg.open{background:rgba(25,242,163,.1)}
 .duel-log{margin:-2px 0 6px}
+
+/* 선수 상세 모달 (FM 스타일 능력치) */
+.offer-li{position:relative}
+.info-btn{position:absolute;top:-4px;left:-4px;z-index:4;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:rgba(8,12,28,.9);color:var(--acc);font:700 13px var(--f-body);cursor:pointer;line-height:1;padding:0}
+.info-btn:hover{background:var(--acc);color:var(--acc-ink)}
+.info-dot{position:absolute;top:-3px;left:-3px;z-index:5;width:16px;height:16px;border-radius:50%;background:rgba(8,12,28,.9);border:1px solid var(--line);color:var(--acc);font:700 10px/14px var(--f-num);text-align:center;cursor:pointer}
+.slot,.bslot{position:relative}
+.slot{position:absolute}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(2,4,12,.78);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:14px}
+.m-box{position:relative;width:min(860px,100%);max-height:92vh;overflow-y:auto;border:1px solid var(--line);border-radius:6px 22px 6px 22px;padding:18px;
+  background:linear-gradient(180deg,#111c42,#080d22);box-shadow:0 20px 70px rgba(0,0,0,.6)}
+.m-x{position:absolute;top:10px;right:12px;border:0;background:rgba(255,255,255,.1);color:var(--txt);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px}
+.m-head{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.m-card{width:132px;flex:none}
+.m-info{flex:1;min-width:220px}
+.m-info h3{font-family:var(--f-head);font-weight:400;font-size:24px;margin:0 0 6px}
+.m-line{margin:2px 0;font-size:13px;color:var(--muted)}
+.m-traits{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.m-warn{margin:10px 0 0;font-size:12px;color:#f0b34a}
+.attr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:16px}
+.attr-col h4{margin:0 0 6px;font-family:var(--f-head);font-weight:400;font-size:15px;color:var(--acc)}
+.attr{display:grid;grid-template-columns:96px 1fr 28px;gap:8px;align-items:center;font-size:12px;padding:2px 0}
+.a-l{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-bar{height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;display:block}
+.a-bar i{display:block;height:100%}
+.a-v{font:700 13px var(--f-num);text-align:right}
+.attr.t-s .a-bar i{background:#27d7ff}.attr.t-s .a-v{color:#27d7ff}
+.attr.t-a .a-bar i{background:var(--win)}.attr.t-a .a-v{color:var(--win)}
+.attr.t-b .a-bar i{background:#d8c14a}.attr.t-b .a-v{color:#d8c14a}
+.attr.t-c .a-bar i{background:#8d9bc4}.attr.t-c .a-v{color:#8d9bc4}
+.attr.t-d .a-bar i{background:#ff7b5c}.attr.t-d .a-v{color:#ff7b5c}
+td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underline}
