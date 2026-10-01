@@ -54,6 +54,70 @@ function run(o){
   const avail=p=>{ const s=ps.get(p); return !!s && s.susp<=0 && s.inj<=0; };
   const effOvr=p=>p.ovr-K.fatigue(stM.get(p));
 
+  /* ---- 경기 로그: 골·카드·부상·교체·결정적 장면을 분 단위로 만들어요 ---- */
+  function buildLog(c){
+    const rnd=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+    const label=t=>t<=90?t+"'":"연장 "+(t-90)+"'";
+    const ev=[]; const push=(t,k,txt,side)=>ev.push({t,k,text:txt,side:side||null});
+    const mn=me.name, on=c.opp.name;
+    const gkName=c.lineup[0]&&!c.lineup[0].youth?c.lineup[0].name:"우리 골키퍼";
+    const oppGk=c.opp.players?(c.opp.players.find(p=>p.pos==="GK")||{}).name:null;
+    /* 골 */
+    c.myG.forEach(g=>push(g.et?rnd(91,120):rnd(1,92),"goal",g.s+(g.a?" (도움 "+g.a+")":""),"me"));
+    c.opG.forEach(g=>push(g.et?rnd(91,120):rnd(1,92),"goal",g.s+(g.a?" (도움 "+g.a+")":""),"opp"));
+    /* 카드 */
+    c.ys.forEach(p=>{ const t=rnd(8,88); push(t,"yellow",p.name+" 경고","me"); });
+    c.rs.forEach(p=>{ const second=c.ys.includes(p); const t=second?rnd(50,89):rnd(10,88);
+      if(second){ /* 두 번째 경고로 퇴장: 첫 경고를 퇴장보다 앞에 둬요 */ const y=ev.find(e=>e.k==="yellow"&&e.text.startsWith(p.name+" ")); if(y&&y.t>=t) y.t=Math.max(2,t-rnd(5,30)); push(t,"red",p.name+" 두 번째 경고로 퇴장","me"); }
+      else push(t,"red",p.name+" 직접 퇴장","me"); });
+    for(let i=0;i<c.oy;i++) push(rnd(8,88),"yellow","상대 선수 경고","opp");
+    if(c.orr) push(rnd(20,88),"red","상대 선수 퇴장","opp");
+    /* 부상 → 교체 */
+    c.hurtP.forEach(h=>{ const t=rnd(10,85); const subs=c.bench.filter(b=>!c.used.has(b)&&!c.lineup.includes(b)); const sub=subs.length?subs[rnd(0,subs.length-1)].name:"유스 선수";
+      push(t,"injury",h.p.name+" 부상으로 교체 아웃 → "+sub+" 투입 ("+h.len+"경기 결장)","me"); });
+    /* 결정적 장면: 득점 외의 슈팅 */
+    const goalsMe=c.myG.filter(g=>!g.et).length, goalsOpp=c.opG.filter(g=>!g.et).length;
+    const extraMe=K.clamp(Math.round(3+(c.cur.att-c.oD)/7+Math.random()*3),1,9), extraOpp=K.clamp(Math.round(3+(c.opp.att-c.mD)/7+Math.random()*3),1,9);
+    const chance=(side,n)=>{ for(let i=0;i<n;i++){ const t=rnd(3,89); const r=Math.random();
+      const shooter = side==="me" ? K.pickScorer(c.myP).name : (c.opp.players?K.pickScorer(c.opp.players).name:"상대 선수");
+      const keeper = side==="me" ? (oppGk||"상대 골키퍼") : gkName;
+      if(r<.42) push(t,"save",shooter+"의 유효슈팅을 "+keeper+" 선방",side);
+      else if(r<.78) push(t,"miss",shooter+"의 슈팅이 골문을 벗어남",side);
+      else if(r<.9) push(t,"post",shooter+"의 슛이 골대를 강타",side);
+      else push(t,"chance",shooter+" 결정적 찬스를 놓침",side); } };
+    chance("me",extraMe); chance("opp",extraOpp);
+    ev.sort((x,y)=>x.t-y.t);
+    /* 구분선과 누적 스코어 */
+    const out=[{t:0,k:"mark",text:"킥오프"}];
+    let sm=0,so=0,half=false,ft=false;
+    ev.forEach(e=>{
+      if(!half && e.t>45){ out.push({t:45,k:"mark",text:"전반 종료  "+sm+" : "+so}); half=true; }
+      if(!ft && e.t>90){ out.push({t:90,k:"mark",text:"후반 종료  "+sm+" : "+so}); ft=true; if(c.et) out.push({t:90,k:"mark",text:"연장전 시작"}); }
+      if(e.k==="goal"){ if(e.side==="me") sm++; else so++; e.text=(e.side==="me"?"GOAL! ":"실점 ")+e.text+"  ("+sm+" : "+so+")"; }
+      out.push(e);
+    });
+    if(!half) out.push({t:45,k:"mark",text:"전반 종료  "+sm+" : "+so});
+    if(!ft) out.push({t:90,k:"mark",text:"후반 종료  "+sm+" : "+so});
+    if(c.et && !out.some(e=>e.text==="연장전 시작")) out.push({t:90.5,k:"mark",text:"연장전 시작"});
+    out.sort((x,y)=>x.t-y.t);
+    out.forEach(e=>{ e.m = e.k==="mark"&&e.t===0 ? "0'" : (e.k==="mark"&&e.t===45?"HT":(e.k==="mark"&&e.t===90?"FT":label(Math.round(e.t)))); });
+    out.push({t:999,k:"mark",m:"종료",text:"경기 종료  "+mn+" "+c.f+" : "+c.a+" "+on+(c.pk?"  (승부차기 "+c.pk[0]+"-"+c.pk[1]+")":"")});
+    /* 승부차기 */
+    if(c.pk){
+      const take=(n,score)=>{ const r=Array(n).fill(false); let left=score; const idx=K.shuffle([...Array(n).keys()]); for(let i=0;i<score&&i<n;i++) r[idx[i]]=true; return r; };
+      const kicks=Math.max(5,c.pk[0],c.pk[1]); const mine=take(kicks,c.pk[0]), theirs=take(kicks,c.pk[1]);
+      const names=c.lineup.filter(p=>!p.youth).map(p=>p.name);
+      const shots=[]; for(let i=0;i<kicks;i++){ shots.push({m:"PK",k:mine[i]?"pkgoal":"pkmiss",text:(i+1)+"번 키커 "+names[(10-i+11)%names.length]+(mine[i]?" 성공":" 실패"),side:"me"}); shots.push({m:"PK",k:theirs[i]?"pkgoal":"pkmiss",text:(i+1)+"번 키커 상대 "+(theirs[i]?"성공":"실패"),side:"opp"}); }
+      shots.forEach(x=>{ x.t=1000; out.push(x); });
+    }
+    /* 경기 통계 (능력치 차이로 만든 값이에요) */
+    const shM=goalsMe+c.myG.filter(g=>g.et).length+extraMe, shO=goalsOpp+c.opG.filter(g=>g.et).length+extraOpp;
+    const sotM=c.f+Math.round(extraMe*.45), sotO=c.a+Math.round(extraOpp*.45);
+    const poss=Math.round(K.clamp(50+((c.cur.att+c.cur.def)-(c.opp.att+c.opp.def))*.35,34,66));
+    const stats={poss:[poss,100-poss],shots:[shM,shO],sot:[sotM,sotO],corners:[Math.round(shM*.5+rnd(0,2)),Math.round(shO*.5+rnd(0,2))],fouls:[rnd(8,15)+c.ys.length,rnd(8,15)+c.oy]};
+    return {events:out,stats};
+  }
+
   /* ---- 내 경기 한 판 ---- */
   function myMatch(m){
     const opp=m.opp;
@@ -80,7 +144,7 @@ function run(o){
     const mA=cur.att-pen*rs.length, mD=cur.def-pen*rs.length, oA=opp.att-pen*orr, oD=opp.def-pen*orr;
     const ha = m.home===true?CFG.HOME_ADV : m.home===false?-CFG.HOME_ADV : 0;
     const lm=CFG.GOAL_BASE*Math.exp((mA+ha-oD)/CFG.SPREAD), lo=CFG.GOAL_BASE*Math.exp((oA-mD-ha)/CFG.SPREAD);
-    let f=K.poisson(lm), a=K.poisson(lo), et=false, pk=null;
+    let f=K.poisson(lm), a=K.poisson(lo), et=false, pk=null; const f0=f, a0=a;
     const aggF=m.agg?m.agg.f:0, aggA=m.agg?m.agg.a:0;
     if(m.ko){
       if(f+aggF===a+aggA){ et=true; f+=K.poisson(lm*CFG.ET_FACTOR); a+=K.poisson(lo*CFG.ET_FACTOR);
@@ -91,23 +155,27 @@ function run(o){
 
     const myP=lineup.map((p,i)=>Object.assign({},p,{g:G[slots[i][0]],ref:p}));
     const league=m.comp==="리그";
-    const ms=[], as=[];
+    const ms=[], as=[], myG=[], opG=[];
     for(let k=0;k<f;k++){ const s=K.pickScorer(myP); ms.push(s.name); goalsAll[s.name]=(goalsAll[s.name]||0)+1;
       const st=ps.get(s.ref); if(st){ st.g++; if(league) st.lg++; }
-      if(Math.random()<.72){ const asst=K.pickAssist(myP,s); if(asst){ as.push(asst.name); const a2=ps.get(asst.ref); if(a2){ a2.a++; if(league) a2.la++; } } } }
+      let an=null;
+      if(Math.random()<.72){ const asst=K.pickAssist(myP,s); if(asst){ an=asst.name; as.push(asst.name); const a2=ps.get(asst.ref); if(a2){ a2.a++; if(league) a2.la++; } } }
+      myG.push({s:s.name,a:an,et:k>=f0}); }
     const os=[];
     for(let k=0;k<a;k++){
-      if(opp.players && opp.players.length){ const s=K.pickScorer(opp.players); os.push(s.name);
-        if(league && Math.random()<.72){ tally(opp,s,"g"); if(Math.random()<.55){ const asst=K.pickAssist(opp.players,s); if(asst) tally(opp,asst,"a"); } } }
-      else os.push("상대 선수"); }
+      let sn="상대 선수", an=null;
+      if(opp.players && opp.players.length){ const s=K.pickScorer(opp.players); sn=s.name;
+        if(Math.random()<.6){ const asst=K.pickAssist(opp.players,s); if(asst) an=asst.name; }
+        if(league && Math.random()<.72){ tally(opp,s,"g"); if(an){ const o2=opp.players.find(p=>p.name===an); if(o2) tally(opp,o2,"a"); } } }
+      os.push(sn); opG.push({s:sn,a:an,et:k>=a0}); }
     if(a===0 && lineup[0] && ps.has(lineup[0])) ps.get(lineup[0]).cs++;
 
     const serving=roster.filter(p=>ps.get(p).susp>0 || ps.get(p).inj>0);
-    const hurt=[];
+    const hurt=[], hurtP=[];
     lineup.forEach((p,i)=>{ if(p.youth) return; const s=ps.get(p); const g=G[slots[i][0]];
       let pr=CFG.INJ_BASE*(1+Math.max(0,(CFG.STAM_ROTATE-stM.get(p))/40)); if(g==="GK") pr*=CFG.INJ_GK;
       if(Math.random()<pr){ let x=Math.random(), len=1; for(const [pp,mn,mx] of CFG.INJ_LEN){ if(x<pp){ len=mn+Math.floor(Math.random()*(mx-mn+1)); break; } x-=pp; }
-        s.inj=len+1; s.injN++; hurt.push(p.name+"("+len+"경기)"); injured.push({name:p.name,matches:len,comp:m.comp,stage:m.stage}); } });
+        s.inj=len+1; s.injN++; hurt.push(p.name+"("+len+"경기)"); hurtP.push({p,len}); injured.push({name:p.name,matches:len,comp:m.comp,stage:m.stage}); } });
     const playing=new Set(lineup);
     lineup.forEach((p,i)=>{ if(!stM.has(p)) return; ps.get(p).apps++; stM.set(p,Math.max(CFG.STAM_MIN, stM.get(p)-CFG.STAM_COST[G[slots[i][0]]]+CFG.STAM_PLAY_REC)); });
     roster.forEach(p=>{ if(!playing.has(p)) stM.set(p,Math.min(100, stM.get(p)+CFG.STAM_REST)); });
@@ -115,8 +183,9 @@ function run(o){
     ys.forEach(p=>{ const s=ps.get(p); s.y++; totY++; if(s.y%5===0) s.susp++; });
     rs.forEach(p=>{ const s=ps.get(p); s.r++; totR++; s.susp++; });
 
+    const tl=buildLog({m,opp,lineup,myP,myG,opG,f,a,f0,a0,et,pk,ys,rs,oy,orr,hurtP,cur,mA,mD,oA,oD,bench,used});
     matchNo++;
-    const entry={n:matchNo, comp:m.comp, stage:m.stage, round:m.round||null, home:m.home, opp:{name:opp.name,kind:opp.kind||leagueName}, f, a, et, pk, res, advance,
+    const entry={n:matchNo, tl:tl.events, stats:tl.stats, lineup:lineup.map((p,i)=>({pos:slots[i][0],name:p.name,ovr:p.ovr,youth:!!p.youth})), formation:o.form, comp:m.comp, stage:m.stage, round:m.round||null, home:m.home, opp:{name:opp.name,kind:opp.kind||leagueName}, f, a, et, pk, res, advance,
       ms, os, as, rot, ys:ys.map(p=>p.name), rs:rs.map(p=>p.name), oy, or:orr, outS, outI, hurt, derby:null};
     log.push(entry);
     return entry;

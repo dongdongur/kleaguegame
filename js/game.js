@@ -608,6 +608,41 @@ function paneSum(R){
   return wrap;
 }
 const COMP_CLS={"리그":"lg","FA컵":"fa","ACL":"acl","승강PO":"po"};
+const TL_ICON={goal:"⚽",yellow:"🟨",red:"🟥",injury:"🩹",save:"🧤",miss:"💨",post:"🥅",chance:"😮",pkgoal:"✅",pkmiss:"❌"};
+/* 경기 한 판의 분 단위 로그 (경기 목록에서 눌러서 펼쳐요) */
+function matchLogEl(g,R){
+  const mn=R.me.name, on=g.opp.name;
+  const box=el("div","mlog");
+  const head=el("div","ml-head");
+  head.append(el("span","ml-t",g.comp+" · "+g.stage+(g.home===true?" · 홈":g.home===false?" · 원정":" · 중립")),
+    el("div","ml-score",mn+"  "+g.f+" : "+g.a+"  "+on+(g.pk?"  (승부차기 "+g.pk[0]+"-"+g.pk[1]+")":"")));
+  box.appendChild(head);
+  if(g.stats){
+    const st=el("div","ml-stats");
+    [["점유율",g.stats.poss,"%"],["슈팅",g.stats.shots,""],["유효슈팅",g.stats.sot,""],["코너킥",g.stats.corners,""],["파울",g.stats.fouls,""]].forEach(([n,v,u])=>{
+      const r=el("div","ml-st"); const tot=(v[0]+v[1])||1;
+      const bar=el("span","ml-bar"); const l=el("i"); l.style.width=Math.round(v[0]/tot*100)+"%"; bar.appendChild(l);
+      r.append(el("b",null,v[0]+u), el("span","ml-sn",n), bar, el("b",null,v[1]+u)); st.appendChild(r); });
+    box.appendChild(st);
+  }
+  if(g.lineup){
+    const lu=el("div","ml-lu"); lu.appendChild(el("span","label","출전 선수 ("+g.formation+")"));
+    const row=el("div","ml-chips"); g.lineup.forEach(p=>row.appendChild(el("span","chip"+(p.youth?" muted":""),p.pos+" "+p.name)));
+    lu.appendChild(row); box.appendChild(lu);
+  }
+  const ul=el("ul","tlist");
+  g.tl.forEach(e=>{
+    const li=el("li","tl k-"+e.k+(e.side?" s-"+e.side:""));
+    if(e.k==="mark"){ li.append(el("span","tl-m",e.m), el("span","tl-x",e.text)); }
+    else {
+      const txt=el("span","tl-x",(TL_ICON[e.k]?TL_ICON[e.k]+" ":"")+e.text);
+      const mm=el("span","tl-m",e.m);
+      if(e.side==="opp") li.append(el("span","tl-x"), mm, txt); else li.append(txt, mm, el("span","tl-x"));
+    }
+    ul.appendChild(li); });
+  box.appendChild(ul);
+  return box;
+}
 function paneFx(R){
   const wrap=el("div","pane-fx"); const chips=el("div","seg"); const ul=el("ul","matches");
   let cur="전체";
@@ -622,9 +657,12 @@ function paneFx(R){
       if(cd) o.appendChild(el("span","cdl",cd));
       li.appendChild(o);
       li.appendChild(el("span","sc "+g.res,g.f+" : "+g.a+(g.pk?" ("+g.pk[0]+"-"+g.pk[1]+")":"")));
-      ul.appendChild(li); }); };
+      li.classList.add("clickable"); li.title="눌러서 경기 로그 보기";
+      const lg=el("li","mlog-li"); lg.hidden=true;
+      li.onclick=()=>{ if(lg.hidden){ lg.innerHTML=""; lg.appendChild(matchLogEl(g,R)); lg.hidden=false; li.classList.add("open"); } else { lg.hidden=true; li.classList.remove("open"); } };
+      ul.append(li,lg); }); };
   ["전체","리그","FA컵","ACL","승강PO"].forEach(n=>{ if(n==="ACL"&&!R.acl.qualified) return; if(n==="승강PO"&&!R.log.some(e=>e.comp==="승강PO")) return; const b=el("button",null,n); b.type="button"; b.onclick=()=>{ cur=n; paint(); }; chips.appendChild(b); });
-  wrap.append(chips,ul); paint(); return wrap;
+  wrap.append(chips,el("p","hint","경기를 누르면 분 단위 경기 로그(골·카드·부상·결정적 장면)와 통계를 볼 수 있어요."),ul); paint(); return wrap;
 }
 function paneTbl(R){
   const wrap=el("div","pane-tbl");
