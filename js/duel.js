@@ -1,9 +1,10 @@
-/* 친구 팀과의 맞대결: 친구가 올린 베스트 11 스냅샷을 불러와 홈&어웨이 2경기 합산으로 겨뤄요 */
+/* 친구 팀과의 맞대결: 친구가 올린 베스트 11 스냅샷을 불러와 홈&어웨이 2경기 합산으로 겨뤄요. 경기마다 분 단위 로그를 볼 수 있어요 */
 (function(){
 "use strict";
 const K=window.KLCore, CFG=K.CONFIG;
 const $=id=>document.getElementById(id);
 const el=(t,c,x)=>{const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e;};
+const rnd=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
 
 /* [이름, "구단|시즌"] -> 선수 데이터 */
 function resolve(entry){
@@ -17,14 +18,41 @@ function buildFriend(snap){
   return {form:snap.f, xi:xi.map(fit), mgr:K.MGRS.find(m=>m.name===snap.m)||null};
 }
 const sideRate = t => K.rate(t.xi,null,{form:t.form,mgr:t.mgr});
+const withGroup = t => t.xi.map((p,i)=>Object.assign({},p,{g:K.GROUP[K.FORMS[t.form][i][0]]}));
 
+/* 한 경기: 홈/원정 팀 객체와 능력치로 결과를 만들어요. 득점자·도움은 팀 선수들 중에서 뽑아요 */
 function playLeg(H,A,hr,ar,ko,agg){
   const ha=CFG.HOME_ADV;
   const lh=CFG.GOAL_BASE*Math.exp((hr.att+ha-ar.def)/CFG.SPREAD), la=CFG.GOAL_BASE*Math.exp((ar.att-hr.def-ha)/CFG.SPREAD);
-  let gh=K.poisson(lh), ga=K.poisson(la), et=false;
+  let gh=K.poisson(lh), ga=K.poisson(la), et=false; const h0=gh, a0=ga;
   if(ko && gh+agg.h===ga+agg.a){ et=true; gh+=K.poisson(lh*CFG.ET_FACTOR); ga+=K.poisson(la*CFG.ET_FACTOR); }
-  const sc=(T,n)=>{ const ps=T.xi.map((p,i)=>Object.assign({},p,{g:K.GROUP[K.FORMS[T.form][i][0]]})); const out=[]; for(let k=0;k<n;k++) out.push(K.pickScorer(ps).name); return out; };
-  return {gh,ga,et,hs:sc(H,gh),as:sc(A,ga)};
+  const goals=(T,n,n0)=>{ const ps=withGroup(T); const out=[]; for(let k=0;k<n;k++){ const s=K.pickScorer(ps); const as=Math.random()<.7?K.pickAssist(ps,s):null; out.push({s:s.name,a:as?as.name:null,et:k>=n0}); } return out; };
+  return {gh,ga,et,hg:goals(H,gh,h0),ag:goals(A,ga,a0)};
+}
+
+/* 내 시점의 로그 항목을 만들어요 (왼쪽=나, 오른쪽=친구). home: 내가 홈인지 */
+function entryFor(leg,home,me,fr,rm,rf,myN,frN,stage,pk){
+  const myG = home ? leg.hg : leg.ag, frG = home ? leg.ag : leg.hg;
+  const f = myG.length, a = frG.length;
+  const ev=[]; const push=(t,k,text,side)=>ev.push({t,k,text,side});
+  myG.forEach(g=>push(g.et?rnd(91,120):rnd(1,92),"goal",g.s+(g.a?" (도움 "+g.a+")":""),"me"));
+  frG.forEach(g=>push(g.et?rnd(91,120):rnd(1,92),"goal",g.s+(g.a?" (도움 "+g.a+")":""),"opp"));
+  const myP=withGroup(me), frP=withGroup(fr);
+  for(let i=0;i<rnd(0,3);i++) push(rnd(8,88),"yellow",myP[rnd(1,10)].name+" 경고","me");
+  for(let i=0;i<rnd(0,3);i++) push(rnd(8,88),"yellow",frP[rnd(1,10)].name+" 경고","opp");
+  const extraMe=K.clamp(Math.round(3+(rm.att-rf.def)/10+Math.random()*3),1,9), extraFr=K.clamp(Math.round(3+(rf.att-rm.def)/10+Math.random()*3),1,9);
+  const chance=(side,n,shooters,keeper)=>{ for(let i=0;i<n;i++){ const t=rnd(3,89), r=Math.random(), sh=K.pickScorer(shooters).name;
+    if(r<.42) push(t,"save",sh+"의 유효슈팅을 "+keeper+" 선방",side);
+    else if(r<.78) push(t,"miss",sh+"의 슈팅이 골문을 벗어남",side);
+    else if(r<.9) push(t,"post",sh+"의 슛이 골대를 강타",side);
+    else push(t,"chance",sh+" 결정적 찬스를 놓침",side); } };
+  chance("me",extraMe,myP,frP[0].name); chance("opp",extraFr,frP,myP[0].name);
+  const tl=K.assembleLog(ev,{f,a,et:leg.et,pk,mn:myN,on:frN,names:myP.map(p=>p.name)});
+  const poss=Math.round(K.clamp(50+((rm.att+rm.def)-(rf.att+rf.def))*.35,34,66));
+  const shM=f+extraMe, shF=a+extraFr;
+  const stats={poss:[poss,100-poss],shots:[shM,shF],sot:[f+Math.round(extraMe*.45),a+Math.round(extraFr*.45)],corners:[Math.round(shM*.5+rnd(0,2)),Math.round(shF*.5+rnd(0,2))],fouls:[rnd(8,15),rnd(8,15)]};
+  return {comp:"친구 맞대결",stage,home,f,a,et:leg.et,pk,opp:{name:frN},tl,stats,formation:me.form,
+    lineup:myP.map((p,i)=>({pos:K.FORMS[me.form][i][0],name:p.name,ovr:p.ovr}))};
 }
 
 function open(row){
@@ -37,9 +65,10 @@ function open(row){
   if(!S.xi.every(Boolean) || !S.mgr){ card.appendChild(el("p","hint","내 팀을 먼저 완성해 주세요. 선발 11명과 감독이 필요해요. (후보는 없어도 돼요)")); box.appendChild(card); box.scrollIntoView({behavior:"smooth",block:"center"}); return; }
   const me={form:S.form, xi:S.xi, mgr:S.mgr};
   const rm=sideRate(me), rf=sideRate(friend);
+  const myN=$("teamName").value.trim()||"레전드 FC", frN=row.nickname+"의 "+row.team_name;
   const head=el("div","duel-head");
   const side=(title,name,r,t)=>{ const s=el("div","duel-side"); s.append(el("div","label",title), el("b",null,name), el("div","duel-ovr",String(Math.round((r.att+r.def)/2))), el("small",null,t.form+(t.mgr?" · 감독 "+t.mgr.name:"")+" · 공격 "+r.att.toFixed(1)+" / 수비 "+r.def.toFixed(1))); return s; };
-  head.append(side("나",$("teamName").value.trim()||"레전드 FC",rm,me), el("div","duel-vs","VS"), side("도전 대상",row.nickname+" · "+row.team_name,rf,friend));
+  head.append(side("나",myN,rm,me), el("div","duel-vs","VS"), side("도전 대상",frN,rf,friend));
   card.appendChild(head);
   const go=el("button","btn go","맞대결 시작 (홈&어웨이 2경기)"); go.type="button";
   const out=el("div","duel-out");
@@ -50,13 +79,20 @@ function open(row){
     const myTot=l1.gh+l2.ga, frTot=l1.ga+l2.gh;
     let pk=null, win=myTot>frTot;
     if(myTot===frTot){ const pw=.5+K.clamp((rm.att+rm.def-rf.att-rf.def)/2/60,-.15,.15); win=Math.random()<pw; const ws=4+(Math.random()<.4?1:0), ls=Math.max(2,ws-1-(Math.random()<.3?1:0)); pk=win?[ws,ls]:[ls,ws]; }
-    const line=(t,l,hn,an)=>{ const r=el("div","duel-leg"); r.append(el("span","dl-t",t), el("span","dl-s",hn+" "+l.gh+" : "+l.ga+" "+an+(l.et?" (연장)":"")),
-      el("span","dl-g",[l.hs.length?hn+": "+l.hs.join(", "):"", l.as.length?an+": "+l.as.join(", "):""].filter(Boolean).join(" / ")||"무득점")); return r; };
-    const myN=$("teamName").value.trim()||"레전드 FC", frN=row.nickname;
-    out.append(line("1차전",l1,myN,frN), line("2차전",l2,frN,myN));
+    const entries=[entryFor(l1,true,me,friend,rm,rf,myN,frN,"1차전 (내 홈)",null), entryFor(l2,false,me,friend,rm,rf,myN,frN,"2차전 (상대 홈)",pk)];
+    const R={me:{name:myN}};
+    /* 경기별 요약 + 눌러서 펼치는 로그 */
+    entries.forEach((e,i)=>{
+      const r=el("div","duel-leg clickable"); r.title="눌러서 경기 로그 보기";
+      r.append(el("span","dl-t",e.stage+(e.et?" · 연장":"")), el("span","dl-s",myN+"  "+e.f+" : "+e.a+"  "+frN),
+        el("span","dl-g",(e.tl.filter(t=>t.k==="goal").map(t=>t.text.replace(/^GOAL! |^실점 /,"").replace(/\s+\(\d+ : \d+\)$/,"")).join(" · "))||"무득점"));
+      const lg=el("div","duel-log"); lg.hidden=true;
+      r.onclick=()=>{ if(lg.hidden){ lg.innerHTML=""; lg.appendChild(G.matchLogEl(e,R)); lg.hidden=false; r.classList.add("open"); } else { lg.hidden=true; r.classList.remove("open"); } };
+      out.append(r,lg); });
     const fin=el("div","duel-final "+(win?"win":"lose"));
     fin.append(el("b",null,(win?"승리":"패배")+"  합계 "+myTot+" : "+frTot+(pk?"  (승부차기 "+pk[0]+"-"+pk[1]+")":"")), el("span",null,win?row.nickname+" 팀을 꺾었어요!":row.nickname+" 팀의 벽을 넘지 못했어요."));
     out.appendChild(fin);
+    out.appendChild(el("p","hint","경기를 누르면 분 단위 로그를 볼 수 있어요."));
     if(win && window.KLAch){ const d=KLAch.grant("duel_win"); if(d){ out.appendChild(el("p","hint","새 업적 달성: "+d.icon+" "+d.name)); if(G.renderAch) G.renderAch(); } }
     if(window.KLShare && KLShare.enabled && row.id){
       const nick=($("nick").value||"").trim();

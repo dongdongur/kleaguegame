@@ -358,3 +358,8 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:80ch}
 .tl.k-save,.tl.k-miss,.tl.k-post,.tl.k-chance{color:var(--muted)}
 .tl.k-pkgoal,.tl.k-pkmiss{grid-template-columns:1fr 62px 1fr}
 @media (max-width:520px){.tl{grid-template-columns:1fr 50px 1fr;font-size:12px}.ml-st{grid-template-columns:38px 50px 1fr 38px}}
+
+/* 친구 맞대결 로그 */
+.duel-leg.clickable{cursor:pointer;transition:background .15s}
+.duel-leg.clickable:hover,.duel-leg.open{background:rgba(25,242,163,.1)}
+.duel-log{margin:-2px 0 6px}

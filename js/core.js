@@ -59,10 +59,14 @@ const CONFIG = {
   DERBY_SPREAD: 34,    // 더비는 이 값으로 계산해서 이변이 잘 나와요
   DERBY_HOME: 1.3,     // 더비 홈 이점
 
+  /* 2026 현역 선수는 같은 척도에서 한 단계 더 끌어올려요 (올해 활약 중인 선수가 너무 낮게 평가되지 않게) */
+  UP26_SLOPE: 1.15, UP26_ADD: 4,
+  AI_DRIFT: 1.3,       // 시즌이 바뀔 때 상대 선수 능력치가 흔들리는 폭
+  AI_SWAPS: 8,         // 시즌마다 상대팀끼리 맞바꾸는 선수 수 (이적시장)
   /* 상대팀(2026 K리그1) */
-  HARD_FILL: 12,       // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
-  PRIME_DEFAULT: 7,    // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값 (원본 척도)
-  CUP_HARD: 4,         // 어려움: FA컵/ACL 상대 팀 능력치 가산
+  HARD_FILL: 9,        // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
+  PRIME_DEFAULT: 4,    // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값 (원본 척도)
+  CUP_HARD: 3,         // 어려움: FA컵/ACL 상대 팀 능력치 가산
 
   /* 대회 일정: 리그 N라운드를 치른 뒤에 열려요 */
   FA_AFTER: [6,14,22,31],                   // FA컵 16강, 8강, 4강, 결승
@@ -78,6 +82,7 @@ const CONFIG = {
   DEV_RANGE: [-4,3]    // 시즌 사이 능력치 변화 범위
 };
 
+Object.assign(CONFIG, window.KL_OVERRIDE||{});   // (개발용) 밸런스 실험할 때 바깥에서 설정을 덮어쓸 수 있어요
 const MGRS = (window.KL_MANAGERS||[]).map((m,i)=>({id:i,name:m[0],note:m[1],ovr:m[2],style:m[3],form:m[4],org:m[5]}));
 const STYLE_NAME = {A:"공격형",D:"수비형",B:"균형형"};
 const RAW = window.KL_DATA;
@@ -130,18 +135,35 @@ function setRatingMode(m){ RATING_MODE=m==="prime"?"prime":"season"; SQUADS.forE
 const NATS = SQUADS.filter(q=>q.nat).map(q=>({id:q.id,yrs:q.yrs,names:new Set(q.players.map(p=>p.name))}));
 const tag = s => s.short+" "+s.era.replace(/^20|^19/,"'").replace(/–(20|19)?/,"–");
 const squadKey = s => s.short+"|"+s.era;
-const YEARS = (()=>{ const a=SQUADS.map(q=>q.yrs[0]), b=SQUADS.map(q=>q.yrs[1]); const out=[]; for(let y=Math.min(...a);y<=Math.max(...b);y++) out.push(y); return out; })();
+let YEARS = [];
+const calcYears = () => { const a=SQUADS.map(q=>q.yrs[0]), b=SQUADS.map(q=>q.yrs[1]); const out=[]; for(let y=Math.min(...a);y<=Math.max(...b);y++) out.push(y); YEARS = out; };
+calcYears();
 const coversYear = (q,y) => q.yrs[0]<=y && y<=q.yrs[1];
 
 /* 2026 K리그1 상대팀. 프라임 능력치: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치+PRIME_DEFAULT (모두 원본 척도로 정한 뒤 한꺼번에 변환) */
-const TEAMS26 = (window.KL_2026||[]).map(t=>({club:t[0],short:t[1],div:1,base:teamScale(t[2]),
+const up26 = x => 70+(x-70)*CONFIG.UP26_SLOPE+CONFIG.UP26_ADD;
+const FORM26 = window.KL_2026_FORM||{}, BUMP26 = window.KL_2026_BUMP||{};
+const TEAMS26 = (window.KL_2026||[]).map(t=>{ const form=FORM26[t[0]]||0;
+  return {club:t[0],short:t[1],div:1,base:teamScale(up26(t[2]+form)),
   players:t[3].map(p=>{ const legend=LEGEND_BEST[p[0]+"|"+p[1]];
-    const primeRaw = p[4]!=null ? p[4] : (legend ? Math.max(p[2],legend) : p[2]+CONFIG.PRIME_DEFAULT);
-    const ovr=rescale(p[2]);
-    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,rescale(primeRaw))}; })}));
+    const cur = up26(p[2]+form+(BUMP26[p[0]]||0));
+    const ovr=rescale(cur);
+    /* 전성기: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치 + PRIME_DEFAULT */
+    const primeRaw = p[4]!=null ? rescale(up26(p[4])) : (legend ? rescale(legend) : rescale(up26(p[2]+CONFIG.PRIME_DEFAULT)));
+    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,primeRaw)}; })}; });
+/* 2026 현역 선수도 드래프트에서 뽑을 수 있게 구단 시즌 하나로 추가 (상대팀에 있어도 내 팀에 뽑을 수 있어요) */
+TEAMS26.forEach(t=>{
+  const id=SQUADS.length;
+  SQUADS.push({id,club:t.club,short:t.short,era:"2026",str:t.base,nat:false,yrs:[2026,2026],
+    players:t.players.map(p=>({name:p.name,pos:p.pos,raw:p.ovr,alt:null,det:p.det?p.det.split("/"):null,sq:id,yr:2026,age:27,ovrS:p.ovr,ovrP:p.prime,ovr:p.ovr}))});
+});
+calcYears();
 /* K리그2 팀: 선수 명단 없이 팀 기본 능력치만 있어요 (1부로 올라오면 그 능력치 그대로 K리그1 팀이 돼요) */
 const K2_DEFS = (window.KL_K2||[]).map(t=>({club:t[0],short:t[0],div:2,base:teamScale(t[2]),players:[]}));
-const ACL_POOL = (window.KL_ACL||[]).map(t=>({name:t[0],kind:t[1],base:teamScale(t[2])}));
+/* ACL 참가팀(해외): 선수단이 있으면 선수 능력치로, 없으면 팀 기본 능력치로 계산 */
+const ACL_POOL = (window.KL_ACL_TEAMS||[]).map(t=>({club:t[0],short:t[0],kind:t[1],div:0,base:teamScale(up26(t[2])),
+  players:t[3].map(p=>{ const ovr=rescale(up26(p[2])); const prime=p[4]!=null?rescale(up26(p[4])):rescale(up26(p[2]+CONFIG.PRIME_DEFAULT));
+    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,prime)}; })}));
 const DERBIES = window.KL_DERBIES||[];
 function derbyName(a,b){ const d=DERBIES.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)); return d?d[2]:null; }
 
@@ -241,7 +263,38 @@ function oppStrength(t,hardDiff,boost){
     players:t.players.map(p=>({name:p.name,pos:p.pos,ovr:val(p)+b}))};
 }
 
+/* 분 단위 이벤트 목록을 시간순으로 정리하고, 전반/후반 종료·연장·승부차기 표시와 누적 스코어를 붙여요.
+   ev: [{t:분, k:종류, text, side:"me"|"opp"}], c: {f,a,et,pk,mn(내 팀 이름),on(상대 이름),names(승부차기 키커 후보)} */
+function assembleLog(ev,c){
+  const label=t=>t<=90?t+"'":"연장 "+(t-90)+"'";
+  ev.sort((x,y)=>x.t-y.t);
+  const out=[{t:0,k:"mark",text:"킥오프"}];
+  let sm=0,so=0,half=false,ft=false;
+  ev.forEach(e=>{
+    if(!half && e.t>45){ out.push({t:45,k:"mark",text:"전반 종료  "+sm+" : "+so}); half=true; }
+    if(!ft && e.t>90){ out.push({t:90,k:"mark",text:"후반 종료  "+sm+" : "+so}); ft=true; if(c.et) out.push({t:90,k:"mark",text:"연장전 시작"}); }
+    if(e.k==="goal"){ if(e.side==="me") sm++; else so++; e.text=(e.side==="me"?"GOAL! ":"실점 ")+e.text+"  ("+sm+" : "+so+")"; }
+    out.push(e);
+  });
+  if(!half) out.push({t:45,k:"mark",text:"전반 종료  "+sm+" : "+so});
+  if(!ft) out.push({t:90,k:"mark",text:"후반 종료  "+sm+" : "+so});
+  if(c.et && !out.some(e=>e.text==="연장전 시작")) out.push({t:90.5,k:"mark",text:"연장전 시작"});
+  out.sort((x,y)=>x.t-y.t);
+  out.forEach(e=>{ e.m = e.k==="mark"&&e.t===0 ? "0'" : (e.k==="mark"&&e.t===45?"HT":(e.k==="mark"&&e.t===90?"FT":label(Math.round(e.t)))); });
+  out.push({t:999,k:"mark",m:"종료",text:"경기 종료  "+c.mn+" "+c.f+" : "+c.a+" "+c.on+(c.pk?"  (승부차기 "+c.pk[0]+"-"+c.pk[1]+")":"")});
+  if(c.pk){
+    const take=(n,score)=>{ const r=Array(n).fill(false); const idx=shuffle([...Array(n).keys()]); for(let i=0;i<score&&i<n;i++) r[idx[i]]=true; return r; };
+    const kicks=Math.max(5,c.pk[0],c.pk[1]); const mine=take(kicks,c.pk[0]), theirs=take(kicks,c.pk[1]);
+    const names=c.names&&c.names.length?c.names:["우리 선수"];
+    for(let i=0;i<kicks;i++){
+      out.push({t:1000,m:"PK",k:mine[i]?"pkgoal":"pkmiss",text:(i+1)+"번 키커 "+names[(10-i+names.length*2)%names.length]+(mine[i]?" 성공":" 실패"),side:"me"});
+      out.push({t:1000,m:"PK",k:theirs[i]?"pkgoal":"pkmiss",text:(i+1)+"번 키커 상대 "+(theirs[i]?"성공":"실패"),side:"opp"});
+    }
+  }
+  return out;
+}
+
 window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
-  clone, mgrFx, fatigue, rate, oppStrength, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
+  clone, mgrFx, fatigue, rate, oppStrength, assembleLog, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();

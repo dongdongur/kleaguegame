@@ -36,7 +36,9 @@ function run(o){
   const mkTeam=def=>{ const s=K.oppStrength(def,hardDiff,(o.boost&&o.boost[def.club])||0); const j=jit();
     return {name:def.club, short:def.short||def.club, kind:def.div===2?"K리그2":"K리그1", att:s.att+j, def:s.def+j*.5,
       players:(def.players&&def.players.length)?s.players:null, p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; };
-  const mkExt=t=>{ const j=jit(), b=t.base+(hardDiff?CFG.CUP_HARD:0); return {name:t.name,short:t.name,kind:t.kind,att:b+j,def:b+j*.5}; };
+  /* ACL 상대(해외 클럽): 대표 선수들 + 팀 기본 능력치로 전력을 계산해요. 어려움은 컵대회 가산점(CUP_HARD)이 붙어요 */
+  const mkExt=def=>{ const sx=K.oppStrength(def,hardDiff,hardDiff?CFG.CUP_HARD:0); const j=jit();
+    return {name:def.club,short:def.club,kind:def.kind,att:sx.att+j,def:sx.def+j*.5,players:(def.players&&def.players.length)?sx.players:null}; };
   const leagueName = div===1?"K리그1":"K리그2";
   const me={name:o.teamName||"레전드 FC", short:o.teamName||"내 팀", me:true, att:0, def:0, sub:o.form+(o.mgr?" · 감독 "+o.mgr.name:""),
     p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};
@@ -57,7 +59,6 @@ function run(o){
   /* ---- 경기 로그: 골·카드·부상·교체·결정적 장면을 분 단위로 만들어요 ---- */
   function buildLog(c){
     const rnd=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
-    const label=t=>t<=90?t+"'":"연장 "+(t-90)+"'";
     const ev=[]; const push=(t,k,txt,side)=>ev.push({t,k,text:txt,side:side||null});
     const mn=me.name, on=c.opp.name;
     const gkName=c.lineup[0]&&!c.lineup[0].youth?c.lineup[0].name:"우리 골키퍼";
@@ -86,30 +87,7 @@ function run(o){
       else if(r<.9) push(t,"post",shooter+"의 슛이 골대를 강타",side);
       else push(t,"chance",shooter+" 결정적 찬스를 놓침",side); } };
     chance("me",extraMe); chance("opp",extraOpp);
-    ev.sort((x,y)=>x.t-y.t);
-    /* 구분선과 누적 스코어 */
-    const out=[{t:0,k:"mark",text:"킥오프"}];
-    let sm=0,so=0,half=false,ft=false;
-    ev.forEach(e=>{
-      if(!half && e.t>45){ out.push({t:45,k:"mark",text:"전반 종료  "+sm+" : "+so}); half=true; }
-      if(!ft && e.t>90){ out.push({t:90,k:"mark",text:"후반 종료  "+sm+" : "+so}); ft=true; if(c.et) out.push({t:90,k:"mark",text:"연장전 시작"}); }
-      if(e.k==="goal"){ if(e.side==="me") sm++; else so++; e.text=(e.side==="me"?"GOAL! ":"실점 ")+e.text+"  ("+sm+" : "+so+")"; }
-      out.push(e);
-    });
-    if(!half) out.push({t:45,k:"mark",text:"전반 종료  "+sm+" : "+so});
-    if(!ft) out.push({t:90,k:"mark",text:"후반 종료  "+sm+" : "+so});
-    if(c.et && !out.some(e=>e.text==="연장전 시작")) out.push({t:90.5,k:"mark",text:"연장전 시작"});
-    out.sort((x,y)=>x.t-y.t);
-    out.forEach(e=>{ e.m = e.k==="mark"&&e.t===0 ? "0'" : (e.k==="mark"&&e.t===45?"HT":(e.k==="mark"&&e.t===90?"FT":label(Math.round(e.t)))); });
-    out.push({t:999,k:"mark",m:"종료",text:"경기 종료  "+mn+" "+c.f+" : "+c.a+" "+on+(c.pk?"  (승부차기 "+c.pk[0]+"-"+c.pk[1]+")":"")});
-    /* 승부차기 */
-    if(c.pk){
-      const take=(n,score)=>{ const r=Array(n).fill(false); let left=score; const idx=K.shuffle([...Array(n).keys()]); for(let i=0;i<score&&i<n;i++) r[idx[i]]=true; return r; };
-      const kicks=Math.max(5,c.pk[0],c.pk[1]); const mine=take(kicks,c.pk[0]), theirs=take(kicks,c.pk[1]);
-      const names=c.lineup.filter(p=>!p.youth).map(p=>p.name);
-      const shots=[]; for(let i=0;i<kicks;i++){ shots.push({m:"PK",k:mine[i]?"pkgoal":"pkmiss",text:(i+1)+"번 키커 "+names[(10-i+11)%names.length]+(mine[i]?" 성공":" 실패"),side:"me"}); shots.push({m:"PK",k:theirs[i]?"pkgoal":"pkmiss",text:(i+1)+"번 키커 상대 "+(theirs[i]?"성공":"실패"),side:"opp"}); }
-      shots.forEach(x=>{ x.t=1000; out.push(x); });
-    }
+    const out=K.assembleLog(ev,{f:c.f,a:c.a,et:c.et,pk:c.pk,mn,on,names:c.lineup.filter(p=>!p.youth).map(p=>p.name)});
     /* 경기 통계 (능력치 차이로 만든 값이에요) */
     const shM=goalsMe+c.myG.filter(g=>g.et).length+extraMe, shO=goalsOpp+c.opG.filter(g=>g.et).length+extraOpp;
     const sotM=c.f+Math.round(extraMe*.45), sotO=c.a+Math.round(extraOpp*.45);

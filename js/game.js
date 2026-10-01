@@ -17,7 +17,8 @@ const hard = () => $("hard").checked;
 
 /* ================= 상태 ================= */
 let S;
-function newCareer(){ return {no:1,year:2026,div:1,k1:K.TEAMS26.slice(),k2:K.K2_DEFS.slice(),history:[],trophies:{league:0,k2:0,fa:0,acl:0},aclQ:false,prev:null,boost:{},moves:0}; }
+const copyDef = d => Object.assign({},d,{players:d.players.map(p=>Object.assign({},p))});
+function newCareer(){ return {no:1,year:2026,div:1,k1:K.TEAMS26.map(copyDef),k2:K.K2_DEFS.map(copyDef),news:[],history:[],trophies:{league:0,k2:0,fa:0,acl:0},aclQ:false,prev:null,boost:{},moves:0}; }
 function newState(form,mode,diff,rm){
   K.setRatingMode(rm||"season");
   S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", rm:rm||"season", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
@@ -337,14 +338,14 @@ function placeBench(){
 
 /* ================= 상대팀 스쿼드 보기 ================= */
 let selOpp=null, selDiv=1;
-const oppList = d => d===1 ? S.career.k1 : S.career.k2;
+const oppList = d => d===1 ? S.career.k1 : d===2 ? S.career.k2 : K.ACL_POOL;
 function renderOpp(sel,div){
   if(div!==undefined){ selDiv=div; if(sel===undefined) sel=null; }
   if(sel!==undefined) selOpp=sel;
   const hardD=S.diff==="hard";
   $("oppDiffLabel").textContent="적용 중인 상대 능력치: "+(hardD?"전성기":"2026 현재");
   const tabs=$("oppTabs"); tabs.innerHTML="";
-  [[1,"K리그1"],[2,"K리그2"]].forEach(([d,t])=>{ const b=el("button","divtab",t+" ("+oppList(d).length+(S.career.div===d?"+나":"")+")"); b.type="button"; b.setAttribute("aria-pressed",String(d===selDiv)); b.onclick=()=>renderOpp(null,d); tabs.appendChild(b); });
+  [[1,"K리그1"],[2,"K리그2"],[3,"ACL"]].forEach(([d,t])=>{ const b=el("button","divtab",t+" ("+oppList(d).length+(S.career.div===d?"+나":"")+")"); b.type="button"; b.setAttribute("aria-pressed",String(d===selDiv)); b.onclick=()=>renderOpp(null,d); tabs.appendChild(b); });
   oppList(selDiv).forEach((t,i)=>{
     const b=document.createElement("button"); b.type="button"; b.className="teamtab";
     const cr=crest(t.club,18); b.append(cr, document.createTextNode(" "+t.short));
@@ -354,7 +355,7 @@ function renderOpp(sel,div){
   const view=$("oppView"); view.innerHTML="";
   if(selOpp==null || !oppList(selDiv)[selOpp]){ view.appendChild(el("p","hint","팀을 누르면 선수단과 능력치를 볼 수 있어요. 시즌마다 팀 전력이 조금씩 달라지고, 승강으로 팀이 K리그1과 K리그2를 오가요.")); return; }
   const t=oppList(selDiv)[selOpp], boost=S.career.boost[t.club]||0, o=K.oppStrength(t,hardD,boost);
-  view.appendChild(el("p","oppsum",t.club+" ("+(selDiv===1?"K리그1":"K리그2")+") · 공격 "+o.att.toFixed(1)+" / 수비 "+o.def.toFixed(1)+(t.players.length?" · 목록에 없는 자리는 기본 "+(t.base+(hardD?CFG.HARD_FILL:0))+"으로 계산":" · 선수 명단 없이 팀 기본 능력치 "+(t.base+(hardD?CFG.HARD_FILL:0))+"로 계산")+(boost?" · 이번 시즌 전력 보정 "+sgn(boost):"")));
+  view.appendChild(el("p","oppsum",t.club+" ("+(selDiv===1?"K리그1":selDiv===2?"K리그2":"ACL · "+t.kind)+") · 공격 "+o.att.toFixed(1)+" / 수비 "+o.def.toFixed(1)+(t.players.length?" · 목록에 없는 자리는 기본 "+(t.base+(hardD?CFG.HARD_FILL:0))+"으로 계산":" · 선수 명단 없이 팀 기본 능력치 "+(t.base+(hardD?CFG.HARD_FILL:0))+"로 계산 (명단은 data 파일에 추가하면 반영돼요)")+(boost?" · 이번 시즌 전력 보정 "+sgn(boost):"")));
   const rivals=K.DERBIES.filter(d=>d[0]===t.club||d[1]===t.club).map(d=>(d[0]===t.club?d[1]:d[0])+" ("+d[2]+")");
   if(rivals.length) view.appendChild(el("p","oppsum","라이벌: "+rivals.join(", ")));
   if(!t.players.length) return;
@@ -414,6 +415,32 @@ function resetGame(){
   renderAll(); window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});
 }
 
+/* ================= 상대팀 오프시즌 ================= */
+/* 팀마다 1) 선수 능력치가 조금씩 오르내리고, 2) 팀끼리 같은 포지션 선수를 맞바꾸고, 3) 팀 흐름(전력 보정)이 바뀌어요 */
+function aiOffseason(){
+  const c=S.career; const news=[]; const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const defs=c.k1.concat(c.k2);
+  defs.forEach(d=>{
+    d.players.forEach(p=>{
+      if(p._tr==null) p._tr=Math.random()*1.2-.7;                              // 이 선수의 성장/노쇠 경향
+      const dv=Math.round(K.randn()*CFG.AI_DRIFT+p._tr*.8);
+      p.ovr=K.clamp(p.ovr+dv,CFG.R_MIN,94);
+      p.prime=Math.max(p.ovr,p.prime+Math.round(dv*.4));                       // 전성기 기준도 같이 조금씩 변해요
+    });
+    c.boost[d.club]=K.clamp((c.boost[d.club]||0)+K.randn()*.6,-3.5,3.5);        // 팀 전체 흐름
+  });
+  /* 팀끼리 이적: 같은 포지션, 능력치 차이가 크지 않은 선수를 맞바꿔요 */
+  const withP=defs.filter(d=>d.players.length>=8);
+  for(let i=0;i<CFG.AI_SWAPS && withP.length>1;i++){
+    const A=rnd(withP), B=rnd(withP.filter(x=>x!==A)); const pos=rnd(["GK","DF","MF","FW"]);
+    const pa=rnd(A.players.filter(p=>p.pos===pos)||[]), cb=B.players.filter(p=>p.pos===pos&&pa&&Math.abs(p.ovr-pa.ovr)<=6); const pb=cb.length?rnd(cb):null;
+    if(!pa||!pb||pa===pb) continue;
+    A.players[A.players.indexOf(pa)]=pb; B.players[B.players.indexOf(pb)]=pa;
+    news.push(pa.name+"  "+A.short+" → "+B.short+"   /   "+pb.name+"  "+B.short+" → "+A.short);
+  }
+  c.news=news;
+}
+
 /* ================= 겨울 이적시장 ================= */
 function enterWinter(){
   const c=S.career;
@@ -425,8 +452,8 @@ function enterWinter(){
     const d=K.clamp(Math.round(curve+K.randn()*1.1+p.trend*.5),CFG.DEV_RANGE[0],CFG.DEV_RANGE[1]);
     const next=K.clamp(p.ovr+d,CFG.R_MIN,p.ovrP);
     p.delta=next-p.ovr; p.ovr=next; });
-  /* 상대팀 전력 변화 */
-  TEAMS26.forEach(t=>{ c.boost[t.club]=K.clamp((c.boost[t.club]||0)+K.randn()*.9,-4,4); });
+  /* 상대팀 전력 변화: 팀 흐름(전력 보정) + 선수 능력치 변동 + 팀끼리 이적 */
+  aiOffseason();
   S.phase="winter";
   S.winter={moves:CFG.TRANSFERS,rerolls:CFG.REROLLS,offer:null,cand:null,target:null,mgrOffer:null,mgrChanged:false,log:[]};
   $("deskDraft").hidden=true; $("deskWinter").hidden=false;
@@ -448,6 +475,7 @@ function renderWinter(){
     const r=el("span","dv "+(p.delta>0?"up":p.delta<0?"down":"flat")); r.append(el("b",null,p.name), document.createTextNode(" "+p.ovr+" "), el("i",null,p.delta>0?"▲"+p.delta:p.delta<0?"▼"+Math.abs(p.delta):"–"));
     list.appendChild(r); });
   dev.appendChild(list); body.appendChild(dev);
+  if(S.career.news && S.career.news.length){ const nw=el("div","w-sec"); nw.appendChild(el("h3",null,"리그 이적 소식 (상대팀끼리)")); const ul=el("ul","swaplog"); S.career.news.forEach(x=>ul.appendChild(el("li",null,x))); nw.appendChild(ul); body.appendChild(nw); }
   const lgn=el("div","w-sec"); lgn.appendChild(el("h3",null,"다음 시즌 소속"));
   lgn.appendChild(el("p","hint",(S.last&&S.last.promo.text?S.last.promo.text+". ":"")+"다음 시즌은 "+(S.career.div===1?"K리그1":"K리그2")+"에서 시작해요."+(S.career.div===2?" 1위가 되면 1부로 직행 승격해요.":"")+(S.career.aclQ?" ACL에도 출전해요.":"")));
   body.appendChild(lgn);
@@ -847,5 +875,5 @@ newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; }
 idleReel(); $("hint").textContent=idleHint();
 renderAll(); renderOpp(null);
 window.__KL38 = {K, S:()=>S, snapshot:snapshotNow, runSeason, enterWinter};
-window.KLGame = {state:()=>S, snapshot:snapshotNow, cardEl, el, crest, renderAch};
+window.KLGame = {state:()=>S, snapshot:snapshotNow, cardEl, el, crest, renderAch, matchLogEl};
 })();

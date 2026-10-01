@@ -1,0 +1,25 @@
+/**
+ * FM 1~20 능력치를 1~100점 만점 스케일로 정밀 변환하는 함수
+ * @param fmValue - FM 기준 능력치 (1~20)
+ * @param subOffset - 선수의 세부 보정치 (-2 ~ +2, 기본값 0)
+ * @returns 1~100 사이의 변환된 능력치 정수
+ */
+export function convertFmTo100Scale(fmValue: number, subOffset: number = 0): number {
+  // 1. FM 기본 범위 제한 (1 ~ 20)
+  const clampedFm = Math.max(1, Math.min(20, fmValue));
+
+  // 2. 기본 중앙값 공식: (FM * 5) - 2
+  // 예: FM 20 -> 98, FM 19 -> 93, FM 18 -> 88 ... FM 1 -> 3
+  let base100Value = (clampedFm * 5) - 2;
+
+  // 3. 서브 보정값 적용 (범위 내 -2 ~ +2 보정으로 96, 97, 99, 100 등 모든 수치 생성 가능)
+  let finalValue = base100Value + subOffset;
+
+  // 4. 최종 1~100 범위 하드 가드
+  return Math.max(1, Math.min(100, Math.round(finalValue)));
+}
+
+// 사용 예시
+// FM 20점 선수 중 최고 에이스 (보정치 +2) -> 100점
+// FM 20점 일반 월클 (보정치 0) -> 98점
+// FM 19점 선수 (보정치 -1) -> 92점
