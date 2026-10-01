@@ -28,7 +28,7 @@ function run(o){
   const xi=o.xi.slice(), bench=o.bench.filter(Boolean);
   const roster=xi.concat(bench);
   const stM=new Map(roster.map(p=>[p,100]));
-  const ps=new Map(roster.map(p=>[p,{apps:0,g:0,lg:0,a:0,la:0,y:0,r:0,susp:0,inj:0,missed:0,injOut:0,injN:0,cs:0}]));
+  const ps=new Map(roster.map(p=>[p,{apps:0,g:0,lg:0,a:0,la:0,y:0,r:0,susp:0,inj:0,missed:0,injOut:0,injN:0,cs:0,rs:0,rn:0}]));
   const youth=g=>({name:"유스 선수",pos:g,ovr:CFG.YOUTH_OVR,alt:null,det:null,sq:-1,youth:true});
 
   /* ---- 팀 만들기 ---- */
@@ -38,7 +38,7 @@ function run(o){
     return {name:def.club, short:def.short||def.club, kind:def.div===2?"K리그2":"K리그1", att:s.att+j, def:s.def+j*.5,
       players:(def.players&&def.players.length)?s.players:null, p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; };
   /* AFC 상대(해외 클럽): 대표 선수들 + 팀 기본 능력치로 전력을 계산해요. 어려움은 컵대회 가산점(CUP_HARD)이 붙어요 */
-  const mkExt=def=>{ const sx=K.oppStrength(def,hardDiff,(hardDiff?CFG.CUP_HARD:0)+bonus); const j=jit();
+  const mkExt=def=>{ const sx=K.oppStrength(def,hardDiff,(hardDiff?CFG.CUP_HARD:0)+((CFG.CUP_BONUS&&CFG.CUP_BONUS[o.diff])||0)); const j=jit();
     return {name:def.club,short:def.club,kind:def.kind,att:sx.att+j,def:sx.def+j*.5,players:(def.players&&def.players.length)?sx.players:null}; };
   const leagueName = div===1?"K리그1":"K리그2";
   const me={name:o.teamName||"레전드 FC", short:o.teamName||"내 팀", me:true, att:0, def:0, sub:o.form+(o.mgr?" · 감독 "+o.mgr.name:""),
@@ -163,8 +163,18 @@ function run(o){
     rs.forEach(p=>{ const s=ps.get(p); s.r++; totR++; s.susp++; });
 
     const tl=buildLog({m,opp,lineup,myP,myG,opG,f,a,f0,a0,et,pk,ys,rs,oy,orr,hurtP,cur,mA,mD,oA,oD,bench,used});
+    /* 경기 평점 (3.0~10.0): 기본 6.2 + 능력치 영향 + 경기 결과 + 득점·도움·무실점 + 카드 + 무작위 */
+    const cnt=arr=>arr.reduce((o,n)=>(o[n]=(o[n]||0)+1,o),{}); const gN=cnt(ms), aN=cnt(as), yN=cnt(ys.map(p=>p.name)), rN=cnt(rs.map(p=>p.name));
+    const nrm=()=>{ let u=0; for(let i=0;i<4;i++) u+=Math.random(); return (u-2)*1.1; };
+    const ratings=lineup.map((p,i)=>{ if(p.youth) return null; const gr=G[slots[i][0]];
+      let x=6.2+(p.ovr-70)/45+(res==='W'?.35:res==='L'?-.35:0)+nrm()*.42+(gN[p.name]||0)*.95+(aN[p.name]||0)*.6
+        -(yN[p.name]?.2:0)-(rN[p.name]?1.6:0);
+      if(a===0) x+= gr==='GK'?.75: gr==='DF'?.4: .1; else x-= (gr==='GK'||gr==='DF')?Math.min(a,4)*.2:Math.min(a,4)*.05;
+      if(gr==='GK' && a>0) x+=Math.min(.5,cur&&oA?Math.max(0,(oA-cur.def)/40):0); x=Math.max(3,Math.min(10,x));
+      const v=Math.round(x*10)/10; const st=ps.get(p); if(st){ st.rs+=v; st.rn++; } return v; });
+    let mom=null; ratings.forEach((v,i)=>{ if(v!=null && (mom==null||v>ratings[mom])) mom=i; });
     matchNo++;
-    const entry={n:matchNo, tl:tl.events, stats:tl.stats, lineup:lineup.map((p,i)=>({pos:slots[i][0],name:p.name,ovr:p.ovr,youth:!!p.youth})), formation:o.form, comp:m.comp, stage:m.stage, round:m.round||null, home:m.home, opp:{name:opp.name,kind:opp.kind||leagueName}, f, a, et, pk, res, advance,
+    const entry={n:matchNo, tl:tl.events, stats:tl.stats, lineup:lineup.map((p,i)=>({pos:slots[i][0],name:p.name,ovr:p.ovr,youth:!!p.youth,rt:ratings[i]})), mom:mom!=null?lineup[mom].name:null, formation:o.form, comp:m.comp, stage:m.stage, round:m.round||null, home:m.home, opp:{name:opp.name,kind:opp.kind||leagueName}, f, a, et, pk, res, advance,
       ms, os, as, rot, ys:ys.map(p=>p.name), rs:rs.map(p=>p.name), oy, or:orr, outS, outI, hurt, derby:null};
     log.push(entry);
     return entry;
@@ -351,7 +361,7 @@ function run(o){
   const awards={scorer:scorers[0]||null, assister:assisters[0]||null, mvp, bestXI, coach, topScorers:scorers, topAssists:assisters, partial:div===2};
 
   /* ---- 내 팀 선수 기록 ---- */
-  const stam=roster.map(p=>{ const s=ps.get(p); return {p,starter:xi.includes(p),apps:s.apps,st:stM.get(p),y:s.y,r:s.r,missed:s.missed,injOut:s.injOut,injN:s.injN,g:s.g,a:s.a,lg:s.lg,la:s.la,cs:s.cs}; })
+  const stam=roster.map(p=>{ const s=ps.get(p); return {p,starter:xi.includes(p),apps:s.apps,st:stM.get(p),y:s.y,r:s.r,missed:s.missed,injOut:s.injOut,injN:s.injN,g:s.g,a:s.a,lg:s.lg,la:s.la,cs:s.cs,rt:s.rn?Math.round(s.rs/s.rn*100)/100:null}; })
     .sort((a,b)=>b.apps-a.apps||b.p.ovr-a.p.ovr);
   const mine={
     mvp:stam.slice().sort((a,b)=>(b.g*2+b.a*1.3+b.apps*.03)-(a.g*2+a.a*1.3+a.apps*.03))[0],

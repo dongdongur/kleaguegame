@@ -405,3 +405,16 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 .lineup-pos{display:block;font-size:10px;opacity:.85;margin-top:2px}
 .lineup-bench{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,92px));gap:8px;margin:8px 0}
 .lineup-bench .fcard{cursor:pointer}
+.m-note{color:#9fd3ff;font-size:12px;margin:6px 0}
+
+/* 경기 평점 */
+.chip .rt{margin-left:6px;padding:0 5px;border-radius:6px;background:rgba(255,255,255,.14);font-size:11px}
+.chip .rt.hi{background:#1f9d55;color:#fff}.chip .rt.lo{background:#b4403a;color:#fff}
+.chip .mom{margin-left:5px;font-style:normal;font-size:10px;font-weight:700;color:#111;background:var(--gold,#f3c34a);padding:0 4px;border-radius:5px}
+.tbl td.rt.hi{color:#4ade80;font-weight:700}.tbl td.rt.lo{color:#f87171}
+
+/* 저장 · 불러오기 */
+.save-list{display:grid;gap:8px;margin:10px 0}
+.save-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.04)}
+.save-info{display:grid;gap:2px;min-width:0}.save-info small{opacity:.75}
+.save-act{display:flex;gap:6px}.save-file{display:flex;gap:8px;margin:8px 0}

@@ -166,6 +166,7 @@ function showInfo(p){
   lines.filter(Boolean).forEach(t=>info.appendChild(el("p","m-line",t)));
   if(A&&A.traits&&A.traits.length){ const tr=el("div","m-traits"); A.traits.forEach(t=>tr.appendChild(el("span","tg",t))); info.appendChild(tr); }
   if(A&&A._example) info.appendChild(el("p","m-warn","예시 데이터예요. 실제 기록으로 검증된 값이 아니에요."));
+  if(p.recTxt) info.appendChild(el("p","m-note","실제 기록 기반: "+p.recTxt));
   if(p.est) info.appendChild(el("p","m-warn","추정 능력치예요. 이 선수의 실제 기록이 반영되기 전이라 리그 수준과 팀 수준으로 정한 값이에요."));
   head.appendChild(info); box.append(x,head);
   if(A){
@@ -711,7 +712,7 @@ function matchLogEl(g,R){
   }
   if(g.lineup){
     const lu=el("div","ml-lu"); lu.appendChild(el("span","label","출전 선수 ("+g.formation+")"));
-    const row=el("div","ml-chips"); g.lineup.forEach(p=>row.appendChild(el("span","chip"+(p.youth?" muted":""),p.pos+" "+p.name)));
+    const row=el("div","ml-chips"); g.lineup.forEach(p=>{ const ch=el("span","chip"+(p.youth?" muted":""),p.pos+" "+p.name); if(p.rt!=null){ const b=el("b","rt"+(p.rt>=7.5?" hi":p.rt<6?" lo":""),p.rt.toFixed(1)); ch.appendChild(b); } if(g.mom&&g.mom===p.name) ch.appendChild(el("em","mom","MOM")); row.appendChild(ch); });
     lu.appendChild(row); box.appendChild(lu);
   }
   const ul=el("ul","tlist");
@@ -803,12 +804,12 @@ function paneAwd(R){
 }
 function panePlr(R){
   const wrap=el("div","pane-plr");
-  const tb=el("table","tbl"); tb.innerHTML="<thead><tr><th class='t'>선수</th><th>능력치</th><th>경기</th><th>골</th><th>도움</th><th>경고</th><th>퇴장</th><th>결장</th><th>부상</th><th class='t'>체력</th></tr></thead>";
+  const tb=el("table","tbl"); tb.innerHTML="<thead><tr><th class='t'>선수</th><th>능력치</th><th>경기</th><th>골</th><th>도움</th><th>평점</th><th>경고</th><th>퇴장</th><th>결장</th><th>부상</th><th class='t'>체력</th></tr></thead>";
   const body=el("tbody");
   R.stam.forEach(o=>{ const tr=el("tr"); const nm=el("td","t"); nm.append(el("span","pos "+o.p.pos,o.p.pos), document.createTextNode(" "+o.p.name+(o.starter?"":" (후보)")));
     const bar=el("td","t"); const sb=el("span","sbar"); const fl=el("i"); fl.style.width=Math.round(o.st)+"%"; fl.className=o.st<CFG.STAM_ROTATE?"low":""; sb.appendChild(fl); bar.appendChild(sb);
     nm.classList.add("plink"); nm.title="눌러서 상세 능력치 보기"; nm.onclick=()=>showInfo(o.p);
-    tr.append(nm, el("td","num",String(o.p.ovr)), el("td","num",String(o.apps)), el("td","num",String(o.g)), el("td","num",String(o.a)), el("td","num",String(o.y)), el("td","num",String(o.r)), el("td","num",String(o.missed)), el("td","num",o.injN?o.injN+"회/"+o.injOut+"경기":"-"), bar);
+    tr.append(nm, el("td","num",String(o.p.ovr)), el("td","num",String(o.apps)), el("td","num",String(o.g)), el("td","num",String(o.a)), el("td","num rt"+(o.rt>=7.2?" hi":o.rt!=null&&o.rt<6?" lo":""),o.rt!=null?o.rt.toFixed(2):"-"), el("td","num",String(o.y)), el("td","num",String(o.r)), el("td","num",String(o.missed)), el("td","num",o.injN?o.injN+"회/"+o.injOut+"경기":"-"), bar);
     body.appendChild(tr); });
   tb.appendChild(body); const tw=el("div","tablewrap"); tw.appendChild(tb); wrap.appendChild(tw);
   wrap.appendChild(el("p","hint","결장 = 카드 징계로 못 뛴 경기, 부상 = 부상 횟수/결장 경기. 체력이 60 아래로 떨어지면 빨간색이에요."));
@@ -918,9 +919,71 @@ async function drawCard(R){
 /* ================= 공개 API (친구 맞대결 등) ================= */
 function snapshotNow(){ return teamSnapshot(); }
 
-/* ================= 전체 렌더 · 시작 ================= */
-function renderAll(){ renderModes(); renderRatings(); renderForms(); renderDiffs(); renderPitch(); renderOffers(); renderBest(); renderAch(); renderCareer(); }
+/* ================= 세이브 · 로드 =================
+   저장 가능한 때: 드래프트 중, 겨울 이적 중 (시즌 결과 화면에서는 겨울로 넘어간 뒤 저장해요).
+   슬롯 3개 + 자동저장 1개는 브라우저(localStorage)에 두고, 파일로 내보내기/가져오기도 돼요. 지금 뽑아 둔 선수 제안(스핀)은 저장하지 않아요. */
+const SAVE_KEY="kl38-saves", SAVE_VER=1;
+const savable = () => !S.spinning && S.phase!=="results" && (!S.done || S.phase==="winter");
+function snapState(){
+  return {v:SAVE_VER, ts:Date.now(), teamName:$("teamName").value, nick:$("nick").value,
+    S:{form:S.form,mode:S.mode,diff:S.diff,rm:S.rm,xi:S.xi,bench:S.bench,respins:S.respins,picks:S.picks,mgr:S.mgr,phase:S.phase,winter:S.winter},
+    career:S.career};
+}
+function brief(b){ const c=b.career, x=b.S; const n=x.xi.filter(Boolean).length+x.bench.filter(Boolean).length;
+  return "시즌 "+c.no+" · "+c.year+" · "+(c.div===1?"K리그1":"K리그2")+" · "+x.form+" · "+(x.diff==="hard"?"어려움":"쉬움")+" · 선수 "+n+"명"+(x.phase==="winter"?" · 겨울 이적":""); }
+function readSaves(){ const s=store.get(SAVE_KEY); return s&&typeof s==="object"?s:{}; }
+function writeSave(slot,blob){ const all=readSaves(); all[slot]=blob; store.set(SAVE_KEY,all); }
+function loadBlob(b){
+  if(!b||b.v!==SAVE_VER||!b.S||!b.career) throw new Error("형식이 맞지 않는 저장 파일이에요");
+  K.setRatingMode(b.S.rm||"season");
+  const fix=p=>{ if(!p) return null; const q=clone(p); q.base=p.base; q.trend=p.trend; q.delta=p.delta; q.ovr=p.ovr; return q; };
+  const mgr=b.S.mgr?Object.assign({},b.S.mgr):null;
+  newState(b.S.form,b.S.mode,b.S.diff,b.S.rm);
+  S.xi=b.S.xi.map(fix); S.bench=b.S.bench.map(fix); S.respins=b.S.respins; S.picks=b.S.picks; S.mgr=mgr; S.career=b.career;
+  S.phase=b.S.phase; S.winter=b.S.winter?Object.assign({},b.S.winter,{cand:b.S.winter.cand?fix(b.S.winter.cand):null}):null;
+  S.done=S.phase==="winter"; S.squad=null; S.selected=null; S.last=null;
+  $("teamName").value=b.teamName||"레전드 FC"; if(b.nick) $("nick").value=b.nick;
+  $("results").hidden=true; $("results").innerHTML=""; $("careerWrap").hidden=true;
+  const w=S.phase==="winter"&&S.winter;
+  $("deskWinter").hidden=!w; $("deskDraft").hidden=!!w;
+  idleReel(); $("hint").textContent=idleHint();
+  renderAll(); renderOpp(null); if(w) renderWinter();
+  window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});
+}
+let autoT=null;
+function autoSave(){ clearTimeout(autoT); autoT=setTimeout(()=>{ if(!savable()||(!S.picks&&!S.mgr&&S.career.no<2)) return; try{ writeSave("auto",JSON.parse(JSON.stringify(snapState()))); }catch(e){} },900); }
+function openSaves(){
+  const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=e=>{ if(e.target===m) m.hidden=true; };
+  const box=el("div","m-box"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; };
+  box.append(x, el("h3",null,"저장 · 불러오기"));
+  const msg=el("p","hint",""); const note=savable()?"지금 상태를 슬롯에 저장할 수 있어요.":"시즌 결과 화면에서는 저장할 수 없어요. 겨울 이적 시장으로 넘어간 뒤 저장해 주세요.";
+  box.appendChild(el("p","hint",note));
+  const list=el("div","save-list");
+  const draw=()=>{ list.innerHTML=""; const all=readSaves();
+    [["auto","자동저장"],["1","슬롯 1"],["2","슬롯 2"],["3","슬롯 3"]].forEach(([k,t])=>{
+      const b=all[k]; const row=el("div","save-row"); const info=el("div","save-info");
+      info.append(el("b",null,t+(b?"  ·  "+(b.teamName||"")+"  ("+new Date(b.ts).toLocaleString("ko-KR")+")":"  ·  비어 있음")), el("small",null,b?brief(b):""));
+      const act=el("div","save-act");
+      const mk=(label,fn,dis)=>{ const bt=el("button","btn small"+(label==="삭제"?" ghost":""),label); bt.type="button"; bt.disabled=!!dis; bt.onclick=fn; act.appendChild(bt); };
+      if(k!=="auto") mk("저장",()=>{ if(b&&!confirm("이 슬롯을 덮어쓸까요?")) return; try{ writeSave(k,JSON.parse(JSON.stringify(snapState()))); msg.textContent="저장했어요."; draw(); }catch(e){ msg.textContent="저장하지 못했어요 (브라우저 저장 공간 부족)"; } },!savable());
+      mk("불러오기",()=>{ if(started()&&!confirm("지금 진행 중인 내용은 사라져요. 불러올까요?")) return; try{ loadBlob(JSON.parse(JSON.stringify(b))); m.hidden=true; }catch(e){ msg.textContent="불러오지 못했어요: "+e.message; } },!b);
+      if(b) mk("삭제",()=>{ if(!confirm("이 저장을 지울까요?")) return; const a=readSaves(); delete a[k]; store.set(SAVE_KEY,a); draw(); });
+      row.append(info,act); list.appendChild(row); }); };
+  draw(); box.append(list);
+  const file=el("div","save-file");
+  const ex=el("button","btn small ghost","파일로 내보내기"); ex.type="button"; ex.disabled=!savable();
+  ex.onclick=()=>{ const blob=new Blob([JSON.stringify(snapState())],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="k-legend38-save.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
+  const im=el("button","btn small ghost","파일에서 가져오기"); im.type="button";
+  const inp=document.createElement("input"); inp.type="file"; inp.accept="application/json,.json"; inp.hidden=true;
+  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ if(started()&&!confirm("지금 진행 중인 내용은 사라져요. 불러올까요?")) return; loadBlob(JSON.parse(rd.result)); m.hidden=true; }catch(e){ msg.textContent="불러오지 못했어요: "+e.message; } }; rd.readAsText(f); };
+  im.onclick=()=>inp.click(); file.append(ex,im,inp); box.append(file,msg);
+  m.appendChild(box);
+}
 
+/* ================= 전체 렌더 · 시작 ================= */
+function renderAll(){ renderModes(); renderRatings(); renderForms(); renderDiffs(); renderPitch(); renderOffers(); renderBest(); renderAch(); renderCareer(); autoSave(); }
+
+$("saveBtn").onclick=openSaves;
 $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);
 $("mgrBtn").onclick=drawMgr;

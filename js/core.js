@@ -62,10 +62,13 @@ const CONFIG = {
   /* 2026 현역 선수는 같은 척도에서 한 단계 더 끌어올려요 (올해 활약 중인 선수가 너무 낮게 평가되지 않게) */
   UP26_SLOPE: 1, UP26_ADD: 0,
   AI_DRIFT: 1.3,       // 시즌이 바뀔 때 상대 선수 능력치가 흔들리는 폭
-  OPP_BONUS: {easy:0, hard:8},  // 난이도 보정: 상대 팀 공격·수비에 더해요 (선수 능력치 자체는 건드리지 않아요)
+  OPP_BONUS: {easy:0, hard:2},  CUP_BONUS: {easy:0, hard:10},  // 난이도 보정: 상대 팀 공격·수비에 더해요 (선수 능력치 자체는 건드리지 않아요)
   GK_CAP: 89,          // 골키퍼 능력치 상한 (기준표에 직접 적은 선수 제외)
   /* 리그별 능력치 범위 [하위권 주전, 상위권 스타]: 같은 기록이라도 리그 수준이 높을수록 높은 범위로 환산해요 (docs/rating-standard.md) */
   LEAGUE_BAND: {EPL:[62,97], LALIGA:[60,95], BUNDES:[58,93], SERIEA:[58,93], LIGUE1:[56,90], SAUDI:[55,90], J1:[55,86], K1:[55,84], K2:[54,80]},
+  REC_W: {YEAR:[1,.7,.45,.25], K1:1, K2:.93},  // 기록 기반 능력치: 최근 시즌 가중, K리그2 기록은 약간 낮게 반영
+  REC_PRIME_MAX: 8,         // 기록 기반 선수의 전성기는 현재보다 최대 이만큼만 높아요
+  REC_TOP: 0.85,            // 기록 상위 100% 선수의 위치 = 리그 범위의 85% 지점 (그 위는 직접 적은 스타 선수 몫)
   EST_PCT: [0.05,0.55],     // 기록이 없는 선수의 추정 위치(리그 안에서 하위 5%~55% 사이)
   EST_TEAM_W: 0.3,          // 팀 수준이 추정 능력치에 반영되는 정도
   EST_PRIME_ADD: 3,         // 추정 선수의 전성기 = 추정 + 이 값
@@ -181,11 +184,38 @@ function mergeRoster(def,league,avg){
     const ex=have.get(name); if(ex){ ex.id=id; return; }
     const pct=CONFIG.EST_PCT[0]+hash01(id)*(CONFIG.EST_PCT[1]-CONFIG.EST_PCT[0]);
     const o=Math.round(band[0]+pct*(band[1]-band[0])+CONFIG.EST_TEAM_W*(def.base-avg));
-    def.players.push({name,pos,ovr:o,det:"",prime:o+CONFIG.EST_PRIME_ADD,id,est:true});
+    def.players.push({name,pos,ovr:o,det:"",prime:o+CONFIG.EST_PRIME_ADD,id,est:true,lg:league,tb:def.base-avg});
   });
 }
 { const a1=avgBase(TEAMS26), a2=avgBase(K2_DEFS);
   TEAMS26.forEach(d=>mergeRoster(d,"K1",a1)); K2_DEFS.forEach(d=>mergeRoster(d,"K2",a2)); mergeRoster(GIMCHEON,"K1",a1); }
+/* ---- 실제 기록(js/data_records.js)으로 추정값 대체 ----
+   최근 시즌에 가중을 둔 "출장 비중 + 득점·도움(GK는 클린시트·실점)" 점수를, 같은 리그·같은 포지션 선수들 안에서의 순위로 바꿔 리그 능력치 범위(LEAGUE_BAND)에 놓아요.
+   직접 적은 선수는 그대로 두고, 기록이 없는 선수만 이전 추정값을 써요. (docs/rating-standard.md 3~4절) */
+{ const REC=window.KL_RECORDS||{}, RW=CONFIG.REC_W, GAMES={K1:38,K2:36}, POSK={GK:"GK",DF:"DF",MF:"MF",FW:"FW"};
+  const PS={FW:.5,MF:.3,DF:.12}, SHARE_W={GK:.6,DF:.75,MF:.6,FW:.5};
+  const qOf=(pos,lg,a,g,x)=>{ if(!a) return null; const share=Math.min(a/GAMES[lg],1);
+    const prod = pos==="GK" ? .6*Math.min(x/a/.4,1.3)/1.3  + .4*Math.max(0,1-(g/a)/2) : Math.min(((g+.6*x)/a)/PS[pos],1.3)/1.3;
+    return SHARE_W[pos]*share+(1-SHARE_W[pos])*prod; };
+  const seasonsOf=(id,pos)=>{ const r=REC[id]; if(!r) return []; const out=[];
+    r[2].forEach(s=>{ const y=s[0]; if(y<2022) return; const k1=qOf(pos,"K1",s[2],s[3],s[4]), k2=qOf(pos,"K2",s[5],s[6],s[7]);
+      if(k1!=null) out.push({y,q:k1*RW.K1}); if(k2!=null) out.push({y,q:k2*RW.K2}); }); return out; };
+  const curQ=ss=>{ let n=0,d=0; ss.forEach(s=>{ const w=RW.YEAR[2026-s.y]||0; n+=w*s.q; d+=w; }); return d?n/d:null; };
+  const groups={};   // 리그|포지션 -> 정렬된 현재 점수 목록
+  const all=[];
+  const pools=[[TEAMS26.concat([GIMCHEON]),"K1"],[K2_DEFS,"K2"]];
+  pools.forEach(([defs,lg])=>defs.forEach(d=>d.players.forEach(p=>{ if(!p.id) return; const ss=seasonsOf(p.id,p.pos); const q=curQ(ss); if(q==null) return;
+    const key=lg+"|"+p.pos; (groups[key]=groups[key]||[]).push(q); all.push({p,lg,ss,q,key}); })));
+  Object.values(groups).forEach(a=>a.sort((x,y)=>x-y));
+  const pct=(key,q)=>{ const a=groups[key]; let lo=0; while(lo<a.length&&a[lo]<q) lo++; return a.length>1 ? lo/(a.length-1) : .5; };
+  const val=(lg,pc,tb)=>{ const b=CONFIG.LEAGUE_BAND[lg]; return Math.round(b[0]+pc*CONFIG.REC_TOP*(b[1]-b[0])+CONFIG.EST_TEAM_W*(tb||0)); };
+  all.forEach(({p,lg,ss,q,key})=>{ if(!p.est) return;
+    const cur=val(lg,pct(key,q),p.tb); const best=Math.max(...ss.map(s=>s.q));
+    p.ovr=cur; p.prime=Math.min(cur+CONFIG.REC_PRIME_MAX,Math.max(cur+1,val(lg,pct(key,best),p.tb)+CONFIG.EST_PRIME_ADD-1)); p.est=false; p.rec=true;
+    const s=REC[p.id][2].filter(z=>z[2]||z[5]).sort((u,v)=>v[0]-u[0])[0];
+    if(s){ const a=s[2]||s[5], g=s[2]?s[3]:s[6], x=s[2]?s[4]:s[7], L=s[2]?"K리그1":"K리그2";
+      p.recTxt = s[0]+" "+L+" "+a+"경기 "+(p.pos==="GK"? g+"실점 클린시트 "+x : g+"골 "+x+"도움")+" · 최근 시즌 가중 · 리그·포지션 내 상위 "+Math.max(1,Math.round((1-pct(key,q))*100))+"%"; } });
+}
 /* 레전드 데이터의 선수 중 지금도 뛰는 선수는 같은 사진을 써요 (이름이 현역 명단에서 하나뿐이고 포지션이 같을 때만) */
 { const by={}; Object.values(SQ26).forEach(cl=>cl.players.forEach(([id,name,pos])=>{ (by[name]=by[name]||[]).push({id,pos}); }));
   SQUADS.forEach(q=>q.players.forEach(p=>{ if(p.id) return; const m=by[p.name]; if(m&&m.length===1&&m[0].pos===p.pos) p.id=m[0].id; })); }
@@ -195,7 +225,7 @@ TEAMS26.concat([GIMCHEON],K2_DEFS).forEach(t=>{
   const id=SQUADS.length;
   SQUADS.push({id,club:t.club,short:t.short,era:"2026",str:t.base,nat:false,yrs:[2026,2026],div:t.div,
     players:t.players.map(p=>({name:p.name,pos:p.pos,raw:p.ovr,alt:null,det:p.det?p.det.split("/"):null,sq:id,yr:2026,age:27,
-      ovrS:Math.max(CONFIG.R_MIN,p.ovr),ovrP:Math.max(CONFIG.R_MIN,p.prime),ovr:Math.max(CONFIG.R_MIN,p.ovr),id:p.id||null,est:!!p.est}))});
+      ovrS:Math.max(CONFIG.R_MIN,p.ovr),ovrP:Math.max(CONFIG.R_MIN,p.prime),ovr:Math.max(CONFIG.R_MIN,p.ovr),id:p.id||null,est:!!p.est,recTxt:p.recTxt||null}))});
 });
 calcYears();
 /* AFC 챔피언스리그 참가팀(해외): 능력치는 파일에 적힌 최종 값 그대로 써요. 선수단이 없으면 팀 기본 능력치로 계산해요 */
