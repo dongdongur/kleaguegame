@@ -466,3 +466,7 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 .slot .role-chip{max-width:160%}
 
 .m-lite{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 14px;margin:6px 0}.m-lite .ml-i{display:flex;justify-content:space-between;font-size:12.5px;border-bottom:1px dashed rgba(255,255,255,.15);padding:2px 0}.m-lite b.s{color:#ffd24a}.m-lite b.a{color:#4ade80}.m-lite b.b{color:#9fd3ff}.m-lite b.c{color:#cbd5e1}.m-lite b.d{color:#f87171}
+
+/* 주장단 */
+.cap-btn{margin-bottom:6px}.cap-badge{position:absolute;top:-6px;right:-4px;z-index:4;font-size:11px;font-weight:900;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:2px solid #fff;color:#111}.cap-badge.C{background:#f5c542}.cap-badge.V{background:#cfd8e3}
+.cap-list{display:grid;gap:6px;max-height:55vh;overflow:auto;margin-top:8px}.cap-row{display:grid;grid-template-columns:34px 1fr auto auto auto;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--line,#2a3550);border-radius:10px;font-size:13px}.cap-row.on{border-color:#f5c542;background:rgba(245,197,66,.1)}.cap-row small{grid-column:2;opacity:.7}.cap-row em{font-style:normal;color:#9fd3ff;font-size:12px;grid-column:3}.cap-row .btn{grid-row:1 / span 2}.cap-sum{margin:8px 0 2px;font-weight:700;color:#f5d487}

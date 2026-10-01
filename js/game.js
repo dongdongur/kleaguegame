@@ -23,9 +23,9 @@ function newState(form,mode,diff,rm){
   K.setRatingMode(rm||"season");
   S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", rm:rm||"season", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
     squad:null, selected:null, respins:CFG.RESPINS, spinning:false, done:false, picks:0, mgr:null, mgrOffer:null,
-    phase:"draft", career:newCareer(), last:null, winter:null, roles:Array(11).fill(0)};
+    phase:"draft", career:newCareer(), last:null, winter:null, roles:Array(11).fill(0), captains:{c:null,v:[]}};
 }
-const ctx = () => ({form:S.form, mgr:S.mgr, roles:S.roles, morale:window.KLPress?KLPress.moraleFx(S.career):0});
+const ctx = () => ({form:S.form, mgr:S.mgr, roles:S.roles, morale:(window.KLPress?KLPress.moraleFx(S.career):0)+captainFx()});
 const started = () => S.picks>0 || !!S.mgr || S.career.no>1;
 const offering = () => !!S.squad || !!S.mgrOffer;
 const xiFull = () => S.xi.every(Boolean);
@@ -212,6 +212,7 @@ function renderPitch(){
       b.appendChild(cardEl(p,{pos:s[0],badge:dl,badgeCls:p.delta>0?"up":"down"}));
       b.appendChild(infoDot(p)); b.oncontextmenu=e=>{ e.preventDefault(); showInfo(p); };
       b.setAttribute("aria-label", s[0]+" "+p.name);
+      { const cs=S.captains||{}; const tag=cs.c===p.uid?"C":(cs.v||[]).includes(p.uid)?"V":""; if(tag) b.appendChild(el("span","cap-badge "+tag,tag)); }
       /* 역할 칩: 누르면 이 자리의 역할을 고르는 창이 열려요 */
       const ro=K.roleOf(s[0],S.roles[i]);
       if(ro){ const chip=el("span","role-chip"+(S.roles[i]?" set":""),ro.name); chip.setAttribute("role","button"); chip.tabIndex=0; chip.title="역할 바꾸기";
@@ -224,6 +225,31 @@ function renderPitch(){
   renderBench();
   renderStats();
   renderButtons();
+}
+/* ---- 주장단 ----
+   리더십 = 나이(경험)와 능력치로 계산. 주장은 사기에 크게, 부주장은 조금 영향을 줘요.
+   주장단을 안 정하면 약간 손해(-0.3)고, 리더십이 낮은 선수를 앉히면 효과가 작거나 오히려 불만이 생겨요. */
+function ageOf(p){ const r=(window.KL_RECORDS||{})[p.id]; const y=S&&S.career?S.career.year:2026; if(r&&r[0]) return y-r[0]; return p.age||27; }
+function leadership(p){ return Math.round(Math.max(0,Math.min(100,(ageOf(p)-22)*3.2+(p.ovr-60)*1.1+(p.pos==="GK"||p.pos==="DF"?4:0)))); }
+function squadPlayers(){ return S.xi.concat(S.bench).filter(Boolean); }
+function captainSet(){ const all=squadPlayers(), by=u=>all.find(p=>p.uid===u)||null; const cp=by(S.captains.c); return {c:cp,v:S.captains.v.map(by).filter(Boolean)}; }
+function captainFx(){ const {c,v}=captainSet(); if(!c) return -.3; const lc=leadership(c); let fx=(lc-50)/50*.5; v.forEach(p=>{ fx+=(leadership(p)-50)/50*.12; }); return Math.max(-.8,Math.min(.9,fx)); }
+function openCaptains(){
+  const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=e=>{ if(e.target===m) m.hidden=true; };
+  const box=el("div","m-box capt"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; renderAll(); };
+  box.append(x,el("h3",null,"주장단 선임"),el("p","hint","주장 1명과 부주장 2명을 고르세요. 리더십은 나이(경험)와 능력치로 정해져요. 선택은 눌러서 바꿀 수 있어요."));
+  const list=el("div","cap-list"); const draw=()=>{ list.innerHTML=""; const {c,v}=captainSet();
+    box.querySelector(".cap-sum")&&box.querySelector(".cap-sum").remove();
+    squadPlayers().slice().sort((a,b)=>leadership(b)-leadership(a)).forEach(p=>{
+      const role=c&&c.uid===p.uid?"C":v.some(q=>q.uid===p.uid)?"V":"";
+      const row=el("div","cap-row"+(role?" on":"")); row.append(el("span","cap-pos "+p.pos,p.pos),el("b",null,p.name),el("small",null,ageOf(p)+"세 · OVR "+p.ovr),el("em",null,"리더십 "+leadership(p)));
+      const bc=el("button","btn small"+(role==="C"?"":" ghost"),role==="C"?"주장 ✓":"주장"); bc.type="button";
+      bc.onclick=()=>{ if(S.captains.c===p.uid) S.captains.c=null; else { S.captains.c=p.uid; S.captains.v=S.captains.v.filter(u=>u!==p.uid); } draw(); };
+      const bv=el("button","btn small"+(role==="V"?"":" ghost"),role==="V"?"부주장 ✓":"부주장"); bv.type="button";
+      bv.onclick=()=>{ if(S.captains.v.includes(p.uid)) S.captains.v=S.captains.v.filter(u=>u!==p.uid); else { if(S.captains.c===p.uid) S.captains.c=null; S.captains.v=S.captains.v.concat(p.uid).slice(-2); } draw(); };
+      row.append(bc,bv); list.appendChild(row); });
+    const fx=captainFx(); box.appendChild(el("p","cap-sum","선수단 사기 보정: "+(fx>=0?"+":"")+fx.toFixed(2)+(c?"":"  (주장이 없어요)"))); box.appendChild(list); };
+  draw(); m.appendChild(box);
 }
 /* ---- 기자회견 ---- */
 function repBars(c){
@@ -315,7 +341,8 @@ function renderStats(){
   $("cntV").textContent=filled+"/11 · "+benchCount()+"/"+CFG.BENCH;
   /* 역할 궁합 안내 */
   let rn=$("roleNote"); if(!rn){ rn=el("div","role-note"); rn.id="roleNote"; $("pitch").insertAdjacentElement("afterend",rn); }
-  rn.innerHTML=""; if(r && r.role && !hide){ const t=r.role.att||r.role.def?"역할 보정: 공격 "+(r.role.att>=0?"+":"")+r.role.att.toFixed(1)+" / 수비 "+(r.role.def>=0?"+":"")+r.role.def.toFixed(1):""; if(t) rn.appendChild(el("div","rn-sum",t)); r.role.notes.forEach(n=>rn.appendChild(el("div","rn "+(n.ok?"ok":"bad"),(n.ok?"✔ ":"⚠ ")+n.text))); }
+  rn.innerHTML=""; { const cs=captainSet(); const cb=el("button","btn small ghost cap-btn",cs.c?"주장단: "+cs.c.name+(cs.v.length?" 외 "+cs.v.length+"명":"")+" (변경)":"👑 주장단 선임 필요"); cb.type="button"; cb.onclick=openCaptains; rn.appendChild(cb); }
+  if(r && r.role && !hide){ const t=r.role.att||r.role.def?"역할 보정: 공격 "+(r.role.att>=0?"+":"")+r.role.att.toFixed(1)+" / 수비 "+(r.role.def>=0?"+":"")+r.role.def.toFixed(1):""; if(t) rn.appendChild(el("div","rn-sum",t)); r.role.notes.forEach(n=>rn.appendChild(el("div","rn "+(n.ok?"ok":"bad"),(n.ok?"✔ ":"⚠ ")+n.text))); }
   const total=11+CFG.BENCH;
   const pr=$("progress"); pr.innerHTML=""; for(let k=0;k<total;k++){ const i=document.createElement("i"); if(k<filled+benchCount()) i.className="on"; if(k>=11) i.classList.add("bn"); pr.appendChild(i); }
   renderMgr();
@@ -522,7 +549,7 @@ function runSeason(){
   const c=S.career;
   c.prev={aclQ:c.aclQ,div:c.div,k1:c.k1.slice(),k2:c.k2.slice(),rep:Object.assign({},c.rep),goal:c.goal};
   const R=window.KLSeason.run({form:S.form,mgr:S.mgr,xi:S.xi,bench:S.bench,diff:S.diff,teamName:$("teamName").value.trim()||"레전드 FC",
-    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost,roles:S.roles,morale:KLPress.moraleFx(c)});
+    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost,roles:S.roles,morale:KLPress.moraleFx(c)+captainFx()});
   KLPress.settle(R,c);
   recordSeason(R);
   showResults(R);
@@ -1039,7 +1066,7 @@ const SAVE_KEY="kl38-saves", SAVE_VER=1;
 const savable = () => !S.spinning && S.phase!=="results" && (!S.done || S.phase==="winter");
 function snapState(){
   return {v:SAVE_VER, ts:Date.now(), teamName:$("teamName").value, nick:$("nick").value,
-    S:{form:S.form,mode:S.mode,diff:S.diff,rm:S.rm,xi:S.xi,bench:S.bench,respins:S.respins,picks:S.picks,mgr:S.mgr,phase:S.phase,winter:S.winter,roles:S.roles,sign:S.sign||null},
+    S:{form:S.form,mode:S.mode,diff:S.diff,rm:S.rm,xi:S.xi,bench:S.bench,respins:S.respins,picks:S.picks,mgr:S.mgr,phase:S.phase,winter:S.winter,roles:S.roles,sign:S.sign||null,captains:S.captains},
     career:S.career};
 }
 function brief(b){ const c=b.career, x=b.S; const n=x.xi.filter(Boolean).length+x.bench.filter(Boolean).length;
@@ -1053,7 +1080,7 @@ function loadBlob(b){
   const mgr=b.S.mgr?Object.assign({},b.S.mgr):null;
   newState(b.S.form,b.S.mode,b.S.diff,b.S.rm);
   S.xi=b.S.xi.map(fix); S.bench=b.S.bench.map(fix); S.respins=b.S.respins; S.picks=b.S.picks; S.mgr=mgr; S.career=b.career;
-  S.roles=Array.isArray(b.S.roles)?b.S.roles.slice():Array(11).fill(0); S.sign=b.S.sign||null; S.phase=b.S.phase; S.winter=b.S.winter?Object.assign({},b.S.winter,{cand:b.S.winter.cand?fix(b.S.winter.cand):null}):null;
+  S.roles=Array.isArray(b.S.roles)?b.S.roles.slice():Array(11).fill(0); S.sign=b.S.sign||null; S.captains=b.S.captains||{c:null,v:[]}; S.phase=b.S.phase; S.winter=b.S.winter?Object.assign({},b.S.winter,{cand:b.S.winter.cand?fix(b.S.winter.cand):null}):null;
   S.done=S.phase==="winter"; S.squad=null; S.selected=null; S.last=null;
   $("teamName").value=b.teamName||"레전드 FC"; if(b.nick) $("nick").value=b.nick;
   $("results").hidden=true; $("results").innerHTML=""; $("careerWrap").hidden=true;
