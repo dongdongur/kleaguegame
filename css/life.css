@@ -1,10 +1,10 @@
 /* K-라이프 (축구선수 키우기) 화면 — 모바일 카드형 */
 :root{--bg:#e9edf3;--card:#fff;--ink:#14213d;--mut:#6b7691;--line:#d9e0ec;--blue:#0a7be0;--navy:#263796;--gold:#f5b53d;--red:#d4382f;--green:#1f9d55}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"Segoe UI","Malgun Gothic",sans-serif;display:flex;justify-content:center}
+html{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"Segoe UI","Malgun Gothic",sans-serif;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
 button{font:inherit;color:inherit;cursor:pointer}
-.phone{width:100%;max-width:440px;min-height:100dvh;background:#f3f6fb;position:relative;box-shadow:0 0 40px rgba(20,33,61,.12);overflow:hidden}
+.phone{width:100%;max-width:440px;min-height:100dvh;background:#f3f6fb;position:relative;box-shadow:0 0 40px rgba(20,33,61,.12)}
 .top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;padding:14px 14px 12px}
 .ibtn{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.14);border:0;color:#fff;display:grid;place-items:center;text-decoration:none;font-size:18px}
 .who{flex:1;min-width:0;display:flex;flex-direction:column}.who b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who small{color:#b7c4ff;font-size:12px}

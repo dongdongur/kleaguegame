@@ -169,6 +169,7 @@ function showInfo(p){
   if(A&&A.traits&&A.traits.length){ const tr=el("div","m-traits"); A.traits.forEach(t=>tr.appendChild(el("span","tg",t))); info.appendChild(tr); }
   if(A&&A._example) info.appendChild(el("p","m-warn","예시 데이터예요. 실제 기록으로 검증된 값이 아니에요."));
   if(p.recTxt) info.appendChild(el("p","m-note","실제 기록 기반: "+p.recTxt));
+  { const lt=K.liteOf?K.liteOf(p):null; if(lt&&!A){ info.appendChild(el("p","m-note","세부 능력치 (사용자 제공 목록) · 현재 능력 "+lt.ca)); const t=el("div","m-lite"); (window.KL_ATTRS_LITE_KEYS||[]).forEach(k=>{ const v=lt[k], r=el("span","ml-i"); r.append(el("i",null,window.KL_ATTRS_LITE_KO[k]), el("b",v>=85?"s":v>=75?"a":v>=60?"b":v>=40?"c":"d",String(v))); t.appendChild(r); }); info.appendChild(t); } }
   if(p.est) info.appendChild(el("p","m-warn","추정 능력치예요. 이 선수의 실제 기록이 반영되기 전이라 리그 수준과 팀 수준으로 정한 값이에요."));
   head.appendChild(info); box.append(x,head);
   if(A){

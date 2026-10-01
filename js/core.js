@@ -329,9 +329,14 @@ const ROLES = window.KL_ROLES||{}, ROLE_KEY = window.KL_ROLE_KEY||(()=>"CM"), RO
 function roleOf(lab,idx){ const l=ROLES[ROLE_KEY(lab)]; return l ? (l[idx|0]||l[0]) : null; }
 /* 선수 스타일(제공권·주력, 0~1): 직접 적은 값(KL_STYLE)이 있으면 그것을, 없으면 키(기록에 있는 선수)와 나이로 추정해요 */
 const STYLE_TBL = window.KL_STYLE||{};
+/* 간이 세부 능력치(js/data_attrs_lite.js, 사용자 제공)가 있는 선수: 이름이 같아도 포지션 계열이 맞을 때만 */
+const LITE=window.KL_ATTRS_LITE||{}, LITE_KEYS=window.KL_ATTRS_LITE_KEYS||[];
+const LITE_GROUP={GK:"GK",CB:"DF",RB:"DF",LB:"DF",DM:"MF",MC:"MF",CM:"MF",AM:"MF",ST:"FW",LW:"FW",RW:"FW"};
+function liteOf(p){ const a=LITE[p.name]; if(!a||LITE_GROUP[a[0]]!==p.pos) return null; const o={ca:a[1],pos:a[0]}; LITE_KEYS.forEach((k,i)=>{ o[k]=a[2+i]; }); return o; }
 function playerStyle(p){
   const t=STYLE_TBL[p.name]||{};
-  const aer = t.aer!=null ? t.aer : (p.h ? clamp((p.h-174)/16,.1,1) : .5);
+  const lt=liteOf(p);
+  const aer = t.aer!=null ? t.aer : lt ? clamp((lt.strength-55)/35,.1,1) : (p.h ? clamp((p.h-174)/16,.1,1) : .5);
   const pace = t.pace!=null ? t.pace : null;               // null 이면 나이로 계산
   return {aer,pace,known:t.aer!=null||!!p.h};
 }
@@ -345,7 +350,13 @@ function recentRates(p){
 function recommendRoles(p,lab){
   const key=ROLE_KEY(lab), cur=(ROLE_REC_TBL[p.name]||{})[key]; if(cur) return cur.slice();
   const list=ROLES[key]||[]; const out=[]; const add=n=>{ if(list.some(r=>r.name===n)&&!out.includes(n)) out.push(n); };
-  const st=playerStyle(p), rt=recentRates(p);
+  const st=playerStyle(p), rt=recentRates(p), lt=liteOf(p);
+  if(lt){ if(key==="ST"){ if(lt.strength>=86&&lt.finishing>=84) add("타깃맨"); if(lt.finishing>=90) add("포처"); if(lt.passing>=75&&lt.vision>=72) add("딥라잉 포워드"); }
+    if(key==="WG"||key==="AM"){ if(lt.finishing>=78) add(key==="WG"?"인사이드 포워드":"섀도 스트라이커"); if(lt.passing>=84&&lt.vision>=84) add(key==="WG"?"와이드 플레이메이커":"트레콰르티스타"); if(lt.technique>=88) add(key==="WG"?"인버티드 윙어":"앙간체"); }
+    if(key==="DM"){ if(lt.tackling>=84) add("볼 위닝 미드필더"); if(lt.passing>=90&&lt.vision>=90) add("레지스타"); }
+    if(key==="CM"){ if(lt.passing>=84&&lt.vision>=82) add("어드밴스드 플레이메이커"); if(lt.stamina>=88) add("박스 투 박스"); }
+    if(key==="CB"){ if(lt.passing>=84) add("볼 플레잉 센터백"); if(lt.tackling>=87&&lt.strength>=84) add("스토퍼"); }
+    if(key==="FB"){ if(lt.stamina>=86) add("공격형 풀백"); } }
   if(key==="ST"){ if(st.aer>=.8) add("타깃맨"); if(rt&&rt.g>=.30) add("포처"); if(rt&&rt.a>=.16) add("딥라잉 포워드"); if(st.aer<.45&&rt&&rt.g>=.2) add("어드밴스드 포워드"); }
   if(key==="WG"){ if(rt&&rt.a>=.15) add("윙어"); if(rt&&rt.g>=.22) add("인사이드 포워드"); if(st.aer>=.75) add("와이드 타깃맨"); }
   if(key==="AM"){ if(rt&&rt.a>=.15) add("트레콰르티스타"); if(rt&&rt.g>=.2) add("섀도 스트라이커"); }
@@ -444,7 +455,7 @@ function assembleLog(ev,c){
   return out;
 }
 
-window.KLCore = {GIMCHEON, ROLES, roleOf, roleFit, roleFitInfo, playerStyle, recommendRoles, ROLE_KEY, CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
+window.KLCore = {GIMCHEON, ROLES, roleOf, roleFit, roleFitInfo, playerStyle, recommendRoles, liteOf, ROLE_KEY, CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
   clone, mgrFx, fatigue, rate, oppStrength, assembleLog, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();
