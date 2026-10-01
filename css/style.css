@@ -463,3 +463,4 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 
 .role-rec{margin:6px 0 2px;padding:8px 10px;border-radius:10px;background:rgba(245,181,61,.14);color:#f5d487;font-size:12.5px}
 .role-row.on b,.role-row b{display:block}
+.slot .role-chip{max-width:160%}

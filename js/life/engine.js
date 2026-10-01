@@ -61,7 +61,7 @@ function create(o){
   const base=a0<18?Math.max(18,42+(t.pot-60)*.30-(18-a0)*4.4+rnd(-2,2)):42+(t.pot-60)*.30+(a0-18)*3.2+rnd(-2,2);        // 재능이 좋을수록 시작 능력이 높아요
   const stats={}; d.stats.forEach(([k],i)=>{ stats[k]=clamp(Math.round(base+ty[2][i]+rnd(-3,3)),12,95); });
   const S={v:STATE_VER,startYear:2008+a0,year:2008+a0,
-    p:{name:o.name||"이름 없는 선수",pos,sub:o.sub||d.subs[0][0],type:ty[0],typeName:ty[1],born:2008,pot:t.pot,grade:t.grade,stats,peak:0,route:o.route||"high",height:ri(170,192)},
+    p:{name:o.name||"이름 없는 선수",pos,sub:o.sub||d.subs[0][0],type:ty[0],typeName:ty[1],born:2008,pot:t.pot,pot0:t.pot,grade:t.grade,stats,peak:0,route:o.route||"high",height:ri(170,192)},
     club:null,salary:0,contractYears:0,trust:.4,military:"none",mildone:0,team:"1군",stage:a0<18?"youth":"pro",youthTier:0,
     phase:a0<18?"train":"draft",offers:[],plan:null,history:[],awards:[],trophies:[],moments:[],
     career:{apps:0,starts:0,minutes:0,goals:0,assists:0,cs:0,caps:0,intGoals:0,ratingSum:0,ratingN:0,mom:0},
@@ -110,7 +110,7 @@ function salaryOf(ovr,age,lg){ const base=.25*Math.exp((ovr-55)/7.5); const ageF
 function quickTable(S,key){
   const ids=(key==="K1"?S.league.k1:S.league.k2); const defs=ids.map(defById).filter(Boolean); const st={}, tab={};
   defs.forEach(d=>{ st[d.club]=strengthOf(S,d); tab[d.club]={club:d.club,pts:0,gf:0,ga:0}; });
-  schedule(defs.map(d=>d.club),key==="K1"?3:2,key==="K1"?38:36).forEach(([h,a])=>{ const [gh,ga]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a]; H.gf+=gh;H.ga+=ga;A.gf+=ga;A.ga+=gh; if(gh>ga) H.pts+=3; else if(gh<ga) A.pts+=3; else {H.pts++;A.pts++;} });
+  schedule(defs.map(d=>d.club),key==="K1"?3:2,key==="K1"?38:32).forEach(([h,a])=>{ const [gh,ga]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a]; H.gf+=gh;H.ga+=ga;A.gf+=ga;A.ga+=gh; if(gh>ga) H.pts+=3; else if(gh<ga) A.pts+=3; else {H.pts++;A.pts++;} });
   return Object.values(tab).sort((x,y)=>y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)).map(t=>t.club);
 }
 /* ================= 드래프트·이적 ================= */
@@ -157,7 +157,9 @@ function playMatch(h,a){
 /* 일정: 모든 팀 쌍을 n번씩 (+ 홈/원정 번갈아), 부족한 경기는 무작위 쌍으로 채워요 */
 function schedule(ids,per,total){
   const m=[]; for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++) for(let k=0;k<per;k++) m.push(k%2?[ids[i],ids[j]]:[ids[j],ids[i]]);
-  while(m.length<total*ids.length/2){ const i=ri(0,ids.length-1); let j=ri(0,ids.length-1); if(i===j) continue; m.push([ids[i],ids[j]]); }
+  /* 남는 라운드: 팀을 무작위로 둘씩 짝지어서 모든 팀이 똑같이 한 경기씩 더 치러요 (팀 수가 홀수면 한 팀은 쉬어요) */
+  let have=per*(ids.length-1); const extra=ids.length%2===0?Math.max(0,total-have):0;
+  for(let r=0;r<extra;r++){ const sh=ids.slice().sort(()=>Math.random()-.5); for(let i=0;i+1<sh.length;i+=2) m.push(r%2?[sh[i],sh[i+1]]:[sh[i+1],sh[i]]); }
   return m;
 }
 /* 내 선수가 구단 전력에 주는 영향 */
@@ -224,7 +226,7 @@ function simSeason(S,plan){
     R.role0=roleLabel(startRateAt(p.ovr,lvl,S.trust,p));
     let sr=clamp(startRateAt(p.ovr,lvl,S.trust,p)*(1-injury.frac*.6),.0,.97); if(S.team==="2군") sr=Math.min(sr,.1);
     const imp=myImpact(S,sr,lvl); st[myDef.club]={att:st[myDef.club].att+imp.att,def:st[myDef.club].def+imp.def,lvl:st[myDef.club].lvl};
-    const fixtures=schedule(defs.map(d=>d.club),key==="K1"?3:2,key==="K1"?38:36);
+    const fixtures=schedule(defs.map(d=>d.club),key==="K1"?3:2,key==="K1"?38:32);
     const tab={}; defs.forEach(d=>tab[d.club]={club:d.club,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0});
     const myMatches=[]; let myRound=0;
     fixtures.forEach(([h,a],idx)=>{ const [gh,ga2]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a];
@@ -249,7 +251,7 @@ function simSeason(S,plan){
     let sr=clamp(startRateAt(p.ovr,lvl,S.trust,p)*(1-injury.frac*.6),0,.97); if(S.team==="2군") sr=Math.min(sr,.1);
     const strength=(F.lvl-70)/3+rnd(-2.2,2.2);                  // 구단 수준이 높을수록 좋은 순위
     const N=20; R.N=N; R.rank=clamp(Math.round(N/2-strength*1.3+rnd(-2,2)),1,N);
-    const ptsPer=clamp(1.5+strength*.12+rnd(-.2,.2),.6,2.7); W=Math.round(38*clamp(ptsPer/3+.05,.1,.8)); D=ri(5,10); L=Math.max(0,38-W-D);
+    const ptsPer=clamp(1.5+strength*.12+rnd(-.2,.2),.6,2.7); W=Math.round(38*clamp(ptsPer/3+.05,.1,.8)); D=Math.min(ri(5,10),38-W); L=38-W-D;
     gf=Math.round(38*clamp(1.5+strength*.1,.8,2.8)); ga=Math.round(38*clamp(1.4-strength*.08,.6,2));
     const myMatches=[]; for(let i=1;i<=38;i++){ const gh=K.poisson(clamp(1.5+strength*.1,.6,3)), ga2=K.poisson(clamp(1.3-strength*.07,.4,2.4)); myMatches.push({round:i,home:i%2===1,opp:"상대 "+i,f:gh,a:ga2}); }
     const my=mySeason(S,myMatches,sr,lvl,injury,{club:S.club.id});
@@ -368,7 +370,7 @@ const TOURN=[
 const STAGES=["조별리그 탈락","16강","8강","4강","준우승","우승"];
 function nationalTeam(S,R){
   const p=S.p, ag=age(S); R.national=null; R.callups=[]; R.nationalEvents=[];
-  const base={FW:76,MF:75,DF:74,GK:73}[p.pos]; const lg=isForeign(S.club.lg)?2:0;
+  const base={FW:76,MF:75,DF:74,GK:76}[p.pos]; const lg=isForeign(S.club.lg)?2:0;
   /* 친선·예선(상시 소집): 일정 수준 이상이어야 불려요 */
   if(!R.youth && ag>=19){
     const chance=logistic((p.ovr+lg-base)/2.4)*clamp((R.apps||0)/22,.2,1);
@@ -424,6 +426,7 @@ function growth(S,R){
     if(PHYS.has(k) && ag>=28) dv-=.5+ (ag-28)*.18;
     dv+=(ty?ty[2][i]:0)*.03;                                            // 유형 방향으로 조금 더 자라요
     if(plan.focus===k) dv+=1.6;
+    if(p.ovr>=p.pot+1 && dv>0) dv=Math.min(dv,.2);          // 잠재력에 닿으면 더는 크게 오르지 않아요
     if(plan.rest) dv-=.15;
     dv+=rnd(-1.3,1.3);
     if(R.injury&&R.injury.severe&&PHYS.has(k)) dv-=1.2;
@@ -431,7 +434,7 @@ function growth(S,R){
   });
   p.ovr=ovrOf(p); p.peak=Math.max(p.peak,p.ovr); R.ovr1=p.ovr; R.dOvr=p.ovr-before;
   /* 잠재력은 시즌 활약에 따라 조금 달라져요 */
-  if(R.rating>=7.3) p.pot=Math.min(99,p.pot+ (Math.random()<.5?1:0)); else if(R.rating>0&&R.rating<6.1&&ag<24) p.pot=Math.max(p.ovr,p.pot-(Math.random()<.4?1:0));
+  if(R.rating>=7.3&&ag<=27) p.pot=Math.min(99,(p.pot0||p.pot)+8,p.pot+(Math.random()<.5?1:0)); else if(R.rating>0&&R.rating<6.1&&ag<24) p.pot=Math.max(p.ovr,p.pot-(Math.random()<.4?1:0));
   /* 감독 신뢰 */
   S.trust=clamp(S.trust+(R.sr-.5)*.25+(R.rating>7?.05:0),.05,.95);
   /* 평판(이적 시장에서의 가치) */
