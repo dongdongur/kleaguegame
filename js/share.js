@@ -15,7 +15,7 @@ async function save(row){
 }
 async function load(){
   const order = sort==="pts" ? "pts.desc,gf.desc,created_at.desc" : "created_at.desc";
-  const r = await fetch(C.SUPABASE_URL+"/rest/v1/results?select=id,created_at,nickname,team_name,form,mode,manager,w,d,l,pts,gf,ga,rank&order="+order+"&limit=30",{headers:H});
+  const r = await fetch(C.SUPABASE_URL+"/rest/v1/results?select=id,created_at,nickname,team_name,form,mode,diff,manager,w,d,l,pts,gf,ga,rank&order="+order+"&limit=30",{headers:H});
   if(!r.ok) throw new Error("불러오기 실패 ("+r.status+")");
   return r.json();
 }
@@ -28,7 +28,7 @@ function render(rows){
     const li=el("li","lbrow");
     li.appendChild(el("span","lbn",String(i+1)));
     const who=el("span","lbw",r.nickname); 
-    who.appendChild(el("small",null,r.team_name+" · "+r.form+(r.manager?" · 감독 "+r.manager:"")+(r.mode==="pos"?" · 포지션":"")));
+    who.appendChild(el("small",null,r.team_name+" · "+r.form+(r.manager?" · 감독 "+r.manager:"")+(r.mode==="pos"?" · 포지션":"")+(r.diff==="hard"?" · 어려움":"")));
     li.appendChild(who);
     li.appendChild(el("span","lbr",r.w+"승 "+r.d+"무 "+r.l+"패 · "+r.rank+"위"));
     li.appendChild(el("span","lbp",r.pts+"점"));

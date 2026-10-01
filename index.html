@@ -18,7 +18,7 @@
   <header class="top">
     <div class="brand">
       <h1>K-레전드 <b>38</b></h1>
-      <p>시대별 K리그 레전드 팀을 스핀해서 한 명씩 뽑아 베스트 11을 만들고, 20팀 38라운드 시즌을 돌려 보세요. 목표는 38전 전승이에요.</p>
+      <p>시대별 K리그 레전드 팀을 스핀해서 한 명씩 뽑아 베스트 11과 후보 5명을 만들고, 2026 K리그1에 합류해 38라운드 시즌을 치러 보세요. 목표는 38전 전승이에요.</p>
     </div>
     <div class="best" id="best"></div>
   </header>
@@ -27,6 +27,10 @@
     <div class="panel">
       <div class="setup">
         <div class="seg" id="modeSeg" role="group" aria-label="드래프트 방식"></div>
+      </div>
+      <div class="setup">
+        <span class="label">상대</span>
+        <div class="seg" id="diffSeg" role="group" aria-label="상대팀 난이도"></div>
       </div>
       <div class="setup">
         <div class="seg" id="formSeg" role="group" aria-label="포메이션"></div>
@@ -49,6 +53,7 @@
           </g>
         </svg>
       </div>
+      <div class="bench" id="bench"></div>
       <div class="mgr" id="mgrBox"></div>
       <div class="pitchfoot">
         <span>공격 <b id="attV">–</b></span><span>수비 <b id="defV">–</b></span><span>케미 <b id="chemV">+0.0</b></span><span>선발 <b id="cntV">0/11</b></span>
@@ -73,6 +78,15 @@
     </div>
   </div>
 
+  <section class="panel" id="oppWrap" style="margin-top:20px">
+    <div class="setup" style="justify-content:space-between">
+      <h2 style="margin:0">2026 K리그1 상대팀</h2>
+      <span class="label" id="oppDiffLabel"></span>
+    </div>
+    <div class="seg" id="oppTabs" role="group" aria-label="상대팀 선택"></div>
+    <div id="oppView"></div>
+  </section>
+
   <div id="results" hidden></div>
 
   <section class="panel" id="sharedWrap" hidden style="margin-top:26px">
@@ -84,11 +98,12 @@
   </section>
 
   <footer>
-    비공식 팬 제작 게임이에요. K리그와 각 구단, 선수와는 관련이 없어요. 능력치는 해당 시기 활약을 기준으로 한 주관적 평가이고, 시대별 명단은 대표 선수 위주로 구성해서 실제 등록 명단과 다를 수 있어요. 엠블럼과 공식 이미지는 사용하지 않았어요.
+    비공식 팬 제작 게임이에요. K리그와 각 구단, 선수와는 관련이 없어요. 능력치는 해당 시기 활약을 기준으로 한 주관적 평가이고, 시대별 명단과 2026 K리그1 선수단은 대표 선수 위주로 구성해서 실제 등록 명단과 다를 수 있어요. 김천 상무 자리에 내 팀이 합류한다는 가상의 설정이에요. 엠블럼과 공식 이미지는 사용하지 않았어요.
   </footer>
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/data2026.js"></script>
 <script src="js/config.js"></script>
 <script src="js/game.js"></script>
 <script src="js/share.js"></script>

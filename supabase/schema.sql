@@ -27,3 +27,6 @@ create policy "results read"   on public.results for select to anon using (true)
 create policy "results insert" on public.results for insert to anon with check (true);
 
 grant select, insert on public.results to anon;
+
+-- 상대 난이도(쉬움/어려움) 컬럼 추가. 이미 위 표가 만들어져 있어도 이 부분만 다시 실행하면 돼요.
+alter table public.results add column if not exists diff text not null default 'easy' check (diff in ('easy','hard'));

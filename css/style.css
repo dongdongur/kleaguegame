@@ -167,3 +167,38 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:75ch}
 /* 경기 목록: 홈/원정 칸이 좁아 글자가 깨지던 문제 */
 .m{grid-template-columns:34px 34px minmax(0,1fr) auto}
 .m .ha{white-space:nowrap}
+
+/* 후보석 */
+.bench{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:10px 12px}
+.bench.can{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.benchlab{font:700 11px var(--f-num);letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.benchrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.bslot{display:flex;flex-direction:column;align-items:center;gap:2px;border:1.5px dashed var(--line);background:var(--surface);border-radius:10px;padding:6px 2px;color:var(--ink);font-family:var(--f-body);min-width:0;cursor:default}
+.bslot:disabled{opacity:1;color:var(--ink)}
+.bslot .bd{font:700 14px var(--f-num)}
+.bslot .bn{font-size:12px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bslot .bp{font:500 10px var(--f-num);color:var(--muted)}
+.bslot.filled{border-style:solid;border-color:transparent;color:#fff}
+.bslot.filled.g-GK{background:#B7791F}.bslot.filled.g-DF{background:#2B6CB0}.bslot.filled.g-MF{background:#2F855A}.bslot.filled.g-FW{background:#C2412D}
+.bslot.filled .bp{color:rgba(255,255,255,.8)}
+.bslot.can{border-color:var(--accent);cursor:pointer;animation:pulse 1.1s ease-in-out infinite}
+.bslot.can:disabled{cursor:pointer}
+.benchnote{margin:8px 0 0;font-size:11px;color:var(--muted)}
+.progress i.bn{opacity:.7}
+/* 출전·체력 */
+.stam{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;font-size:13px}
+.stam li{display:grid;grid-template-columns:34px minmax(0,1fr) 48px 70px;gap:8px;align-items:center}
+.stam .sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stam .sa{font:500 12px var(--f-num);color:var(--muted);text-align:right}
+.sbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;display:block}
+.sbar i{display:block;height:100%;background:var(--win)}
+.sbar i.low{background:var(--loss)}
+.seg button{white-space:nowrap}
+
+/* 상대팀 스쿼드 */
+.oppsum{margin:12px 0 6px;font:500 13px var(--f-num);color:var(--muted)}
+.oppt td.on{font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.oppt th,.oppt td{padding:6px 8px}
+tr.link{cursor:pointer}
+tr.link:hover td{background:var(--surface-2)}
+#oppTabs{margin-top:10px}
