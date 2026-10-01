@@ -202,3 +202,12 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:75ch}
 tr.link{cursor:pointer}
 tr.link:hover td{background:var(--surface-2)}
 #oppTabs{margin-top:10px}
+
+.reel .yearL{font:700 13px var(--f-num);letter-spacing:.14em;color:var(--muted);margin-bottom:4px;min-height:1.3em}
+
+/* 카드 */
+.cd{font:500 12px var(--f-num);color:var(--muted);white-space:nowrap}
+.cd i{display:inline-block;width:8px;height:11px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.cd i.yc{background:#F5C518}.cd i.rc{background:#D6362B}
+.stam li{grid-template-columns:34px minmax(0,1fr) 44px 52px 60px}
+.m .o .cdl{color:#B9770E}

@@ -12,7 +12,9 @@ const CONFIG = {
   NAT_PER_PAIR: 0.25,  // 같은 시기 국가대표 2명당 케미 보너스
   CHEM_MAX: 2.5,       // 케미 보너스 상한
   OUT_OF_POS: 2,       // 주 포지션이 아닌 자리에 세웠을 때 능력치 감점
-  POS_CANDS: 5,        // 포지션 스핀에서 보여줄 후보 선수 수
+  POS_CANDS: 5,        // 연도+포지션 스핀에서 보여줄 후보 선수 수
+  TEAM_CANDS: 6,       // 연도+팀 스핀에서 그 팀 선수 중 무작위로 보여줄 선수 수
+  BENCH_CANDS: 6,      // 후보 뽑기에서 라운드마다 보여줄 선수 수
   MGR_CANDS: 3,        // 감독 뽑기에서 보여줄 후보 감독 수
   MGR_PER_OVR: 0.12,   // 감독 능력치 1당 공격·수비 보정 (80이 기준)
   MGR_STYLE: 0.6,      // 공격형/수비형 감독의 공격↔수비 보정
@@ -28,7 +30,16 @@ const CONFIG = {
   FATIGUE_PER: 0.1,    // 체력 1이 모자랄 때마다 깎이는 능력치
   /* 상대팀(2026 K리그1) */
   HARD_FILL: 9,        // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
-  PRIME_DEFAULT: 7     // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값
+  PRIME_DEFAULT: 7,    // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값
+  /* 카드: 경기마다 뛴 선수에게 확률로 붙어요. 퇴장은 그 경기를 10명으로 치르고 다음 경기 결장, 경고 5장 누적마다 1경기 결장 */
+  CARD_Y: {GK:.02, DF:.13, MF:.14, FW:.08},  // 경기당 경고 확률
+  CARD_R: .004,        // 경기당 다이렉트 퇴장 확률
+  CARD_Y2: .03,        // 경고를 받은 선수가 같은 경기에서 한 번 더 받아 퇴장당할 확률
+  RED_PEN: 4,          // 퇴장 1명당 그 경기 공격·수비 감점
+  FORCED_POS: 6,       // 아예 못 서는 포지션에 억지로 세웠을 때 감점
+  OPP_RED: .06,        // 상대팀이 한 경기에서 퇴장을 당할 확률
+  OPP_YELLOW: 1.8,     // 상대팀 경기당 평균 경고 수
+  YOUTH_OVR: 62        // 결장자를 대신할 후보조차 없을 때 투입되는 유스 선수 능력치
 };
 const MGRS = (window.KL_MANAGERS||[]).map((m,i)=>({id:i,name:m[0],note:m[1],ovr:m[2],style:m[3],form:m[4],org:m[5]}));
 const GCOL = {GK:"#B7791F",DF:"#2B6CB0",MF:"#2F855A",FW:"#C2412D"};
@@ -57,6 +68,9 @@ const TEAMS26 = (window.KL_2026||[]).map(t=>({club:t[0],short:t[1],base:t[2],
   players:t[3].map(p=>{ const legend=LEGEND_BEST[p[0]+"|"+p[1]];
     const prime = p[4]!=null ? p[4] : (legend ? Math.max(p[2],legend) : p[2]+CONFIG.PRIME_DEFAULT);
     return {name:p[0],pos:p[1],ovr:p[2],det:p[3]||"",prime}; })}));
+
+const YEARS = (()=>{ const a=SQUADS.map(q=>q.yrs[0]), b=SQUADS.map(q=>q.yrs[1]); const out=[]; for(let y=Math.min(...a);y<=Math.max(...b);y++) out.push(y); return out; })();
+const coversYear = (q,y) => q.yrs[0]<=y && y<=q.yrs[1];
 
 const FORMS = {
  "4-3-3":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["CM",28,50],["CM",50,55],["CM",72,50],["LW",17,24],["ST",50,15],["RW",83,24]],
@@ -101,13 +115,15 @@ const benchCount = () => S.bench.filter(Boolean).length;
 function usedNames(){ return new Set(S.xi.concat(S.bench).filter(Boolean).map(x=>x.name)); }
 function idleHint(){
   return S.mode==="pos"
-    ? "스핀하면 채워야 할 포지션이 나와요. 그 포지션 후보 중 한 명을 고르세요."
-    : "스핀하면 팀 하나가 나와요. 그 팀에서 선수 한 명을 골라 빈 자리에 넣으세요.";
+    ? "스핀하면 연도와 채워야 할 포지션이 나와요. 그 해 그 포지션을 뛴 후보 중 한 명을 고르세요."
+    : "스핀하면 연도와 팀이 나와요. 그 팀 선수 중 일부가 후보로 나오니 한 명을 골라 빈 자리에 넣으세요.";
 }
 function idleReel(){
+  $("reelYear").textContent = S.mode==="pos" ? "연도 + 포지션" : "연도 + 팀";
   $("reelClub").textContent="스핀을 눌러 시작";
-  $("reelEra").textContent = S.mode==="pos" ? "포지션을 뽑고 후보 중 선택" : SQUADS.length+"개 시대별 레전드 팀";
+  $("reelEra").textContent = S.mode==="pos" ? "그 해 그 포지션을 뛴 선수 중에서 선택" : "그 해 그 팀 선수 중 일부가 후보로 나와요";
 }
+function setReel(y,club,sub){ $("reelYear").textContent=y; $("reelClub").textContent=club; $("reelEra").textContent=sub; }
 function hard(){ return $("hard").checked; }
 
 /* ---------- render setup ---------- */
@@ -199,7 +215,7 @@ function eligibleSlots(p){
   const only = S.squad && S.squad.forSlot!=null ? S.squad.forSlot : null;
   return FORMS[S.form].map((s,i)=>({s,i})).filter(({s,i})=>!S.xi[i] && (only==null || i===only) && fitsSlot(p,s[0])).map(o=>o.i);
 }
-const canBench = p => !!p && benchOpen() && !usedNames().has(p.name);
+const benchPhase = () => !!(S.squad && S.squad.bench);
 
 function renderPitch(){
   const pitch=$("pitch"); pitch.querySelectorAll(".slot").forEach(n=>n.remove());
@@ -231,10 +247,11 @@ function renderPitch(){
   $("chemV").title = r ? "같은 팀·시즌 "+r.clubPairs+"쌍, 같은 시기 국가대표 "+r.natPairs+"쌍" : "";
   const total=11+CONFIG.BENCH;
   const pr=$("progress"); pr.innerHTML=""; for(let k=0;k<total;k++){const i=document.createElement("i"); if(k<filled+benchCount()) i.className="on"; if(k>=11) i.classList.add("bn"); pr.appendChild(i);}
-  $("simBtn").disabled = filled<11 || !S.mgr || S.done;
-  $("spinBtn").disabled = (xiFull() && !benchOpen()) || S.spinning || offering() || S.done;
+  $("simBtn").disabled = filled<11 || benchOpen() || !S.mgr || S.done;
+  $("spinBtn").disabled = xiFull() || S.spinning || offering() || S.done;
+  $("benchBtn").disabled = !xiFull() || !benchOpen() || S.spinning || offering() || S.done;
   $("mgrBtn").disabled = !!S.mgr || S.spinning || offering() || S.done;
-  $("respinBtn").disabled = !offering() || S.respins<=0 || S.spinning;
+  $("respinBtn").disabled = !offering() || benchPhase() || S.respins<=0 || S.spinning;
   $("respinBtn").textContent = "다시 스핀 ("+S.respins+")";
   renderMgr();
 }
@@ -242,23 +259,20 @@ function renderPitch(){
 /* 후보석: 아무 포지션이나 들어갈 수 있어요 */
 function renderBench(){
   const box=$("bench"); box.innerHTML="";
-  const ready = !!S.selected && canBench(S.selected);
-  box.classList.toggle("can",ready);
   box.appendChild(el("div","benchlab","후보 "+benchCount()+"/"+CONFIG.BENCH));
   const row=el("div","benchrow");
   S.bench.forEach((p,i)=>{
     const b=document.createElement("button"); b.type="button";
-    b.className="bslot"+(p?" filled g-"+p.pos:"")+(ready&&!p?" can":"");
+    b.className="bslot"+(p?" filled g-"+p.pos:"");
     if(p){
       b.append(el("span","bd",hard()&&!S.done?"?":String(p.ovr)), el("span","bn",p.name), el("span","bp",(p.det?p.det[0]:p.pos)));
       b.setAttribute("aria-label","후보 "+p.name);
-    } else { b.append(el("span","bd","+"), el("span","bn","후보 "+(i+1))); b.setAttribute("aria-label","후보석 "+(i+1)+(ready?", 여기에 영입":" 비어 있음")); }
-    if(ready && !p) b.onclick=()=>placeBench();
-    else b.disabled=true;
+    } else { b.append(el("span","bd","+"), el("span","bn","후보 "+(i+1))); b.setAttribute("aria-label","후보석 "+(i+1)+" 비어 있음"); }
+    b.disabled=true;
     row.appendChild(b);
   });
   box.appendChild(row);
-  box.appendChild(el("p","benchnote","선발이 지치면(체력 "+CONFIG.STAM_ROTATE+" 미만) 같은 자리를 설 수 있는 후보가 대신 뛰어요. 후보는 시즌 시작 전까지만 뽑을 수 있어요."));
+  box.appendChild(el("p","benchnote","선발 11명을 다 뽑으면 후보 "+CONFIG.BENCH+"명을 연달아 뽑아요. 선발이 지치거나(체력 "+CONFIG.STAM_ROTATE+" 미만) 결장하면 후보가 대신 뛰어요."));
 }
 
 function renderList(){
@@ -269,15 +283,15 @@ function renderList(){
   const order={GK:0,DF:1,MF:2,FW:3};
   S.squad.players.slice().sort((a,b)=>b.ovr-a.ovr||order[a.pos]-order[b.pos]).forEach(p=>{
     const li=document.createElement("li"); const b=document.createElement("button"); b.type="button"; b.className="prow";
-    const slots = eligibleSlots(p).length>0, bn = canBench(p);
+    const slots = eligibleSlots(p).length>0, bn = benchPhase() && !used.has(p.name);
     const ok = slots || bn;
     b.disabled=!ok; b.setAttribute("aria-pressed", String(S.selected===p));
     const pos=document.createElement("span"); pos.className="pos "+p.pos; pos.textContent=p.pos;
     const n=document.createElement("span"); n.className="n"; n.textContent=p.name;
     const sm=document.createElement("small");
     const dp = p.det ? p.det.join("/") : (p.alt?p.pos+"/"+p.alt:"");
-    const showTag = S.mode==="pos" || S.squad.forSlot==null && S.squad.bench;
-    sm.textContent = used.has(p.name)?"이미 선택":(showTag?tag(SQUADS[p.sq])+" · "+dp:(slots?dp:(bn?dp+" · 후보로만":"빈 자리 없음"))); n.appendChild(sm);
+    const showTag = S.mode==="pos" || benchPhase();
+    sm.textContent = used.has(p.name)?"이미 선택":(showTag?tag(SQUADS[p.sq])+" · "+dp:(slots?dp:"빈 자리 없음")); n.appendChild(sm);
     const o=document.createElement("span"); o.className="ovr"; o.textContent = hard()? "??" : p.ovr;
     b.append(pos,n,o);
     b.onclick=()=>pickPlayer(p);
@@ -285,12 +299,12 @@ function renderList(){
   });
 }
 function pickPlayer(p){
+  if(benchPhase()){ S.selected=p; placeBench(); return; }
   S.selected = (S.selected===p?null:p);
   if(!S.selected){ $("hint").textContent="선수를 골라 주세요."; renderList(); renderPitch(); return; }
-  const slots=eligibleSlots(S.selected), bn=canBench(S.selected);
-  if(slots.length===1 && !bn){ place(slots[0]); return; }
-  if(slots.length===0 && bn && xiFull()){ placeBench(); return; }
-  $("hint").textContent = S.selected.name+"을(를) 넣을 자리를 눌러 주세요."+(slots.length&&bn?" (경기장 또는 후보석)":(bn?" (후보석)":""));
+  const slots=eligibleSlots(S.selected);
+  if(slots.length===1){ place(slots[0]); return; }
+  $("hint").textContent = S.selected.name+"을(를) 넣을 자리를 경기장에서 눌러 주세요.";
   renderList(); renderPitch();
 }
 
@@ -309,19 +323,29 @@ function renderMgrList(ul){
 /* ---------- draft ---------- */
 function anyEligible(sq){ return sq.players.some(p=>eligibleSlots(p).length>0); }
 
-/* 포지션 스핀: 빈 자리 하나를 뽑고, 그 포지션에 맞는 후보 선수들을 보여줌. 선발이 다 찼으면 후보석용 아무 선수 */
+/* 연도+포지션 스핀: 빈 자리(포지션)와 연도를 뽑고, 그 해 그 포지션을 뛴 선수들 중 일부를 후보로 보여줌 */
 function makePosOffer(){
-  const used=usedNames(); const seen=new Set(); const cands=[];
-  const all=shuffle(SQUADS.flatMap(sq=>sq.players));
-  if(xiFull()){
-    all.forEach(p=>{ if(!used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); cands.push(p); } });
-    return {club:"후보 영입", era:"후보 스핀", players:cands.slice(0,CONFIG.POS_CANDS), forSlot:null, bench:true};
-  }
+  const used=usedNames();
   const empty=FORMS[S.form].map((s,i)=>i).filter(i=>!S.xi[i]);
   const slot=empty[Math.floor(Math.random()*empty.length)];
   const label=FORMS[S.form][slot][0];
-  all.forEach(p=>{ if(fitsSlot(p,label) && !used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); cands.push(p); } });
-  return {club:label, era:"포지션 스핀", players:cands.slice(0,CONFIG.POS_CANDS), forSlot:slot};
+  const byYear=new Map();
+  YEARS.forEach(y=>{ const seen=new Set(); const c=[];
+    SQUADS.forEach(q=>{ if(coversYear(q,y)) q.players.forEach(p=>{ if(fitsSlot(p,label) && !used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); c.push(p); } }); });
+    if(c.length) byYear.set(y,c); });
+  const years=[...byYear.keys()];
+  /* 후보가 최대한 여러 명인 해를 우선: 5명 이상 > 3명 이상 > 2명 이상 > 아무 해 */
+  const tier=[CONFIG.POS_CANDS,3,2,1].map(n=>years.filter(y=>byYear.get(y).length>=n)).find(a=>a.length)||years;
+  const year=tier[Math.floor(Math.random()*tier.length)];
+  return {club:label, sub:"그 해 "+label+"를 뛴 선수", year, players:shuffle(byYear.get(year)).slice(0,CONFIG.POS_CANDS), forSlot:slot};
+}
+/* 연도+팀 스핀: 팀(시즌)과 그중 한 해를 뽑고, 그 팀 선수 일부만 후보로 보여줌 */
+function makeTeamOffer(){
+  const pool=SQUADS.filter(anyEligible); const q=pool[Math.floor(Math.random()*pool.length)];
+  const year=q.yrs[0]+Math.floor(Math.random()*(q.yrs[1]-q.yrs[0]+1));
+  let ps=shuffle(q.players).slice(0,CONFIG.TEAM_CANDS);
+  if(!ps.some(p=>eligibleSlots(p).length>0)){ const e=shuffle(q.players.filter(p=>eligibleSlots(p).length>0))[0]; ps[ps.length-1]=e; }
+  return {club:q.club, sub:q.era+" 시즌 · 선수 "+ps.length+"/"+q.players.length+"명 공개", year, players:ps, forSlot:null};
 }
 
 function spin(isRespin,toMgr){
@@ -329,51 +353,61 @@ function spin(isRespin,toMgr){
   if(isRespin){ if(S.respins<=0) return; S.respins--; }
   const wasMgr=!!toMgr || !!S.mgrOffer;
   S.spinning=true; S.squad=null; S.mgrOffer=null; S.selected=null; renderList(); renderPitch();
-  let target, faces;
-  if(wasMgr){ target=null; faces=()=>{ const m=MGRS[Math.floor(Math.random()*MGRS.length)]; return [m.name,m.note.split(" · ")[0]]; }; }
-  else if(S.mode==="pos"){ target=makePosOffer(); const labs=xiFull()?["후보"]:FORMS[S.form].filter((s,i)=>!S.xi[i]).map(s=>s[0]);
-    faces=()=>[labs[Math.floor(Math.random()*labs.length)],"포지션 스핀"]; }
-  else{
-    const pool = xiFull() ? SQUADS : SQUADS.filter(anyEligible);
-    target=pool[Math.floor(Math.random()*pool.length)];
-    faces=()=>{ const sq=SQUADS[Math.floor(Math.random()*SQUADS.length)]; return [sq.club,sq.era+" 시즌"]; }; }
+  let target=null, faces;
+  const ry=()=>YEARS[Math.floor(Math.random()*YEARS.length)]+"년";
+  if(wasMgr){ faces=()=>{ const m=MGRS[Math.floor(Math.random()*MGRS.length)]; return ["감독",m.name,m.note.split(" · ")[0]]; }; }
+  else if(S.mode==="pos"){ target=makePosOffer(); const labs=FORMS[S.form].filter((s,i)=>!S.xi[i]).map(s=>s[0]);
+    faces=()=>[ry(),labs[Math.floor(Math.random()*labs.length)],"포지션 스핀"]; }
+  else{ target=makeTeamOffer();
+    faces=()=>{ const sq=SQUADS[Math.floor(Math.random()*SQUADS.length)]; return [ry(),sq.club,sq.era+" 시즌"]; }; }
   const reel=$("reel"); reel.classList.add("spin");
   const steps = reduce?1:16; let k=0;
   const tick=()=>{
     k++;
-    const [a,b] = k>=steps && target ? (S.mode==="pos"?[target.club,target.bench?"후보로 영입할 선수":"자리를 채울 후보"]:[target.club,target.era+" 시즌"]) : faces();
-    $("reelClub").textContent=a; $("reelEra").textContent=b;
+    const [y,a,b] = k>=steps && target ? [target.year+"년",target.club,target.sub] : faces();
+    setReel(y,a,b);
     if(k<steps){ setTimeout(tick, 40+k*k*1.4); }
     else{
       reel.classList.remove("spin"); S.spinning=false;
-      if(wasMgr){ S.mgrOffer=shuffle(MGRS).slice(0,CONFIG.MGR_CANDS); $("reelClub").textContent="감독 후보"; $("reelEra").textContent=S.mgrOffer.length+"명 중 한 명을 선택";
+      if(wasMgr){ S.mgrOffer=shuffle(MGRS).slice(0,CONFIG.MGR_CANDS); setReel("감독 후보","감독 후보 "+S.mgrOffer.length+"명","한 명을 선택하세요");
         $("hint").textContent="함께할 감독을 고르세요. 선택하면 바꿀 수 없어요."; }
       else{ S.squad=target;
-        $("hint").textContent = S.mode==="pos" ? (target.bench?"후보로 영입할 선수를 고르세요.":target.club+" 자리에 들어갈 선수를 후보에서 고르세요.")
-          : (xiFull()?"후보석에 영입할 선수를 한 명 고르세요.":"이 팀에서 선수 한 명을 고르세요."); }
+        $("hint").textContent = S.mode==="pos" ? target.year+"년 "+target.club+" 자리에 들어갈 선수를 후보에서 고르세요." : target.year+"년 "+target.club+"에서 공개된 선수 중 한 명을 고르세요."; }
       renderList(); renderPitch();
     }
   };
   tick();
 }
 
+/* 후보 뽑기: 선발 11명을 다 뽑은 뒤 5명을 연달아 뽑아요. 라운드마다 아무 시대·포지션 선수가 무작위로 나와요 */
+function benchOffer(){
+  const used=usedNames(); const seen=new Set(); const c=[];
+  shuffle(SQUADS.flatMap(s=>s.players)).forEach(p=>{ if(!used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); c.push(p); } });
+  return {club:"후보 영입", sub:"후보 "+(benchCount()+1)+" / "+CONFIG.BENCH, year:"후보", players:c.slice(0,CONFIG.BENCH_CANDS), forSlot:null, bench:true};
+}
+function showBenchOffer(){
+  S.squad=benchOffer(); S.selected=null;
+  setReel(S.squad.year,S.squad.club,S.squad.sub);
+  $("hint").textContent="후보 "+(benchCount()+1)+"번째 선수를 고르세요. 포지션은 상관없어요.";
+  renderList(); renderPitch();
+}
+function startBench(){ if(!xiFull()||!benchOpen()||offering()||S.spinning||S.done) return; showBenchOffer(); }
+
 function drawMgr(){
   if(S.spinning||S.mgr||offering()) return;
   spin(false,true);
 }
 function afterPick(){
-  const filled=S.xi.filter(Boolean).length, bc=benchCount();
+  const filled=S.xi.filter(Boolean).length;
   const pos=S.mode==="pos";
-  const allDone = filled>=11 && bc>=CONFIG.BENCH;
-  let club, era, hint;
-  if(filled<11){ club=pos?"다음 포지션 스핀":"다음 스핀"; era=(11-filled)+"자리 남음"; hint="스핀을 눌러 다음 "+(pos?"포지션":"팀")+"을 뽑으세요."; }
-  else if(!allDone){ club="선발 11명 완성"; era="후보 "+(CONFIG.BENCH-bc)+"명 더 뽑을 수 있어요"; hint=(S.mgr?"후보를 더 뽑거나 바로 시즌을 시작하세요.":"감독 뽑기를 눌러 감독을 정하세요. 후보도 더 뽑을 수 있어요."); }
-  else { club="베스트 11 + 후보 완성"; era=S.mgr?"시즌을 시작하세요":"감독을 뽑아 주세요"; hint=S.mgr?"2026 K리그1 38라운드 시즌을 시뮬레이션해 보세요.":"감독 뽑기를 눌러 감독을 정하세요."; }
-  $("reelClub").textContent=club; $("reelEra").textContent=era; $("hint").textContent=hint;
+  let year, club, era, hint;
+  if(filled<11){ year=pos?"연도 + 포지션":"연도 + 팀"; club=pos?"다음 포지션 스핀":"다음 스핀"; era=(11-filled)+"자리 남음"; hint="스핀을 눌러 다음 "+(pos?"포지션":"팀")+"을 뽑으세요."; }
+  else if(benchOpen()){ year="선발 완성"; club="후보 "+CONFIG.BENCH+"명 뽑기"; era=(CONFIG.BENCH-benchCount())+"명 남음"; hint="'후보 뽑기'를 눌러 후보를 연달아 뽑으세요."+(S.mgr?"":" 감독도 뽑아야 해요."); }
+  else { year="준비 완료"; club="베스트 11 + 후보"; era=S.mgr?"시즌을 시작하세요":"감독을 뽑아 주세요"; hint=S.mgr?"2026 K리그1 38라운드 시즌을 시뮬레이션해 보세요.":"감독 뽑기를 눌러 감독을 정하세요."; }
+  setReel(year,club,era); $("hint").textContent=hint;
 }
 function pickMgr(m){
   S.mgr=m; S.mgrOffer=null; renderModes(); renderForms();
-  $("reelClub").textContent="감독 "+m.name; $("reelEra").textContent=m.note;
   afterPick(); if(!xiFull()) $("hint").textContent="스핀을 눌러 선수를 뽑으세요.";
   renderList(); renderPitch();
 }
@@ -386,7 +420,9 @@ function place(i){
 function placeBench(){
   if(!S.selected || !benchOpen()) return;
   S.bench[S.bench.findIndex(b=>!b)]=S.selected; S.picks++; S.selected=null; S.squad=null;
-  afterPick(); renderModes(); renderForms(); renderList(); renderPitch();
+  renderModes(); renderForms();
+  if(benchOpen()){ showBenchOffer(); }   // 다음 후보를 바로 뽑게 이어서 보여줌
+  else { afterPick(); renderList(); renderPitch(); }
 }
 
 /* ---------- ratings & sim ---------- */
@@ -397,15 +433,17 @@ function rate(xi,st){
   const slots=FORMS[S.form]; const g={GK:[],DF:[],MF:[],FW:[]};
   xi.forEach((p,i)=>{ if(!p) return; const lab=slots[i][0], grp=GROUP[lab];
     const prime = p.det ? ACCEPT[lab].includes(p.det[0]) : p.pos===grp;
-    g[grp].push(p.ovr-(prime?0:CONFIG.OUT_OF_POS)-(st?fatigue(st.get(p)):0)); });
+    const pen = !fitsSlot(p,lab) ? CONFIG.FORCED_POS : (prime?0:CONFIG.OUT_OF_POS);
+    const sv = st && st.has(p) ? st.get(p) : 100;
+    g[grp].push(p.ovr-pen-(st?fatigue(sv):0)); });
   const gk=avg(g.GK), df=avg(g.DF), mf=avg(g.MF), fw=avg(g.FW);
-  const cnt={}; xi.forEach(p=>{ if(p) cnt[p.sq]=(cnt[p.sq]||0)+1; });
+  const cnt={}; xi.forEach(p=>{ if(p && p.sq>=0) cnt[p.sq]=(cnt[p.sq]||0)+1; });
   let pairs=0; Object.values(cnt).forEach(c=>pairs+=c*(c-1)/2);
   const fx=mgrFx(S.mgr,S.form);
   /* 같은 시기 국가대표 케미: 대표팀 항목 출신이거나, 그 대표팀 명단에 있고 소속 시즌이 겹치는 선수 */
   let natPairs=0;
   NATS.forEach(N=>{
-    const c=xi.filter(p=>p && (p.sq===N.id || (N.names.has(p.name) && overlap(SQUADS[p.sq].yrs,N.yrs,1)))).length;
+    const c=xi.filter(p=>p && p.sq>=0 && (p.sq===N.id || (N.names.has(p.name) && overlap(SQUADS[p.sq].yrs,N.yrs,1)))).length;
     natPairs+=c*(c-1)/2;
   });
   const chem=Math.min(CONFIG.CHEM_MAX*fx.mult, (pairs*CONFIG.CHEM_PER_PAIR+natPairs*CONFIG.NAT_PER_PAIR)*fx.mult);
@@ -449,43 +487,68 @@ function simulate(){
   teams.forEach(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
   const N=teams.length; // 내 팀 + 2026 K리그1 11팀 = 12팀
 
-  /* 체력 상태 */
+  /* 선수별 상태: 체력, 출전, 경고/퇴장 누적, 남은 결장 경기 */
   const roster=S.xi.concat(S.bench.filter(Boolean));
-  const st=new Map(roster.map(p=>[p,100])), apps=new Map(roster.map(p=>[p,0]));
-  let rotations=0;
+  const mk=v=>new Map(roster.map(p=>[p,v]));
+  const st=mk(100), apps=mk(0), yel=mk(0), red=mk(0), susp=mk(0), missed=mk(0);
+  let rotations=0, totalY=0, totalR=0;
+  const youth=g=>({name:"유스 선수",pos:g,ovr:CONFIG.YOUTH_OVR,alt:null,det:null,sq:-1,youth:true});
+  const eff=p=>p.ovr-fatigue(st.get(p));
   const rating0=rate(S.xi);
 
-  const log=[]; const goals={}; let round=0; let lastRate=rating0;
+  const log=[]; const goals={}; let round=0;
   const playRound=(pairs,stage)=>{
     round++;
-    // 이번 경기 라인업: 지친 선발은 같은 자리를 설 수 있는 후보로 교체
-    const lineup=S.xi.slice(); const used=new Set(); let rot=0;
-    S.xi.forEach((p,i)=>{
-      if(st.get(p)<CONFIG.STAM_ROTATE){
-        const cands=S.bench.filter(b=>b && !used.has(b) && st.get(b)>st.get(p)+10 && fitsSlot(b,slots[i][0]));
-        if(cands.length){ cands.sort((a,b)=>(b.ovr-fatigue(st.get(b)))-(a.ovr-fatigue(st.get(a)))); lineup[i]=cands[0]; used.add(cands[0]); rot++; }
-      }
-    });
+    const avail=p=>!(susp.get(p)>0);
+    const serving=roster.filter(p=>susp.get(p)>0);
+    const lineup=S.xi.slice(); const used=new Set(); let rot=0; const outNames=[];
+    /* 1) 결장(징계) 중인 선발은 후보로 교체: 같은 자리 > 아무 후보 > 유스 */
+    S.xi.forEach((p,i)=>{ if(avail(p)) return; outNames.push(p.name); const lab=slots[i][0];
+      let c=S.bench.filter(b=>b && !used.has(b) && avail(b) && fitsSlot(b,lab));
+      if(!c.length) c=S.bench.filter(b=>b && !used.has(b) && avail(b));
+      if(c.length){ c.sort((x,y)=>eff(y)-eff(x)); lineup[i]=c[0]; used.add(c[0]); } else lineup[i]=youth(GROUP[lab]); });
+    /* 2) 지친 선발은 같은 자리를 설 수 있는 후보로 교체 */
+    S.xi.forEach((p,i)=>{ if(!avail(p) || st.get(p)>=CONFIG.STAM_ROTATE) return;
+      const lab=slots[i][0];
+      const c=S.bench.filter(b=>b && !used.has(b) && avail(b) && st.get(b)>st.get(p)+10 && fitsSlot(b,lab));
+      if(c.length){ c.sort((x,y)=>eff(y)-eff(x)); lineup[i]=c[0]; used.add(c[0]); rot++; } });
     rotations+=rot;
-    const cur=rate(lineup,st); lastRate=cur;
+
+    /* 이번 경기 카드 추첨 (내 팀은 선수별, 상대는 팀 단위) */
+    const ys=[], rs=[];
+    lineup.forEach((p,i)=>{ if(p.youth) return; const g=GROUP[slots[i][0]];
+      if(Math.random()<CONFIG.CARD_R){ rs.push(p); return; }
+      if(Math.random()<CONFIG.CARD_Y[g]){ ys.push(p); if(Math.random()<CONFIG.CARD_Y2) rs.push(p); } });
+    const oppY=poisson(CONFIG.OPP_YELLOW), oppR=Math.random()<CONFIG.OPP_RED?1:0;
+
+    const cur=rate(lineup,st);
     teams[0].att=cur.att; teams[0].def=cur.def;
     const myPlayers=lineup.map((p,i)=>({...p,g:GROUP[slots[i][0]]}));
     pairs.forEach(([h,a])=>{
       const H=teams[h], A=teams[a];
-      const lh=CONFIG.GOAL_BASE*Math.exp((H.att+CONFIG.HOME_ADV-A.def)/CONFIG.SPREAD), la=CONFIG.GOAL_BASE*Math.exp((A.att-H.def-CONFIG.HOME_ADV)/CONFIG.SPREAD);
+      const mine=H.me||A.me;
+      const rH = mine ? (H.me?rs.length:oppR) : 0, rA = mine ? (A.me?rs.length:oppR) : 0;
+      const pH=CONFIG.RED_PEN*rH, pA=CONFIG.RED_PEN*rA;
+      const lh=CONFIG.GOAL_BASE*Math.exp(((H.att-pH)+CONFIG.HOME_ADV-(A.def-pA))/CONFIG.SPREAD), la=CONFIG.GOAL_BASE*Math.exp(((A.att-pA)-(H.def-pH)-CONFIG.HOME_ADV)/CONFIG.SPREAD);
       const gh=poisson(lh), ga=poisson(la);
       [[H,gh,ga],[A,ga,gh]].forEach(([T,f,g])=>{T.p++;T.gf+=f;T.ga+=g; if(f>g){T.w++;T.pts+=3;} else if(f===g){T.d++;T.pts++;} else T.l++;});
-      if(H.me||A.me){
-        const mine=H.me, opp=mine?A:H, myG=mine?gh:ga, opG=mine?ga:gh;
+      if(mine){
+        const home=H.me, opp=home?A:H, myG=home?gh:ga, opG=home?ga:gh;
         const ms=[]; for(let k=0;k<myG;k++){ const s=pickScorer(myPlayers); goals[s.name]=(goals[s.name]||0)+1; ms.push(s.name);}
         const os=[]; for(let k=0;k<opG;k++){ os.push(pickScorer(opp.players).name);}
-        log.push({r:round, home:mine, opp, f:myG, a:opG, res: myG>opG?"W":myG===opG?"D":"L", ms, os, rot, stage});
+        log.push({r:round, home, opp, f:myG, a:opG, res: myG>opG?"W":myG===opG?"D":"L", ms, os, rot, stage,
+          ys:ys.map(p=>p.name), rs:rs.map(p=>p.name), oy:oppY, or:oppR, out:outNames});
       }
     });
-    // 체력 갱신
+
+    /* 체력·출전 갱신 */
     const playing=new Set(lineup);
-    lineup.forEach((p,i)=>{ apps.set(p,apps.get(p)+1); st.set(p,Math.max(CONFIG.STAM_MIN, st.get(p)-CONFIG.STAM_COST[GROUP[slots[i][0]]]+CONFIG.STAM_PLAY_REC)); });
+    lineup.forEach((p,i)=>{ if(!st.has(p)) return; apps.set(p,apps.get(p)+1); st.set(p,Math.max(CONFIG.STAM_MIN, st.get(p)-CONFIG.STAM_COST[GROUP[slots[i][0]]]+CONFIG.STAM_PLAY_REC)); });
     roster.forEach(p=>{ if(!playing.has(p)) st.set(p,Math.min(100, st.get(p)+CONFIG.STAM_REST)); });
+    /* 결장 한 경기 소화 → 이번 경기 카드로 새 징계 부과 */
+    serving.forEach(p=>{ susp.set(p,susp.get(p)-1); missed.set(p,missed.get(p)+1); });
+    ys.forEach(p=>{ yel.set(p,yel.get(p)+1); totalY++; if(yel.get(p)%5===0) susp.set(p,susp.get(p)+1); });
+    rs.forEach(p=>{ red.set(p,red.get(p)+1); totalR++; susp.set(p,susp.get(p)+1); });
   };
 
   /* 정규 33라운드: 서로 3번씩 */
@@ -494,17 +557,16 @@ function simulate(){
   leg1.concat(leg2,leg3).forEach(pr=>playRound(pr,"정규"));
   /* 33라운드 후 상위 6팀(파이널A) / 하위 6팀(파이널B)으로 갈라 5라운드 */
   const sortFn=(x,y)=>y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)||y.gf-x.gf;
-  const idx=teams.map((t,i)=>i);
-  const ordered=idx.slice().sort((a,b)=>sortFn(teams[a],teams[b]));
+  const ordered=teams.map((t,i)=>i).sort((a,b)=>sortFn(teams[a],teams[b]));
   const groupA=ordered.slice(0,N/2), groupB=ordered.slice(N/2);
   groupA.forEach(i=>teams[i].grp="A"); groupB.forEach(i=>teams[i].grp="B");
   const finals=(g)=>roundRobin(g.length).map(pr=>pr.map(([a,b])=>[g[a],g[b]]));
   const fa=finals(groupA), fb=finals(groupB);
-  fa.forEach((pr,k)=>playRound(pr.concat(fb[k]),"파이널"+(teams[0].grp||"")));
-  log.forEach(g=>{ if(g.stage.startsWith("파이널")) g.stage="파이널"+teams[0].grp; });
+  fa.forEach((pr,k)=>playRound(pr.concat(fb[k]),"파이널"+teams[0].grp));
   const table=groupA.slice().sort((a,b)=>sortFn(teams[a],teams[b])).concat(groupB.slice().sort((a,b)=>sortFn(teams[a],teams[b]))).map(i=>teams[i]);
-  const stam=roster.map(p=>({p,apps:apps.get(p),st:st.get(p),starter:S.xi.includes(p)})).sort((a,b)=>b.apps-a.apps||b.p.ovr-a.p.ovr);
-  return {teams,table,log,goals,me:teams[0],rank:table.indexOf(teams[0])+1,rate:rating0,lastRate,stam,rotations,diff:S.diff,N};
+  const stam=roster.map(p=>({p,apps:apps.get(p),st:st.get(p),y:yel.get(p),r:red.get(p),missed:missed.get(p),starter:S.xi.includes(p)})).sort((a,b)=>b.apps-a.apps||b.p.ovr-a.p.ovr);
+  const missedTotal=stam.reduce((n,o)=>n+o.missed,0);
+  return {teams,table,log,goals,me:teams[0],rank:table.indexOf(teams[0])+1,rate:rating0,stam,rotations,cards:{y:totalY,r:totalR,missed:missedTotal},diff:S.diff,N};
 }
 
 /* ---------- results ---------- */
@@ -532,7 +594,7 @@ function showResults(R){
     .forEach(([v,k])=>{const s=el("div","stat"); s.append(el("div","v",v), el("div","k",k)); board.appendChild(s);});
   head.appendChild(board);
   if(S.mgr) head.appendChild(el("p","hint","감독 "+S.mgr.name+" ("+STYLE_NAME[S.mgr.style]+") · 공격 "+sgn(R.rate.mgr.att)+" / 수비 "+sgn(R.rate.mgr.def)+" 보정"));
-  head.appendChild(el("p","hint","체력 로테이션 "+R.rotations+"회 · 후보 "+benchCount()+"명"+(benchCount()<CONFIG.BENCH?" (후보를 다 채우면 체력 관리가 더 쉬워져요)":"")));
+  head.appendChild(el("p","hint","체력 교체 "+R.rotations+"회 · 경고 "+R.cards.y+"장 · 퇴장 "+R.cards.r+"명 · 징계 결장 "+R.cards.missed+"경기"));
   const form=el("div","form"); form.setAttribute("aria-label","38경기 흐름");
   R.log.forEach(g=>{const i=el("i",g.res); i.title=g.r+"R "+g.f+":"+g.a; form.appendChild(i);});
   head.appendChild(form);
@@ -551,7 +613,10 @@ function showResults(R){
     const li=el("li","m"); li.append(el("span","r",g.r+"R"), el("span","ha",g.home?"홈":"원정"));
     const o=el("span","o",g.opp.name+(g.stage.startsWith("파이널")?" · "+g.stage:"")+(g.rot?" · 교체 "+g.rot:""));
     const sc=[g.ms.length?g.ms.join(", "):"", g.os.length?"상대 "+g.os.join(", "):""].filter(Boolean).join(" · ");
-    o.appendChild(el("span",null,sc||"득점 없음")); li.appendChild(o);
+    o.appendChild(el("span",null,sc||"득점 없음"));
+    const cd=[g.ys.length?"경고 "+g.ys.join(", "):"", g.rs.length?"퇴장 "+g.rs.join(", "):"", g.out.length?"결장 "+g.out.join(", "):"", g.or?"상대 퇴장":""].filter(Boolean).join(" · ");
+    if(cd){ const x=el("span","cdl",cd); o.appendChild(x); }
+    li.appendChild(o);
     li.appendChild(el("span","sc "+g.res,g.f+" : "+g.a)); ul.appendChild(li);
   });
   mp.appendChild(ul);
@@ -574,10 +639,11 @@ function showResults(R){
   top.forEach(([n,g])=>{const li=el("li"); li.append(el("span",null,n), el("b",null,g+"골")); sl.appendChild(li);});
   sp.appendChild(sl);
   const stp=el("section","panel"); stp.appendChild(el("h2",null,"출전과 체력"));
-  stp.appendChild(el("div","label","시즌 종료 시점 체력"));
+  stp.appendChild(el("div","label","경기 수 · 경고/퇴장 · 시즌 종료 체력"));
   const stl=el("ul","stam");
   R.stam.forEach(o=>{ const li=el("li");
     li.append(el("span","pos "+o.p.pos,o.p.pos), el("span","sn",o.p.name+(o.starter?"":" (후보)")), el("span","sa",o.apps+"경기"));
+    const cd=el("span","cd"); cd.append(el("i","yc"),document.createTextNode(o.y+" "),el("i","rc"),document.createTextNode(String(o.r))); cd.title="결장 "+o.missed+"경기"; li.appendChild(cd);
     const bar=el("span","sbar"); const fill=el("i"); fill.style.width=Math.round(o.st)+"%"; fill.className=o.st<CONFIG.STAM_ROTATE?"low":""; bar.appendChild(fill); li.appendChild(bar);
     stl.appendChild(li); });
   stp.appendChild(stl);
@@ -675,6 +741,7 @@ function reset(){
 $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);
 $("mgrBtn").onclick=drawMgr;
+$("benchBtn").onclick=startBench;
 $("simBtn").onclick=()=>{ const R=simulate(); saveBest(R); showResults(R); };
 $("hard").onchange=()=>{ renderList(); renderPitch(); };
 
