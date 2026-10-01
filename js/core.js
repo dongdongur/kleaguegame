@@ -332,7 +332,7 @@ const STYLE_TBL = window.KL_STYLE||{};
 /* 간이 세부 능력치(js/data_attrs_lite.js, 사용자 제공)가 있는 선수: 이름이 같아도 포지션 계열이 맞을 때만 */
 const LITE=window.KL_ATTRS_LITE||{}, LITE_KEYS=window.KL_ATTRS_LITE_KEYS||[];
 const LITE_GROUP={GK:"GK",CB:"DF",RB:"DF",LB:"DF",DM:"MF",MC:"MF",CM:"MF",AM:"MF",ST:"FW",LW:"FW",RW:"FW"};
-function liteOf(p){ const a=LITE[p.name]; if(!a||LITE_GROUP[a[0]]!==p.pos) return null; const o={ca:a[1],pos:a[0]}; LITE_KEYS.forEach((k,i)=>{ o[k]=a[2+i]; }); return o; }
+function liteOf(p){ const a=LITE[p.name]; if(!a) return null; const g=LITE_GROUP[a[0]], loose=(["AM","LW","RW","MC"].includes(a[0])&&(p.pos==="MF"||p.pos==="FW")); if(g!==p.pos&&!loose) return null; const o={ca:a[1],pos:a[0]}; LITE_KEYS.forEach((k,i)=>{ o[k]=a[2+i]; }); return o; }
 function playerStyle(p){
   const t=STYLE_TBL[p.name]||{};
   const lt=liteOf(p);
