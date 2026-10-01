@@ -395,3 +395,13 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:80ch}
 .attr.t-c .a-bar i{background:#8d9bc4}.attr.t-c .a-v{color:#8d9bc4}
 .attr.t-d .a-bar i{background:#ff7b5c}.attr.t-d .a-v{color:#ff7b5c}
 td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underline}
+
+/* 선수 얼굴 사진 */
+.fc-art.face{opacity:1;right:2cqw;top:6cqw;width:68cqw;height:68cqw;overflow:hidden}
+.fc-art.face img{width:100%;height:100%;object-fit:cover;object-position:50% 14%;display:block;-webkit-mask-image:linear-gradient(#000 74%,transparent);mask-image:linear-gradient(#000 74%,transparent)}
+
+/* 친구 라인업 보기 */
+.lineup-slot{cursor:pointer}
+.lineup-pos{display:block;font-size:10px;opacity:.85;margin-top:2px}
+.lineup-bench{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,92px));gap:8px;margin:8px 0}
+.lineup-bench .fcard{cursor:pointer}

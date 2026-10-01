@@ -106,5 +106,25 @@ function open(row){
   card.append(go,out); box.appendChild(card);
   box.scrollIntoView({behavior:"smooth",block:"center"});
 }
-window.KLDuel={open};
+/* 친구 라인업 보기: 선발 11명(포메이션 위치), 후보, 감독 */
+function view(row){
+  const box=$('duelBox'); box.innerHTML='';
+  const snap=row.team, G=window.KLGame;
+  const card=el('div','duel panel-in');
+  card.appendChild(el('h4','sec',row.nickname+'의 '+row.team_name+' 라인업'));
+  const friend=buildFriend(snap);
+  if(!friend){ card.appendChild(el('p','hint','이 기록은 선수 정보를 불러올 수 없어요. (옛 형식이거나 데이터가 바뀌었어요)')); box.appendChild(card); return; }
+  const r=sideRate(friend);
+  card.appendChild(el('p','hint',friend.form+(friend.mgr?' · 감독 '+friend.mgr.name:'')+' · 공격 '+r.att.toFixed(1)+' / 수비 '+r.def.toFixed(1)+' · '+(snap.rm==='prime'?'전성기 능력치':'시즌 능력치')));
+  const pitch=el('div','pitch mini lineup-pitch');
+  friend.xi.forEach((p,i)=>{ const s=K.FORMS[friend.form][i]; const w=el('div','slot lineup-slot'); w.style.left=s[1]+'%'; w.style.top=s[2]+'%';
+    w.appendChild(G.cardEl(p,{blind:false})); w.appendChild(el('span','lineup-pos',s[0])); w.onclick=()=>G.showInfo(p); pitch.appendChild(w); });
+  card.appendChild(pitch);
+  const bench=(snap.b||[]).map(resolve).filter(Boolean);
+  if(bench.length){ card.appendChild(el('h4','sec','후보'));
+    const row2=el('div','lineup-bench'); bench.forEach(b=>{ const p=K.clone(b); p.ovr=snap.rm==='prime'?b.ovrP:b.ovrS; const c=G.cardEl(p,{blind:false}); c.onclick=()=>G.showInfo(p); row2.appendChild(c); }); card.appendChild(row2); }
+  const close=el('button','btn ghost','닫기'); close.type='button'; close.onclick=()=>{ box.innerHTML=''; }; card.appendChild(close);
+  box.appendChild(card); box.scrollIntoView({behavior:'smooth',block:'center'});
+}
+window.KLDuel={open,view};
 })();

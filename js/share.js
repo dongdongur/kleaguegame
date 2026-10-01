@@ -48,6 +48,7 @@ function render(){
     li.appendChild(el("span","lbp",r.pts+"점"));
     const act=el("span","lba");
     const ds=duelStats[r.id]; if(ds) act.appendChild(el("small",null,"방어 "+ds.w+"승 "+ds.l+"패"));
+    if(r.team && window.KLDuel){ const v=el("button","btn small ghost","라인업"); v.type="button"; v.onclick=()=>KLDuel.view(r); act.appendChild(v); }
     if(r.team && window.KLDuel){ const b=el("button","btn small","도전"); b.type="button"; b.onclick=()=>KLDuel.open(r); act.appendChild(b); }
     li.appendChild(act);
     ul.appendChild(li);

@@ -1,4 +1,4 @@
-/* K-레전드 38 시즌 엔진: K리그1(12팀)/K리그2(17팀) 리그 + FA컵 + ACL + 승강, 체력·카드·부상, 시상 통계. 화면과 무관한 순수 로직 */
+/* K-레전드 38 시즌 엔진: K리그1(12팀)/K리그2(17팀) 리그 + FA컵 + AFC챔스 + 승강, 체력·카드·부상, 시상 통계. 화면과 무관한 순수 로직 */
 (function(){
 "use strict";
 
@@ -15,7 +15,7 @@ const flip = rounds => rounds.map(pr=>pr.map(([a,b])=>[b,a]));
 
 /*
  * o = { form, mgr, xi:[11], bench:[0~5], diff:"easy"|"hard", teamName, year, seasonNo,
- *       div:1|2, k1:[K리그1 상대팀 정의], k2:[K리그2 상대팀 정의], aclQualified:boolean, boost:{구단명:능력치 보정} }
+ *       div:1|2, k1:[K리그1 상대팀 정의], k2:[K리그2 상대팀 정의], aclQualified:0|1|2 (AFC 등급), boost:{구단명:능력치 보정} }
  *   - div 1: k1은 나를 뺀 K리그1 11팀, k2는 K리그2 17팀
  *   - div 2: k1은 K리그1 12팀, k2는 나를 뺀 K리그2 16팀
  */
@@ -33,11 +33,12 @@ function run(o){
 
   /* ---- 팀 만들기 ---- */
   const jit=()=> (Math.random()-.5)*2;
-  const mkTeam=def=>{ const s=K.oppStrength(def,hardDiff,(o.boost&&o.boost[def.club])||0); const j=jit();
+  const bonus=(CFG.OPP_BONUS&&CFG.OPP_BONUS[o.diff])||0;   // 난이도 보정(능력치 자체는 그대로)
+  const mkTeam=def=>{ const s=K.oppStrength(def,hardDiff,((o.boost&&o.boost[def.club])||0)+bonus); const j=jit();
     return {name:def.club, short:def.short||def.club, kind:def.div===2?"K리그2":"K리그1", att:s.att+j, def:s.def+j*.5,
       players:(def.players&&def.players.length)?s.players:null, p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; };
-  /* ACL 상대(해외 클럽): 대표 선수들 + 팀 기본 능력치로 전력을 계산해요. 어려움은 컵대회 가산점(CUP_HARD)이 붙어요 */
-  const mkExt=def=>{ const sx=K.oppStrength(def,hardDiff,hardDiff?CFG.CUP_HARD:0); const j=jit();
+  /* AFC 상대(해외 클럽): 대표 선수들 + 팀 기본 능력치로 전력을 계산해요. 어려움은 컵대회 가산점(CUP_HARD)이 붙어요 */
+  const mkExt=def=>{ const sx=K.oppStrength(def,hardDiff,(hardDiff?CFG.CUP_HARD:0)+bonus); const j=jit();
     return {name:def.club,short:def.club,kind:def.kind,att:sx.att+j,def:sx.def+j*.5,players:(def.players&&def.players.length)?sx.players:null}; };
   const leagueName = div===1?"K리그1":"K리그2";
   const me={name:o.teamName||"레전드 FC", short:o.teamName||"내 팀", me:true, att:0, def:0, sub:o.form+(o.mgr?" · 감독 "+o.mgr.name:""),
@@ -214,16 +215,24 @@ function run(o){
       if(e.advance){ if(i===3) fa.champion=true; } else { fa.alive=false; fa.exit=names[i]+" 탈락"; }
     })); }
 
-  /* ACL: 조별리그(4팀, 6경기) → 16강·8강·4강 2경기 합산 → 결승 */
-  const acl={qualified:!!o.aclQualified && div===1,alive:!!o.aclQualified && div===1,group:null,ko:[],champion:false,exit:null,reached:null};
+  /* AFC 챔피언스리그: 조별리그(4팀, 6경기) → 16강·8강·4강 2경기 합산 → 결승.
+     한국 팀은 동아시아 팀과 조별리그·토너먼트를 치르고, 결승에서 서아시아 챔피언을 만나요. tier 1=엘리트, 2=투 */
+  const tier=o.aclQualified|0;
+  const compName = tier===1 ? "AFC챔스" : "AFC챔스2";
+  const acl={qualified:tier>0,alive:tier>0,tier,name:tier===1?"AFC 챔피언스리그 엘리트":"AFC 챔피언스리그 투",group:null,ko:[],champion:false,exit:null,reached:null};
   if(acl.qualified){
-    const pool=K.shuffle(K.ACL_POOL); const gOpp=pool.slice(0,3).map(mkExt); const koPool=pool.slice(3).map(mkExt);
+    const pools = tier===1 ? K.AFC1 : K.AFC2;
+    const east=K.shuffle(pools.filter(t=>t.region==="E")).map(mkExt), west=pools.filter(t=>t.region==="W").map(mkExt);
+    const gOpp=east.slice(0,3), koPool=east.slice(3);
+    /* 결승 상대: 서아시아 팀 중 전력이 강한 쪽이 더 자주 올라와요 */
+    const strong=west.slice().sort((x,y)=>(y.att+y.def)-(x.att+x.def)).slice(0,Math.max(3,Math.ceil(west.length/3)));
+    const finalOpp=strong[Math.floor(Math.random()*strong.length)];
     const gt=[{name:me.name,me:true},...gOpp.map(t=>({name:t.name}))].map(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
     const seq=[[0,true],[1,false],[2,true],[0,false],[1,true],[2,false]];
     let advanced=false;
     CFG.ACL_GROUP_AFTER.forEach((after,i)=>addEv(after,()=>{
       if(!acl.alive) return;
-      const [oi,h]=seq[i]; const e=myMatch({comp:"ACL",stage:"조별 "+(i+1)+"/6",opp:gOpp[oi],home:h,ko:false});
+      const [oi,h]=seq[i]; const e=myMatch({comp:compName,stage:"조별 "+(i+1)+"/6",opp:gOpp[oi],home:h,ko:false});
       upd(gt[0],e.f,e.a); upd(gt[oi+1],e.a,e.f);
       if(i===5){
         for(let x=1;x<=3;x++) for(let y=x+1;y<=3;y++){ for(let leg=0;leg<2;leg++){ const H=leg?gOpp[y-1]:gOpp[x-1], A=leg?gOpp[x-1]:gOpp[y-1];
@@ -237,15 +246,15 @@ function run(o){
     stages.forEach((st,si)=>{
       CFG.ACL_KO_AFTER.slice(si*2,si*2+2).forEach((after,leg)=>addEv(after,()=>{
         if(!acl.alive || !advanced) return;
-        if(leg===0){ const opp=koPool.shift(); tie={opp,home1:Math.random()<.5};
-          const e=myMatch({comp:"ACL",stage:st+" 1차전",opp,home:tie.home1,ko:false}); tie.f=e.f; tie.a=e.a; acl.ko.push(e); }
-        else { const e=myMatch({comp:"ACL",stage:st+" 2차전",opp:tie.opp,home:!tie.home1,ko:true,agg:{f:tie.f,a:tie.a}}); acl.ko.push(e);
+        if(leg===0){ const opp=koPool.length?koPool.shift():gOpp[0]; tie={opp,home1:Math.random()<.5};
+          const e=myMatch({comp:compName,stage:st+" 1차전",opp,home:tie.home1,ko:false}); tie.f=e.f; tie.a=e.a; acl.ko.push(e); }
+        else { const e=myMatch({comp:compName,stage:st+" 2차전",opp:tie.opp,home:!tie.home1,ko:true,agg:{f:tie.f,a:tie.a}}); acl.ko.push(e);
           if(e.advance){ acl.reached=st==="16강"?"8강":st==="8강"?"4강":"결승"; } else { acl.alive=false; acl.exit=st+" 탈락"; } }
       }));
     });
     addEv(CFG.ACL_KO_AFTER[6],()=>{
       if(!acl.alive || !advanced) return;
-      const e=myMatch({comp:"ACL",stage:"결승",opp:koPool.shift(),home:null,ko:true}); acl.ko.push(e);
+      const e=myMatch({comp:compName,stage:"결승 (vs 서아시아)",opp:finalOpp,home:null,ko:true}); acl.ko.push(e);
       if(e.advance){ acl.champion=true; acl.reached="우승"; } else { acl.alive=false; acl.exit="준우승"; acl.reached="결승"; }
     });
   }
@@ -322,7 +331,7 @@ function run(o){
   const trophies=[];
   if(rank===1) trophies.push(div===1?"리그 우승":"K리그2 우승");
   if(fa.champion) trophies.push("FA컵 우승");
-  if(acl.champion) trophies.push("ACL 우승");
+  if(acl.champion) trophies.push(acl.tier===1?"AFC챔스 우승":"AFC챔스2 우승");
 
   /* ---- 시상 ---- */
   const pool=[];
@@ -355,7 +364,11 @@ function run(o){
   const league=log.filter(e=>e.comp==="리그");
   const unbeaten=league.every(e=>e.res!=="L");
   const rating0=K.rate(xi,null,ctx);
-  const aclNext = (div===1 && rank<=CFG.ACL_QUAL_RANK) || fa.champion || acl.champion;
+  /* 다음 시즌 AFC 진출 등급: 1=엘리트(리그 상위권, 엘리트 우승팀), 2=투(리그 중위권, FA컵 우승팀) */
+  let aclNext = 0;
+  if(div===1 && rank<=CFG.ACL_QUAL_RANK) aclNext=1;
+  else if(acl.champion && acl.tier===1) aclNext=1;
+  else if((div===1 && rank<=CFG.AFC챔스2_QUAL_RANK) || fa.champion || acl.champion) aclNext=2;
 
   return {year:o.year, seasonNo:o.seasonNo, diff:o.diff, div, leagueName, N, teams, table, log, me, rank, rate:rating0,
     fa, acl, trophies, awards, mine, stam, rotations, cards:cardsTot, inj:injTot, derbies, goals:goalsAll, aclNext,

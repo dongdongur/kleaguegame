@@ -60,11 +60,18 @@ const CONFIG = {
   DERBY_HOME: 1.3,     // 더비 홈 이점
 
   /* 2026 현역 선수는 같은 척도에서 한 단계 더 끌어올려요 (올해 활약 중인 선수가 너무 낮게 평가되지 않게) */
-  UP26_SLOPE: 1.15, UP26_ADD: 4,
+  UP26_SLOPE: 1, UP26_ADD: 0,
   AI_DRIFT: 1.3,       // 시즌이 바뀔 때 상대 선수 능력치가 흔들리는 폭
+  OPP_BONUS: {easy:0, hard:8},  // 난이도 보정: 상대 팀 공격·수비에 더해요 (선수 능력치 자체는 건드리지 않아요)
+  GK_CAP: 89,          // 골키퍼 능력치 상한 (기준표에 직접 적은 선수 제외)
+  /* 리그별 능력치 범위 [하위권 주전, 상위권 스타]: 같은 기록이라도 리그 수준이 높을수록 높은 범위로 환산해요 (docs/rating-standard.md) */
+  LEAGUE_BAND: {EPL:[62,97], LALIGA:[60,95], BUNDES:[58,93], SERIEA:[58,93], LIGUE1:[56,90], SAUDI:[55,90], J1:[55,86], K1:[55,84], K2:[54,80]},
+  EST_PCT: [0.05,0.55],     // 기록이 없는 선수의 추정 위치(리그 안에서 하위 5%~55% 사이)
+  EST_TEAM_W: 0.3,          // 팀 수준이 추정 능력치에 반영되는 정도
+  EST_PRIME_ADD: 3,         // 추정 선수의 전성기 = 추정 + 이 값
   AI_SWAPS: 8,         // 시즌마다 상대팀끼리 맞바꾸는 선수 수 (이적시장)
   /* 상대팀(2026 K리그1) */
-  HARD_FILL: 6.5,      // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
+  HARD_FILL: 3,        // 어려움: 목록에 없는 나머지 선수 기본 능력치 가산
   PRIME_DEFAULT: 2,    // 프라임 능력치가 비어 있을 때 올해 능력치에 더하는 값 (원본 척도)
   CUP_HARD: 0,         // 어려움: FA컵/ACL 상대 팀 능력치 가산
 
@@ -72,7 +79,8 @@ const CONFIG = {
   FA_AFTER: [6,14,22,31],                   // FA컵 16강, 8강, 4강, 결승
   ACL_GROUP_AFTER: [3,7,11,15,19,23],       // ACL 조별리그 6경기
   ACL_KO_AFTER: [26,28,29,31,33,35,37],     // 16강 1·2차전, 8강 1·2차전, 4강 1·2차전, 결승
-  ACL_QUAL_RANK: 3,                         // 리그 이 순위 이내면 다음 시즌 ACL 진출 (FA컵 우승팀도 진출)
+  ACL_QUAL_RANK: 3,                         // 리그 이 순위 이내면 다음 시즌 AFC 챔피언스리그 엘리트
+  ACL2_QUAL_RANK: 5,                        // 이 순위 이내(엘리트 제외)면 AFC 챔피언스리그 투, FA컵 우승팀도 투
   ET_FACTOR: .34,                           // 연장전 득점 기대값 (90분 대비)
 
   /* 시즌 사이 */
@@ -118,15 +126,21 @@ const SQUADS = RAW.map((r,i)=>({id:i,club:r[0],short:r[1],era:r[2],str:r[3],
 /* 원본 데이터에서 같은 선수의 최고 능력치(전성기)와 처음 등장한 해 */
 const LEGEND_BEST = {}, BEST_BY_NAME = {}, FIRST_YEAR = {};
 SQUADS.forEach(q=>q.players.forEach(p=>{ const k=p.name+"|"+p.pos; LEGEND_BEST[k]=Math.max(LEGEND_BEST[k]||0,p.raw); BEST_BY_NAME[p.name]=Math.max(BEST_BY_NAME[p.name]||0,p.raw); FIRST_YEAR[p.name]=Math.min(FIRST_YEAR[p.name]||9999,q.yrs[0]); }));
+/* 능력치 기준표: js/data_ratings.js (공식 계산보다 우선) */
+const PRIME_OV = window.KL_PRIME||{}, SEASON_OV = window.KL_SEASON||{}, CUR26 = window.KL_CURRENT26||{}, PRIME26 = window.KL_PRIME26||{};
 SQUADS.forEach(q=>q.players.forEach(p=>{
   p.yr=(q.yrs[0]+q.yrs[1])/2;
   const born = BORN[p.name]!=null ? BORN[p.name] : FIRST_YEAR[p.name]-27;   // 모르면 처음 등장한 해에 27살로 가정
   p.age=Math.round(p.yr-born);
-  const primeS=rescale(BEST_BY_NAME[p.name]);
+  const sKey=p.name+"|"+q.short+"|"+q.era;
+  let primeS = PRIME_OV[p.name]!=null ? PRIME_OV[p.name] : rescale(BEST_BY_NAME[p.name]);
+  if(p.pos==="GK" && PRIME_OV[p.name]==null) primeS=Math.min(primeS,CONFIG.GK_CAP);
   const curve=primeS-agePen(p.age,p.pos);
-  const mixed=CONFIG.W_AGE*curve+(1-CONFIG.W_AGE)*rescale(p.raw)+jitter(p.name+"|"+q.short+"|"+q.era);
+  let s=Math.round(CONFIG.W_AGE*curve+(1-CONFIG.W_AGE)*rescale(p.raw)+jitter(sKey));
+  if(p.pos==="GK" && SEASON_OV[sKey]==null) s=Math.min(s,CONFIG.GK_CAP);
+  if(SEASON_OV[sKey]!=null){ s=SEASON_OV[sKey]; primeS=Math.max(primeS,s); }
   p.ovrP=primeS;                                   // 전성기(프라임) 능력치
-  p.ovrS=clamp(Math.round(mixed),CONFIG.R_MIN,primeS); // 그 시즌 능력치
+  p.ovrS=clamp(s,CONFIG.R_MIN,primeS);             // 그 시즌 능력치
   p.ovr=p.ovrS;
 }));
 let RATING_MODE="season";
@@ -140,30 +154,55 @@ const calcYears = () => { const a=SQUADS.map(q=>q.yrs[0]), b=SQUADS.map(q=>q.yrs
 calcYears();
 const coversYear = (q,y) => q.yrs[0]<=y && y<=q.yrs[1];
 
-/* 2026 K리그1 상대팀. 프라임 능력치: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치+PRIME_DEFAULT (모두 원본 척도로 정한 뒤 한꺼번에 변환) */
-const up26 = x => 70+(x-70)*CONFIG.UP26_SLOPE+CONFIG.UP26_ADD;
+/* 2026 K리그1 상대팀. 능력치 기준은 docs/rating-standard.md · js/data_ratings.js (직접 적은 선수) */
 const FORM26 = window.KL_2026_FORM||{}, BUMP26 = window.KL_2026_BUMP||{};
 const TEAMS26 = (window.KL_2026||[]).map(t=>{ const form=FORM26[t[0]]||0;
-  return {club:t[0],short:t[1],div:1,base:teamScale(up26(t[2]+form)),
+  return {club:t[0],short:t[1],div:1,base:teamScale(t[2]+form),
   players:t[3].map(p=>{ const legend=LEGEND_BEST[p[0]+"|"+p[1]];
-    const cur = up26(p[2]+form+(BUMP26[p[0]]||0));
-    const ovr=rescale(cur);
-    /* 전성기: 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치 + PRIME_DEFAULT */
-    const primeRaw = p[4]!=null ? rescale(up26(p[4])) : (legend ? rescale(legend) : rescale(up26(p[2]+CONFIG.PRIME_DEFAULT)));
-    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,primeRaw)}; })}; });
-/* 2026 현역 선수도 드래프트에서 뽑을 수 있게 구단 시즌 하나로 추가 (상대팀에 있어도 내 팀에 뽑을 수 있어요) */
-TEAMS26.forEach(t=>{
+    const ovr=clamp(CUR26[p[0]]!=null ? CUR26[p[0]] : rescale(p[2]+form+(BUMP26[p[0]]||0)), CONFIG.R_MIN, CONFIG.R_MAX);
+    /* 전성기: 기준표 > 2026 전성기표 > 직접 적은 값 > 레전드 데이터의 같은 선수 최고값 > 올해 능력치 + PRIME_DEFAULT. 지금이 전성기인 선수만 현재 = 전성기 */
+    const prime = PRIME_OV[p[0]]!=null ? PRIME_OV[p[0]] : PRIME26[p[0]]!=null ? PRIME26[p[0]] : (p[4]!=null ? rescale(p[4]) : (legend ? rescale(legend) : rescale(p[2]+CONFIG.PRIME_DEFAULT)));
+    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,prime)}; })}; });
+/* K리그2 팀: 선수 명단은 아래에서 kleague.com 현역 명단으로 채워요 */
+const K2_DEFS = (window.KL_K2||[]).map(t=>({club:t[0],short:t[0],div:2,base:teamScale(t[2]),players:[]}));
+/* 김천 상무는 리그에는 없지만(내 팀이 그 자리에 합류) 드래프트에서는 뽑을 수 있게 구단만 만들어 둬요 */
+const GIMCHEON = {club:"김천 상무",short:"김천",div:1,base:teamScale(70),players:[]};
+
+/* kleague.com 현역 선수단(js/data_squads26.js)을 합쳐요. 능력치를 직접 적지 않은 선수는 "추정 능력치":
+   리그 능력치 범위(LEAGUE_BAND) 안에서 하위~중위 구간에 놓고 팀 수준을 조금만 반영해요. 이름 순서는 능력치와 무관해서 선수마다 값이 고르게 퍼져요 */
+const SQ26 = window.KL_SQUADS26||{};
+const hash01 = id => { let h=0; const s=String(id); for(let i=0;i<s.length;i++) h=(h*131+s.charCodeAt(i))%100003; return (h%1000)/1000; };
+const avgBase = defs => defs.reduce((n,d)=>n+d.base,0)/Math.max(1,defs.length);
+function mergeRoster(def,league,avg){
+  const r=SQ26[def.club]; if(!r) return;
+  def.code=r.code; def.manager=r.manager;
+  const band=CONFIG.LEAGUE_BAND[league], have=new Map(def.players.map(p=>[p.name,p]));
+  r.players.forEach(([id,name,pos])=>{
+    const ex=have.get(name); if(ex){ ex.id=id; return; }
+    const pct=CONFIG.EST_PCT[0]+hash01(id)*(CONFIG.EST_PCT[1]-CONFIG.EST_PCT[0]);
+    const o=Math.round(band[0]+pct*(band[1]-band[0])+CONFIG.EST_TEAM_W*(def.base-avg));
+    def.players.push({name,pos,ovr:o,det:"",prime:o+CONFIG.EST_PRIME_ADD,id,est:true});
+  });
+}
+{ const a1=avgBase(TEAMS26), a2=avgBase(K2_DEFS);
+  TEAMS26.forEach(d=>mergeRoster(d,"K1",a1)); K2_DEFS.forEach(d=>mergeRoster(d,"K2",a2)); mergeRoster(GIMCHEON,"K1",a1); }
+/* 레전드 데이터의 선수 중 지금도 뛰는 선수는 같은 사진을 써요 (이름이 현역 명단에서 하나뿐이고 포지션이 같을 때만) */
+{ const by={}; Object.values(SQ26).forEach(cl=>cl.players.forEach(([id,name,pos])=>{ (by[name]=by[name]||[]).push({id,pos}); }));
+  SQUADS.forEach(q=>q.players.forEach(p=>{ if(p.id) return; const m=by[p.name]; if(m&&m.length===1&&m[0].pos===p.pos) p.id=m[0].id; })); }
+/* 2026 현역 선수도 드래프트에서 뽑을 수 있게 구단 시즌 하나로 추가 (상대팀에 있어도 내 팀에 뽑을 수 있어요). 카드에는 능력치 바닥(R_MIN)을 적용 */
+TEAMS26.concat([GIMCHEON],K2_DEFS).forEach(t=>{
+  if(!t.players.length) return;
   const id=SQUADS.length;
-  SQUADS.push({id,club:t.club,short:t.short,era:"2026",str:t.base,nat:false,yrs:[2026,2026],
-    players:t.players.map(p=>({name:p.name,pos:p.pos,raw:p.ovr,alt:null,det:p.det?p.det.split("/"):null,sq:id,yr:2026,age:27,ovrS:p.ovr,ovrP:p.prime,ovr:p.ovr}))});
+  SQUADS.push({id,club:t.club,short:t.short,era:"2026",str:t.base,nat:false,yrs:[2026,2026],div:t.div,
+    players:t.players.map(p=>({name:p.name,pos:p.pos,raw:p.ovr,alt:null,det:p.det?p.det.split("/"):null,sq:id,yr:2026,age:27,
+      ovrS:Math.max(CONFIG.R_MIN,p.ovr),ovrP:Math.max(CONFIG.R_MIN,p.prime),ovr:Math.max(CONFIG.R_MIN,p.ovr),id:p.id||null,est:!!p.est}))});
 });
 calcYears();
-/* K리그2 팀: 선수 명단 없이 팀 기본 능력치만 있어요 (1부로 올라오면 그 능력치 그대로 K리그1 팀이 돼요) */
-const K2_DEFS = (window.KL_K2||[]).map(t=>({club:t[0],short:t[0],div:2,base:teamScale(t[2]),players:[]}));
-/* ACL 참가팀(해외): 선수단이 있으면 선수 능력치로, 없으면 팀 기본 능력치로 계산 */
-const ACL_POOL = (window.KL_ACL_TEAMS||[]).map(t=>({club:t[0],short:t[0],kind:t[1],div:0,base:teamScale(up26(t[2])),
-  players:t[3].map(p=>{ const ovr=rescale(up26(p[2])); const prime=p[4]!=null?rescale(up26(p[4])):rescale(up26(p[2]+CONFIG.PRIME_DEFAULT));
-    return {name:p[0],pos:p[1],ovr,det:p[3]||"",prime:Math.max(ovr,prime)}; })}));
+/* AFC 챔피언스리그 참가팀(해외): 능력치는 파일에 적힌 최종 값 그대로 써요. 선수단이 없으면 팀 기본 능력치로 계산해요 */
+const mkAfc = t => ({club:t[0],short:t[0],kind:t[1],region:t[2],div:0,base:t[3],
+  players:t[4].map(p=>({name:p[0],pos:p[1],ovr:p[2],det:p[3]||"",prime:Math.max(p[2],p[4]!=null?p[4]:p[2]+CONFIG.PRIME_DEFAULT)}))});
+const AFC1 = (window.KL_AFC_ELITE||[]).map(mkAfc), AFC2 = (window.KL_AFC_TWO||[]).map(mkAfc);
+const ACL_POOL = AFC1;   // (옛 이름 호환)
 const DERBIES = window.KL_DERBIES||[];
 function derbyName(a,b){ const d=DERBIES.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)); return d?d[2]:null; }
 
@@ -294,7 +333,7 @@ function assembleLog(ev,c){
   return out;
 }
 
-window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
+window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
   clone, mgrFx, fatigue, rate, oppStrength, assembleLog, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();

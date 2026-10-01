@@ -1,24 +1,17 @@
 /*
- * 팀 엠블럼 이미지 연결
+ * 팀 엠블럼과 선수 얼굴 사진
  * ------------------------------------------------------------
- * 구단 엠블럼은 각 구단의 상표라서 이 프로젝트에는 이미지를 넣어 두지 않았어요.
- * 직접 가지고 있는 이미지 파일을 img/crests/ 폴더에 아래 파일명으로 넣고,
- * 맨 아래 KL_CRESTS_ON 을 true 로 바꾸면 순위표·경기 목록·상대팀 패널에 엠블럼이 나와요.
- *   - 파일이 없는 팀은 자동으로 이니셜 배지로 표시돼요.
- *   - 정사각형에 가까운 PNG/SVG/WebP를 권장해요 (배경 투명이 가장 예뻐요).
- *   - 공개 배포할 때는 구단/연맹의 상표 사용 허락 여부를 먼저 확인하세요.
- * 구단 이름(왼쪽)은 데이터에 쓰인 이름 그대로예요. 새 팀을 추가했다면 한 줄 더 적으면 돼요.
+ * 이미지 파일을 이 저장소에 두지 않고, 화면에서 K리그 공식 사이트(kleague.com)의 이미지 주소를 그대로 불러다 보여줘요.
+ * 파일을 내려받아 저장하거나 우리 사이트에 올리지 않아요. 사이트 주소가 바뀌거나 막히면 자동으로 이니셜 배지/실루엣으로 바뀌어요.
+ *   - 끄고 싶으면 아래 KL_CRESTS_ON / KL_FACES_ON 을 false 로 바꾸세요.
+ *   - 비공식 팬 게임이라 구단·선수 이미지의 권리는 각 권리자에게 있어요. 공개 범위를 넓힐 때는 사용 허락을 확인하세요.
  */
-window.KL_CRESTS = {
-  /* K리그1 · K리그2 (2026) */
-  "전북 현대":"jeonbuk.png","울산 HD":"ulsan.png","FC 서울":"seoul.png","포항 스틸러스":"pohang.png","강원 FC":"gangwon.png",
-  "대전 하나 시티즌":"daejeon.png","제주 SK":"jeju.png","FC 안양":"anyang.png","인천 유나이티드":"incheon.png","광주 FC":"gwangju.png",
-  "부천 FC 1995":"bucheon.png","수원 삼성":"suwon.png","수원FC":"suwonfc.png","서울 이랜드":"eland.png","대구 FC":"daegu.png",
-  "화성 FC":"hwaseong.png","부산 아이파크":"busan.png","성남 FC":"seongnam.png","전남 드래곤즈":"jeonnam.png","경남 FC":"gyeongnam.png",
-  "충남 아산":"asan.png","안산 그리너스":"ansan.png","김포 FC":"gimpo.png","천안 시티":"cheonan.png","충북청주":"cheongju.png",
-  "파주 프런티어":"paju.png","용인 FC":"yongin.png","김해 FC 2008":"gimhae.png",
-  /* 레전드 드래프트에 나오는 구단 이름 (현재 구단 엠블럼을 같이 써요) */
-  "울산 현대":"ulsan.png","수원 삼성":"suwon.png","포항 아톰즈·스틸러스":"pohang.png","포항 스틸러스":"pohang.png","부산 대우·아이파크":"busan.png",
-  "안양 LG":"seoul.png","성남 일화":"seongnam.png","제주 유나이티드":"jeju.png","제주 SK":"jeju.png","대한민국 대표팀":"kfa.png"
-};
-window.KL_CRESTS_ON = false;
+window.KL_CRESTS_ON = true;
+window.KL_FACES_ON = true;
+window.KL_EMBLEM_URL = code => "https://www.kleague.com/assets/images/emblem/emblem_"+code+".png";
+window.KL_FACE_URL = id => "https://d2tfp74nsbbrkr.cloudfront.net/v1/player/player_"+id+".jpg";
+/* 구단 이름(여러 표기) → kleague.com 팀 코드. 현역 구단은 js/data_squads26.js 의 코드를 쓰고, 옛 이름은 아래에서 이어 줘요 */
+window.KL_CLUB_CODE = Object.assign({},
+  Object.fromEntries(Object.entries(window.KL_SQUADS26||{}).map(([n,c])=>[n,c.code])),
+  {"울산 현대":"K01","수원 삼성":"K02","포항 아톰즈·스틸러스":"K03","포항":"K03","제주 유나이티드":"K04","제주":"K04","전북":"K05","부산 대우·아이파크":"K06","부산":"K06",
+   "성남 일화":"K08","성남":"K08","안양 LG":"K09","서울":"K09","대전":"K10","대구":"K17","인천":"K18","경남":"K20","강원":"K21","광주":"K22","부천":"K26","안양":"K27","수원":"K02","울산":"K01"});
