@@ -154,3 +154,16 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:75ch}
 .lbr{font:500 12px var(--f-num);color:var(--muted);white-space:nowrap}
 .lbp{font:700 14px var(--f-num)}
 @media (max-width:520px){.lbrow{grid-template-columns:24px minmax(0,1fr) auto}.lbr{display:none}}
+
+/* 배치된 선수 아이콘: 포지션 색 */
+.slot.filled.g-GK .disc{background:#B7791F;color:#fff}
+.slot.filled.g-DF .disc{background:#2B6CB0;color:#fff}
+.slot.filled.g-MF .disc{background:#2F855A;color:#fff}
+.slot.filled.g-FW .disc{background:#C2412D;color:#fff}
+.slot.filled .disc{border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+
+/* 포메이션이 많아져서 줄바꿈 허용 */
+.seg{flex-wrap:wrap;border-radius:16px}
+/* 경기 목록: 홈/원정 칸이 좁아 글자가 깨지던 문제 */
+.m{grid-template-columns:34px 34px minmax(0,1fr) auto}
+.m .ha{white-space:nowrap}

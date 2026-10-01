@@ -8,8 +8,9 @@ const CONFIG = {
   GOAL_BASE: 1.35,     // 실력이 같을 때 한 팀의 평균 득점
   SPREAD: 7,           // 작을수록 실력 차이가 결과에 크게 반영됨
   HOME_ADV: 0.6,       // 홈 어드밴티지 (능력치 점수)
-  CHEM_PER_PAIR: 0.4,  // 같은 팀 출신 2명당 케미 보너스
-  CHEM_MAX: 2,         // 케미 보너스 상한
+  CHEM_PER_PAIR: 0.4,  // 같은 팀(시즌) 출신 2명당 케미 보너스
+  NAT_PER_PAIR: 0.25,  // 같은 시기 국가대표 2명당 케미 보너스
+  CHEM_MAX: 2.5,       // 케미 보너스 상한
   OUT_OF_POS: 2,       // 보조 포지션에 세웠을 때 능력치 감점
   POS_CANDS: 5,        // 포지션 스핀에서 보여줄 후보 선수 수
   MGR_CANDS: 3,        // 감독 뽑기에서 보여줄 후보 감독 수
@@ -18,19 +19,44 @@ const CONFIG = {
   MGR_FORM: 0.5        // 선호 포메이션과 맞을 때 공격·수비 보너스
 };
 const MGRS = (window.KL_MANAGERS||[]).map((m,i)=>({id:i,name:m[0],note:m[1],ovr:m[2],style:m[3],form:m[4],org:m[5]}));
+const GCOL = {GK:"#B7791F",DF:"#2B6CB0",MF:"#2F855A",FW:"#C2412D"};
 const STYLE_NAME = {A:"공격형",D:"수비형",B:"균형형"};
 const MODES = {team:"팀 스핀", pos:"포지션 스핀"};
 const RAW = window.KL_DATA;
+/* "2014–15" -> [2014,2015], "2002 월드컵" -> [2002,2002] */
+function yearsOf(era){
+  const m=String(era).match(/(d{4})(?:[–-](d{2,4}))?/); if(!m) return [0,0];
+  const a=+m[1]; let b=a; if(m[2]) b = m[2].length===2 ? +(String(a).slice(0,2)+m[2]) : +m[2];
+  return [a,b];
+}
+const overlap=(x,y,tol)=>x[0]-tol<=y[1] && y[0]-tol<=x[1];
 const SQUADS = RAW.map((r,i)=>({id:i,club:r[0],short:r[1],era:r[2],str:r[3],
-  players:r[4].map(p=>({name:p[0],pos:p[1],ovr:p[2],alt:p[3]||null,sq:i}))}));
+  nat:r[0]==="대한민국 대표팀", yrs:yearsOf(r[2]),
+  players:r[4].map(p=>({name:p[0],pos:p[1],ovr:p[2],alt:p[3]||null,det:p[4]?p[4].split("/"):null,sq:i}))}));
+const NATS = SQUADS.filter(q=>q.nat).map(q=>({id:q.id,yrs:q.yrs,names:new Set(q.players.map(p=>p.name))}));
 const tag = s => s.short+" "+s.era.replace(/^20|^19/,"'").replace(/–(20|19)?/,"–");
 
 const FORMS = {
  "4-3-3":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["CM",28,50],["CM",50,55],["CM",72,50],["LW",17,24],["ST",50,15],["RW",83,24]],
  "4-4-2":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["LM",14,45],["CM",38,51],["CM",62,51],["RM",86,45],["ST",36,19],["ST",64,19]],
  "3-5-2":[["GK",50,90],["CB",26,74],["CB",50,77],["CB",74,74],["LWB",10,47],["CM",32,55],["AM",50,40],["CM",68,55],["RWB",90,47],["ST",36,18],["ST",64,18]],
- "4-2-3-1":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["DM",36,59],["DM",64,59],["LW",17,35],["AM",50,37],["RW",83,35],["ST",50,14]]
+ "4-2-3-1":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["DM",36,59],["DM",64,59],["LW",17,35],["AM",50,37],["RW",83,35],["ST",50,14]],
+ "4-1-4-1":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["DM",50,60],["LM",14,42],["CM",38,47],["CM",62,47],["RM",86,42],["ST",50,15]],
+ "4-4-1-1":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["LM",14,52],["CM",38,56],["CM",62,56],["RM",86,52],["AM",50,33],["ST",50,14]],
+ "4-3-2-1":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["CM",28,57],["CM",50,60],["CM",72,57],["AM",33,34],["AM",67,34],["ST",50,14]],
+ "4-1-2-1-2":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["DM",50,62],["CM",28,50],["CM",72,50],["AM",50,36],["ST",38,16],["ST",62,16]],
+ "3-4-3":[["GK",50,90],["CB",26,75],["CB",50,77],["CB",74,75],["LWB",11,52],["CM",38,56],["CM",62,56],["RWB",89,52],["LW",18,25],["ST",50,15],["RW",82,25]],
+ "3-4-2-1":[["GK",50,90],["CB",26,75],["CB",50,77],["CB",74,75],["LWB",11,52],["CM",38,57],["CM",62,57],["RWB",89,52],["AM",32,33],["AM",68,33],["ST",50,14]],
+ "5-3-2":[["GK",50,90],["LWB",10,62],["CB",30,76],["CB",50,78],["CB",70,76],["RWB",90,62],["CM",28,48],["CM",50,52],["CM",72,48],["ST",38,18],["ST",62,18]],
+ "5-4-1":[["GK",50,90],["LWB",10,62],["CB",30,76],["CB",50,78],["CB",70,76],["RWB",90,62],["LM",15,44],["CM",38,50],["CM",62,50],["RM",85,44],["ST",50,15]]
 };
+/* 자리별로 설 수 있는 세부 포지션 (선수가 "그 시즌에 뛴" 포지션만 배치 가능) */
+const ACCEPT = {GK:["GK"],LB:["LB"],RB:["RB"],CB:["CB"],LWB:["LB","LM"],RWB:["RB","RM"],DM:["DM","CM"],CM:["CM","DM","AM"],AM:["AM","CM"],
+  LM:["LM","LW"],RM:["RM","RW"],LW:["LW","LM"],RW:["RW","RM"],ST:["ST"]};
+function fitsSlot(p,label){
+  if(p.det) return p.det.some(c=>ACCEPT[label].includes(c));
+  return GROUP[label]===p.pos || GROUP[label]===p.alt;
+}
 const GROUP = {GK:"GK",LB:"DF",CB:"DF",RB:"DF",CM:"MF",DM:"MF",AM:"MF",LM:"MF",RM:"MF",LWB:"MF",RWB:"MF",LW:"FW",ST:"FW",RW:"FW"};
 
 const $ = id => document.getElementById(id);
@@ -105,7 +131,7 @@ function eligibleSlots(p){
   const names = new Set(S.xi.filter(Boolean).map(x=>x.name));
   if(names.has(p.name)) return [];
   const only = S.squad && S.squad.forSlot!=null ? S.squad.forSlot : null;
-  return FORMS[S.form].map((s,i)=>({s,i})).filter(({s,i})=>!S.xi[i] && (only==null || i===only) && (GROUP[s[0]]===p.pos || GROUP[s[0]]===p.alt)).map(o=>o.i);
+  return FORMS[S.form].map((s,i)=>({s,i})).filter(({s,i})=>!S.xi[i] && (only==null || i===only) && fitsSlot(p,s[0])).map(o=>o.i);
 }
 
 function renderPitch(){
@@ -113,7 +139,7 @@ function renderPitch(){
   const can = new Set(eligibleSlots(S.selected));
   FORMS[S.form].forEach((s,i)=>{
     const p=S.xi[i]; const b=document.createElement("button"); b.type="button";
-    b.className="slot"+(p?" filled":"")+(can.has(i)?" can":"");
+    b.className="slot"+(p?" filled g-"+GROUP[s[0]]:"")+(can.has(i)?" can":"");
     b.style.left=s[1]+"%"; b.style.top=s[2]+"%";
     if(!can.has(i)) b.tabIndex=-1;
     const disc=document.createElement("span"); disc.className="disc";
@@ -134,6 +160,7 @@ function renderPitch(){
   $("attV").textContent = r && !hide ? r.att.toFixed(1) : "–";
   $("defV").textContent = r && !hide ? r.def.toFixed(1) : "–";
   $("chemV").textContent = "+"+(r? r.chem:0).toFixed(1);
+  $("chemV").title = r ? "같은 팀·시즌 "+r.clubPairs+"쌍, 같은 시기 국가대표 "+r.natPairs+"쌍" : "";
   const pr=$("progress"); pr.innerHTML=""; for(let k=0;k<11;k++){const i=document.createElement("i"); if(k<filled) i.className="on"; pr.appendChild(i);}
   $("simBtn").disabled = filled<11 || !S.mgr || S.done;
   $("spinBtn").disabled = filled>=11 || S.spinning || offering();
@@ -149,14 +176,15 @@ function renderList(){
   if(!S.squad) return;
   const used=new Set(S.xi.filter(Boolean).map(x=>x.name));
   const order={GK:0,DF:1,MF:2,FW:3};
-  S.squad.players.slice().sort((a,b)=>order[a.pos]-order[b.pos]||b.ovr-a.ovr).forEach(p=>{
+  S.squad.players.slice().sort((a,b)=>b.ovr-a.ovr||order[a.pos]-order[b.pos]).forEach(p=>{
     const li=document.createElement("li"); const b=document.createElement("button"); b.type="button"; b.className="prow";
     const ok = eligibleSlots(p).length>0;
     b.disabled=!ok; b.setAttribute("aria-pressed", String(S.selected===p));
     const pos=document.createElement("span"); pos.className="pos "+p.pos; pos.textContent=p.pos;
     const n=document.createElement("span"); n.className="n"; n.textContent=p.name;
     const sm=document.createElement("small");
-    sm.textContent = used.has(p.name)?"이미 선발":(S.mode==="pos"?tag(SQUADS[p.sq])+(p.alt?" · "+p.pos+"/"+p.alt:""):(p.alt?p.pos+"/"+p.alt:(ok?"":"빈 자리 없음"))); n.appendChild(sm);
+    const dp = p.det ? p.det.join("/") : (p.alt?p.pos+"/"+p.alt:"");
+    sm.textContent = used.has(p.name)?"이미 선발":(S.mode==="pos"?tag(SQUADS[p.sq])+" · "+dp:(ok?dp:"빈 자리 없음")); n.appendChild(sm);
     const o=document.createElement("span"); o.className="ovr"; o.textContent = hard()? "??" : p.ovr;
     b.append(pos,n,o);
     b.onclick=()=>{ S.selected = (S.selected===p?null:p); const slots=eligibleSlots(S.selected);
@@ -187,11 +215,11 @@ function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.fl
 function makePosOffer(){
   const empty=FORMS[S.form].map((s,i)=>i).filter(i=>!S.xi[i]);
   const slot=empty[Math.floor(Math.random()*empty.length)];
-  const label=FORMS[S.form][slot][0], grp=GROUP[label];
+  const label=FORMS[S.form][slot][0];
   const used=new Set(S.xi.filter(Boolean).map(x=>x.name));
   const seen=new Set(); const cands=[];
   shuffle(SQUADS.flatMap(sq=>sq.players)).forEach(p=>{
-    if((p.pos===grp||p.alt===grp) && !used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); cands.push(p); }
+    if(fitsSlot(p,label) && !used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); cands.push(p); }
   });
   return {club:label, era:"포지션 스핀", players:cands.slice(0,CONFIG.POS_CANDS), forSlot:slot};
 }
@@ -253,13 +281,21 @@ function place(i){
 function avg(a){return a.length? a.reduce((x,y)=>x+y,0)/a.length : 60;}
 function rate(xi){
   const slots=FORMS[S.form]; const g={GK:[],DF:[],MF:[],FW:[]};
-  xi.forEach((p,i)=>{ if(!p) return; const grp=GROUP[slots[i][0]]; const pen = (p.pos===grp)?0:CONFIG.OUT_OF_POS; g[grp].push(p.ovr-pen); });
+  xi.forEach((p,i)=>{ if(!p) return; const lab=slots[i][0], grp=GROUP[lab];
+    const prime = p.det ? ACCEPT[lab].includes(p.det[0]) : p.pos===grp;
+    g[grp].push(p.ovr-(prime?0:CONFIG.OUT_OF_POS)); });
   const gk=avg(g.GK), df=avg(g.DF), mf=avg(g.MF), fw=avg(g.FW);
   const cnt={}; xi.forEach(p=>{ if(p) cnt[p.sq]=(cnt[p.sq]||0)+1; });
   let pairs=0; Object.values(cnt).forEach(c=>pairs+=c*(c-1)/2);
   const fx=mgrFx(S.mgr,S.form);
-  const chem=Math.min(CONFIG.CHEM_MAX*fx.mult, pairs*CONFIG.CHEM_PER_PAIR*fx.mult);
-  return {att: fw*.5+mf*.35+df*.15+chem+fx.att, def: df*.45+gk*.25+mf*.3+chem+fx.def, chem, mgr:fx};
+  /* 같은 시기 국가대표 케미: 대표팀 항목 출신이거나, 그 대표팀 명단에 있고 소속 시즌이 겹치는 선수 */
+  let natPairs=0;
+  NATS.forEach(N=>{
+    const c=xi.filter(p=>p && (p.sq===N.id || (N.names.has(p.name) && overlap(SQUADS[p.sq].yrs,N.yrs,1)))).length;
+    natPairs+=c*(c-1)/2;
+  });
+  const chem=Math.min(CONFIG.CHEM_MAX*fx.mult, (pairs*CONFIG.CHEM_PER_PAIR+natPairs*CONFIG.NAT_PER_PAIR)*fx.mult);
+  return {att: fw*.5+mf*.35+df*.15+chem+fx.att, def: df*.45+gk*.25+mf*.3+chem+fx.def, chem, mgr:fx, clubPairs:pairs, natPairs};
 }
 function poisson(l){ const L=Math.exp(-l); let k=0,p=1; do{k++; p*=Math.random();}while(p>L); return k-1; }
 function pickScorer(players){
@@ -341,7 +377,7 @@ function showResults(R){
   const ul=el("ul","matches");
   R.log.forEach(g=>{
     const li=el("li","m"); li.append(el("span","r",g.r+"R"), el("span","ha",g.home?"홈":"원정"));
-    const o=el("span","o",(g.home?"vs ":"@ ")+g.opp.name);
+    const o=el("span","o",g.opp.name);
     const sc=[g.ms.length?g.ms.join(", "):"", g.os.length?"상대 "+g.os.join(", "):""].filter(Boolean).join(" · ");
     o.appendChild(el("span",null,sc||"득점 없음")); li.appendChild(o);
     li.appendChild(el("span","sc "+g.res,g.f+" : "+g.a)); ul.appendChild(li);
@@ -420,8 +456,9 @@ async function drawCard(R,top){
   x.beginPath(); x.moveTo(px+12,py+ph/2); x.lineTo(px+pw-12,py+ph/2); x.stroke();
   x.beginPath(); x.arc(px+pw/2,py+ph/2,80,0,Math.PI*2); x.stroke();
   FORMS[S.form].forEach((s,i)=>{ const p=S.xi[i]; const cx=px+pw*s[1]/100, cy=py+ph*s[2]/100;
-    x.fillStyle="#F3F6F2"; x.beginPath(); x.arc(cx,cy-14,30,0,Math.PI*2); x.fill();
-    x.fillStyle="#14221A"; x.font="700 24px 'JetBrains Mono', monospace"; x.textAlign="center"; x.fillText(String(p.ovr),cx,cy-5);
+    x.fillStyle=GCOL[GROUP[s[0]]]; x.beginPath(); x.arc(cx,cy-14,30,0,Math.PI*2); x.fill();
+    x.lineWidth=3; x.strokeStyle="#FFFFFF"; x.stroke();
+    x.fillStyle="#FFFFFF"; x.font="700 24px 'JetBrains Mono', monospace"; x.textAlign="center"; x.fillText(String(p.ovr),cx,cy-5);
     x.fillStyle="#FFFFFF"; x.font="700 26px 'Noto Sans KR', sans-serif"; x.fillText(p.name,cx,cy+50);
     x.fillStyle="rgba(255,255,255,.75)"; x.font="500 18px 'JetBrains Mono', monospace"; x.fillText(tag(SQUADS[p.sq]),cx,cy+76);
     x.textAlign="left"; });
