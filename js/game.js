@@ -10,8 +10,16 @@ const CONFIG = {
   HOME_ADV: 0.6,       // 홈 어드밴티지 (능력치 점수)
   CHEM_PER_PAIR: 0.4,  // 같은 팀 출신 2명당 케미 보너스
   CHEM_MAX: 2,         // 케미 보너스 상한
-  OUT_OF_POS: 2        // 보조 포지션에 세웠을 때 능력치 감점
+  OUT_OF_POS: 2,       // 보조 포지션에 세웠을 때 능력치 감점
+  POS_CANDS: 5,        // 포지션 스핀에서 보여줄 후보 선수 수
+  MGR_CANDS: 3,        // 감독 뽑기에서 보여줄 후보 감독 수
+  MGR_PER_OVR: 0.12,   // 감독 능력치 1당 공격·수비 보정 (80이 기준)
+  MGR_STYLE: 0.6,      // 공격형/수비형 감독의 공격↔수비 보정
+  MGR_FORM: 0.5        // 선호 포메이션과 맞을 때 공격·수비 보너스
 };
+const MGRS = (window.KL_MANAGERS||[]).map((m,i)=>({id:i,name:m[0],note:m[1],ovr:m[2],style:m[3],form:m[4],org:m[5]}));
+const STYLE_NAME = {A:"공격형",D:"수비형",B:"균형형"};
+const MODES = {team:"팀 스핀", pos:"포지션 스핀"};
 const RAW = window.KL_DATA;
 const SQUADS = RAW.map((r,i)=>({id:i,club:r[0],short:r[1],era:r[2],str:r[3],
   players:r[4].map(p=>({name:p[0],pos:p[1],ovr:p[2],alt:p[3]||null,sq:i}))}));
@@ -30,8 +38,20 @@ const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)
 const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 let S; // state
-function newState(form){
-  S = {form:form||"4-3-3", xi:Array(11).fill(null), squad:null, selected:null, respins:CONFIG.RESPINS, spinning:false, done:false, picks:0};
+function newState(form,mode){
+  S = {form:form||"4-3-3", mode:mode||"team", xi:Array(11).fill(null), squad:null, selected:null, respins:CONFIG.RESPINS, spinning:false, done:false, picks:0,
+    mgr:null, mgrOffer:null};
+}
+function started(){ return S.picks>0 || !!S.mgr; }
+function offering(){ return !!S.squad || !!S.mgrOffer; }
+function idleHint(){
+  return S.mode==="pos"
+    ? "스핀하면 채워야 할 포지션이 나와요. 그 포지션 후보 중 한 명을 고르세요."
+    : "스핀하면 팀 하나가 나와요. 그 팀에서 선수 한 명을 골라 빈 자리에 넣으세요.";
+}
+function idleReel(){
+  $("reelClub").textContent="스핀을 눌러 시작";
+  $("reelEra").textContent = S.mode==="pos" ? "포지션을 뽑고 후보 중 선택" : SQUADS.length+"개 시대별 레전드 팀";
 }
 
 /* ---------- render setup ---------- */
@@ -39,10 +59,44 @@ function renderForms(){
   const seg=$("formSeg"); seg.innerHTML="";
   Object.keys(FORMS).forEach(f=>{
     const b=document.createElement("button"); b.type="button"; b.textContent=f;
-    b.setAttribute("aria-pressed", String(f===S.form)); b.disabled = S.picks>0 && f!==S.form;
-    b.onclick=()=>{ if(S.picks>0) return; S.form=f; renderForms(); renderPitch(); };
+    b.setAttribute("aria-pressed", String(f===S.form)); b.disabled = started() && f!==S.form;
+    b.onclick=()=>{ if(started()) return; S.form=f; renderForms(); renderPitch(); };
     seg.appendChild(b);
   });
+}
+function renderModes(){
+  const seg=$("modeSeg"); seg.innerHTML="";
+  Object.keys(MODES).forEach(m=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=MODES[m];
+    b.setAttribute("aria-pressed", String(m===S.mode)); b.disabled = started() && m!==S.mode;
+    b.onclick=()=>{ if(started()||m===S.mode) return; S.mode=m; idleReel(); $("hint").textContent=idleHint(); renderModes(); };
+    seg.appendChild(b);
+  });
+}
+
+/* ---------- manager ---------- */
+function mgrFx(m,form){
+  if(!m) return {att:0,def:0,mult:1};
+  const base=(m.ovr-80)*CONFIG.MGR_PER_OVR;
+  let att=base, def=base;
+  if(m.style==="A"){ att+=CONFIG.MGR_STYLE; def-=CONFIG.MGR_STYLE; }
+  else if(m.style==="D"){ att-=CONFIG.MGR_STYLE; def+=CONFIG.MGR_STYLE; }
+  if(m.form===form){ att+=CONFIG.MGR_FORM; def+=CONFIG.MGR_FORM; }
+  return {att,def,mult:0.7+0.15*m.org};
+}
+const sgn = v => (v>=0?"+":"")+v.toFixed(1);
+function mgrOvrText(m){ return hard()&&!S.done ? "??" : m.ovr; }
+function renderMgr(){
+  const box=$("mgrBox"); box.innerHTML="";
+  const m=S.mgr;
+  if(!m){ box.classList.add("empty"); box.append(el("span","mgrnone","감독 미선택 · 감독을 뽑으면 팀 전력에 영향을 줘요")); return; }
+  box.classList.remove("empty");
+  const fx=mgrFx(m,S.form);
+  const top=el("div","mgrtop"); top.append(el("span","mgrlab","감독"), el("b",null,m.name), el("span","mgrovr",String(mgrOvrText(m))));
+  const tags=el("div","mgrtags");
+  [STYLE_NAME[m.style], "선호 "+m.form+(m.form===S.form?" ✓":""), "조직력 "+"★".repeat(m.org)+"☆".repeat(5-m.org)].forEach(t=>tags.appendChild(el("span","tg",t)));
+  const fxl=el("div","mgrfx","보정 공격 "+(hard()&&!S.done?"??":sgn(fx.att))+" · 수비 "+(hard()&&!S.done?"??":sgn(fx.def))+" · 케미 ×"+fx.mult.toFixed(2));
+  box.append(top, el("div","mgrnote",m.note), tags, fxl);
 }
 function hard(){ return $("hard").checked; }
 
@@ -50,7 +104,8 @@ function eligibleSlots(p){
   if(!p) return [];
   const names = new Set(S.xi.filter(Boolean).map(x=>x.name));
   if(names.has(p.name)) return [];
-  return FORMS[S.form].map((s,i)=>({s,i})).filter(({s,i})=>!S.xi[i] && (GROUP[s[0]]===p.pos || GROUP[s[0]]===p.alt)).map(o=>o.i);
+  const only = S.squad && S.squad.forSlot!=null ? S.squad.forSlot : null;
+  return FORMS[S.form].map((s,i)=>({s,i})).filter(({s,i})=>!S.xi[i] && (only==null || i===only) && (GROUP[s[0]]===p.pos || GROUP[s[0]]===p.alt)).map(o=>o.i);
 }
 
 function renderPitch(){
@@ -80,14 +135,17 @@ function renderPitch(){
   $("defV").textContent = r && !hide ? r.def.toFixed(1) : "–";
   $("chemV").textContent = "+"+(r? r.chem:0).toFixed(1);
   const pr=$("progress"); pr.innerHTML=""; for(let k=0;k<11;k++){const i=document.createElement("i"); if(k<filled) i.className="on"; pr.appendChild(i);}
-  $("simBtn").disabled = filled<11 || S.done;
-  $("spinBtn").disabled = filled>=11 || S.spinning || !!S.squad;
-  $("respinBtn").disabled = !S.squad || S.respins<=0 || S.spinning;
+  $("simBtn").disabled = filled<11 || !S.mgr || S.done;
+  $("spinBtn").disabled = filled>=11 || S.spinning || offering();
+  $("mgrBtn").disabled = !!S.mgr || S.spinning || offering() || S.done;
+  $("respinBtn").disabled = !offering() || S.respins<=0 || S.spinning;
   $("respinBtn").textContent = "다시 스핀 ("+S.respins+")";
+  renderMgr();
 }
 
 function renderList(){
   const ul=$("plist"); ul.innerHTML="";
+  if(S.mgrOffer){ renderMgrList(ul); return; }
   if(!S.squad) return;
   const used=new Set(S.xi.filter(Boolean).map(x=>x.name));
   const order={GK:0,DF:1,MF:2,FW:3};
@@ -97,7 +155,8 @@ function renderList(){
     b.disabled=!ok; b.setAttribute("aria-pressed", String(S.selected===p));
     const pos=document.createElement("span"); pos.className="pos "+p.pos; pos.textContent=p.pos;
     const n=document.createElement("span"); n.className="n"; n.textContent=p.name;
-    const sm=document.createElement("small"); sm.textContent = used.has(p.name)?"이미 선발":(p.alt?p.pos+"/"+p.alt:(ok?"":"빈 자리 없음")); n.appendChild(sm);
+    const sm=document.createElement("small");
+    sm.textContent = used.has(p.name)?"이미 선발":(S.mode==="pos"?tag(SQUADS[p.sq])+(p.alt?" · "+p.pos+"/"+p.alt:""):(p.alt?p.pos+"/"+p.alt:(ok?"":"빈 자리 없음"))); n.appendChild(sm);
     const o=document.createElement("span"); o.className="ovr"; o.textContent = hard()? "??" : p.ovr;
     b.append(pos,n,o);
     b.onclick=()=>{ S.selected = (S.selected===p?null:p); const slots=eligibleSlots(S.selected);
@@ -108,36 +167,86 @@ function renderList(){
   });
 }
 
+function renderMgrList(ul){
+  S.mgrOffer.forEach(m=>{
+    const li=document.createElement("li"); const b=document.createElement("button"); b.type="button"; b.className="prow mrow";
+    const pos=el("span","pos MG","감독");
+    const n=el("span","n",m.name); n.appendChild(el("small",null,STYLE_NAME[m.style]+" · 선호 "+m.form+" · 조직력 "+m.org));
+    n.appendChild(el("small","blk",m.note));
+    b.append(pos,n,el("span","ovr",String(mgrOvrText(m))));
+    b.onclick=()=>pickMgr(m);
+    li.appendChild(b); ul.appendChild(li);
+  });
+}
+
 /* ---------- draft ---------- */
 function anyEligible(sq){ return sq.players.some(p=>eligibleSlots(p).length>0); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-function spin(isRespin){
+/* 포지션 스핀: 빈 자리 하나를 뽑고, 그 포지션에 맞는 후보 선수들을 보여줌 */
+function makePosOffer(){
+  const empty=FORMS[S.form].map((s,i)=>i).filter(i=>!S.xi[i]);
+  const slot=empty[Math.floor(Math.random()*empty.length)];
+  const label=FORMS[S.form][slot][0], grp=GROUP[label];
+  const used=new Set(S.xi.filter(Boolean).map(x=>x.name));
+  const seen=new Set(); const cands=[];
+  shuffle(SQUADS.flatMap(sq=>sq.players)).forEach(p=>{
+    if((p.pos===grp||p.alt===grp) && !used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); cands.push(p); }
+  });
+  return {club:label, era:"포지션 스핀", players:cands.slice(0,CONFIG.POS_CANDS), forSlot:slot};
+}
+
+function spin(isRespin,toMgr){
   if(S.spinning) return;
   if(isRespin){ if(S.respins<=0) return; S.respins--; }
-  S.spinning=true; S.squad=null; S.selected=null; renderList(); renderPitch();
-  const pool = SQUADS.filter(anyEligible);
-  const target = pool[Math.floor(Math.random()*pool.length)];
+  const wasMgr=!!toMgr || !!S.mgrOffer;
+  S.spinning=true; S.squad=null; S.mgrOffer=null; S.selected=null; renderList(); renderPitch();
+  let target, faces;
+  if(wasMgr){ target=null; faces=()=>{ const m=MGRS[Math.floor(Math.random()*MGRS.length)]; return [m.name,m.note.split(" · ")[0]]; }; }
+  else if(S.mode==="pos"){ target=makePosOffer(); const labs=FORMS[S.form].filter((s,i)=>!S.xi[i]).map(s=>s[0]);
+    faces=()=>[labs[Math.floor(Math.random()*labs.length)],"포지션 스핀"]; }
+  else{ const pool=SQUADS.filter(anyEligible); target=pool[Math.floor(Math.random()*pool.length)];
+    faces=()=>{ const sq=SQUADS[Math.floor(Math.random()*SQUADS.length)]; return [sq.club,sq.era+" 시즌"]; }; }
   const reel=$("reel"); reel.classList.add("spin");
   const steps = reduce?1:16; let k=0;
   const tick=()=>{
     k++;
-    const sq = k>=steps ? target : SQUADS[Math.floor(Math.random()*SQUADS.length)];
-    $("reelClub").textContent=sq.club; $("reelEra").textContent=sq.era+" 시즌";
+    const [a,b] = k>=steps && target ? (S.mode==="pos"?[target.club,"자리를 채울 후보"]:[target.club,target.era+" 시즌"]) : faces();
+    $("reelClub").textContent=a; $("reelEra").textContent=b;
     if(k<steps){ setTimeout(tick, 40+k*k*1.4); }
-    else{ reel.classList.remove("spin"); S.spinning=false; S.squad=target;
-      $("hint").textContent="이 팀에서 선수 한 명을 고르세요."; renderList(); renderPitch(); }
+    else{
+      reel.classList.remove("spin"); S.spinning=false;
+      if(wasMgr){ S.mgrOffer=shuffle(MGRS).slice(0,CONFIG.MGR_CANDS); $("reelClub").textContent="감독 후보"; $("reelEra").textContent=S.mgrOffer.length+"명 중 한 명을 선택";
+        $("hint").textContent="함께할 감독을 고르세요. 선택하면 바꿀 수 없어요."; }
+      else{ S.squad=target;
+        $("hint").textContent = S.mode==="pos" ? target.club+" 자리에 들어갈 선수를 후보에서 고르세요." : "이 팀에서 선수 한 명을 고르세요."; }
+      renderList(); renderPitch();
+    }
   };
   tick();
+}
+
+function drawMgr(){
+  if(S.spinning||S.mgr||offering()) return;
+  spin(false,true);
+}
+function pickMgr(m){
+  S.mgr=m; S.mgrOffer=null; renderModes(); renderForms();
+  const filled=S.xi.filter(Boolean).length;
+  $("reelClub").textContent="감독 "+m.name; $("reelEra").textContent=m.note;
+  $("hint").textContent = filled<11 ? "스핀을 눌러 선수를 뽑으세요." : "38라운드 시즌을 시뮬레이션해 보세요.";
+  renderList(); renderPitch();
 }
 
 function place(i){
   if(!S.selected) return;
   S.xi[i]=S.selected; S.picks++; S.selected=null; S.squad=null;
   const filled=S.xi.filter(Boolean).length;
-  $("reelClub").textContent = filled<11 ? "다음 스핀" : "베스트 11 완성";
-  $("reelEra").textContent = filled<11 ? (11-filled)+"자리 남음" : "시즌을 시작하세요";
-  $("hint").textContent = filled<11 ? "스핀을 눌러 다음 팀을 뽑으세요." : "38라운드 시즌을 시뮬레이션해 보세요.";
-  renderForms(); renderList(); renderPitch();
+  const pos=S.mode==="pos";
+  $("reelClub").textContent = filled<11 ? (pos?"다음 포지션 스핀":"다음 스핀") : "베스트 11 완성";
+  $("reelEra").textContent = filled<11 ? (11-filled)+"자리 남음" : (S.mgr?"시즌을 시작하세요":"감독을 뽑아 주세요");
+  $("hint").textContent = filled<11 ? "스핀을 눌러 다음 "+(pos?"포지션":"팀")+"을 뽑으세요." : (S.mgr?"38라운드 시즌을 시뮬레이션해 보세요.":"감독 뽑기를 눌러 감독을 정하세요.");
+  renderModes(); renderForms(); renderList(); renderPitch();
 }
 
 /* ---------- ratings & sim ---------- */
@@ -148,8 +257,9 @@ function rate(xi){
   const gk=avg(g.GK), df=avg(g.DF), mf=avg(g.MF), fw=avg(g.FW);
   const cnt={}; xi.forEach(p=>{ if(p) cnt[p.sq]=(cnt[p.sq]||0)+1; });
   let pairs=0; Object.values(cnt).forEach(c=>pairs+=c*(c-1)/2);
-  const chem=Math.min(CONFIG.CHEM_MAX, pairs*CONFIG.CHEM_PER_PAIR);
-  return {att: fw*.5+mf*.35+df*.15+chem, def: df*.45+gk*.25+mf*.3+chem, chem};
+  const fx=mgrFx(S.mgr,S.form);
+  const chem=Math.min(CONFIG.CHEM_MAX*fx.mult, pairs*CONFIG.CHEM_PER_PAIR*fx.mult);
+  return {att: fw*.5+mf*.35+df*.15+chem+fx.att, def: df*.45+gk*.25+mf*.3+chem+fx.def, chem, mgr:fx};
 }
 function poisson(l){ const L=Math.exp(-l); let k=0,p=1; do{k++; p*=Math.random();}while(p>L); return k-1; }
 function pickScorer(players){
@@ -170,7 +280,7 @@ function simulate(){
   const slots=FORMS[S.form];
   const myPlayers=S.xi.map((p,i)=>({...p,g:GROUP[slots[i][0]]}));
   const opps=SQUADS.slice().sort(()=>Math.random()-.5).slice(0,19);
-  const teams=[{name:$("teamName").value.trim()||"레전드 FC",sub:S.form,me:true,att:me.att,def:me.def}]
+  const teams=[{name:$("teamName").value.trim()||"레전드 FC",sub:S.form+(S.mgr?" · 감독 "+S.mgr.name:""),me:true,att:me.att,def:me.def}]
     .concat(opps.map(o=>{const j=(Math.random()-.5)*2; return {name:o.short+" "+o.era, sub:o.club, sq:o, att:o.str+j, def:o.str+j*.5};}));
   teams.forEach(t=>Object.assign(t,{p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}));
   const rounds=schedule(20); const log=[]; const goals={};
@@ -214,6 +324,7 @@ function showResults(R){
   [[m.w+"승 "+m.d+"무 "+m.l+"패","전적"],[m.pts+"점","승점"],[R.rank+"위","순위"],[m.gf+" : "+m.ga,"득실"],[(R.rate.att).toFixed(1)+" / "+(R.rate.def).toFixed(1),"공격 / 수비"]]
     .forEach(([v,k])=>{const s=el("div","stat"); s.append(el("div","v",v), el("div","k",k)); board.appendChild(s);});
   head.appendChild(board);
+  if(S.mgr) head.appendChild(el("p","hint","감독 "+S.mgr.name+" ("+STYLE_NAME[S.mgr.style]+") · 공격 "+sgn(R.rate.mgr.att)+" / 수비 "+sgn(R.rate.mgr.def)+" 보정"));
   const form=el("div","form"); form.setAttribute("aria-label","38경기 흐름");
   R.log.forEach(g=>{const i=el("i",g.res); i.title=g.r+"R "+g.f+":"+g.a; form.appendChild(i);});
   head.appendChild(form);
@@ -265,7 +376,7 @@ function showResults(R){
 
 function summaryText(R){
   const m=R.me, top=Object.entries(R.goals).sort((a,b)=>b[1]-a[1])[0];
-  return "K-레전드 38 시즌 결과\n"+m.name+" ("+S.form+")\n"+m.w+"승 "+m.d+"무 "+m.l+"패 · 승점 "+m.pts+" · "+R.rank+"위 · 득실 "+m.gf+":"+m.ga+
+  return "K-레전드 38 시즌 결과\n"+m.name+" ("+S.form+(S.mgr?", 감독 "+S.mgr.name:"")+(S.mode==="pos"?", 포지션 스핀":"")+")\n"+m.w+"승 "+m.d+"무 "+m.l+"패 · 승점 "+m.pts+" · "+R.rank+"위 · 득실 "+m.gf+":"+m.ga+
     (top?"\n팀 득점 1위: "+top[0]+" "+top[1]+"골":"")+"\n베스트 11: "+S.xi.map(p=>p.name).join(", ");
 }
 function copyText(R,btn){
@@ -280,7 +391,8 @@ async function drawCard(R,top){
   const W=1080,H=1350,c=document.createElement("canvas"); c.width=W; c.height=H; const x=c.getContext("2d");
   x.fillStyle="#0F2A1D"; x.fillRect(0,0,W,H);
   x.fillStyle="#F0B23A"; x.font="64px 'Black Han Sans', sans-serif"; x.fillText("K-레전드 38",64,110);
-  x.fillStyle="#E6EEE8"; x.font="700 34px 'Noto Sans KR', sans-serif"; x.fillText(R.me.name+"  ·  "+S.form,64,165);
+  x.fillStyle="#E6EEE8"; x.font="700 34px 'Noto Sans KR', sans-serif"; x.fillText(R.me.name+"  ·  "+S.form+(S.mode==="pos"?"  ·  포지션 스핀":""),64,165);
+  if(S.mgr){ x.fillStyle="#93A499"; x.font="700 28px 'Noto Sans KR', sans-serif"; x.fillText("감독 "+S.mgr.name+" ("+STYLE_NAME[S.mgr.style]+")",64,212); }
   const m=R.me;
   x.font="88px 'Black Han Sans', sans-serif"; x.fillStyle="#FFFFFF"; x.fillText(m.w+"승 "+m.d+"무 "+m.l+"패",64,285);
   x.font="700 34px 'JetBrains Mono', monospace"; x.fillStyle="#F0B23A";
@@ -317,18 +429,17 @@ function renderBest(){
 }
 
 function reset(){
-  const f=S.form; newState(f); $("results").hidden=true; $("results").innerHTML="";
-  $("reelClub").textContent="스핀을 눌러 시작"; $("reelEra").textContent=SQUADS.length+"개 시대별 레전드 팀";
-  $("hint").textContent="스핀하면 팀 하나가 나와요. 그 팀에서 선수 한 명을 골라 빈 자리에 넣으세요.";
-  renderForms(); renderList(); renderPitch(); window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});
+  const f=S.form, md=S.mode; newState(f,md); $("results").hidden=true; $("results").innerHTML="";
+  idleReel(); $("hint").textContent=idleHint();
+  renderModes(); renderForms(); renderList(); renderPitch(); window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});
 }
 
 $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);
+$("mgrBtn").onclick=drawMgr;
 $("simBtn").onclick=()=>{ const R=simulate(); saveBest(R); showResults(R); };
 $("hard").onchange=()=>{ renderList(); renderPitch(); };
 
-newState(); renderForms(); renderPitch(); renderBest();
-$("reelEra").textContent=SQUADS.length+"개 시대별 레전드 팀";
-window.__KL38 = {SQUADS, FORMS, rate:()=>rate(S.xi), simulate, S:()=>S};
+newState(); renderModes(); renderForms(); renderPitch(); renderBest(); idleReel(); $("hint").textContent=idleHint();
+window.__KL38 = {SQUADS, MGRS, FORMS, rate:()=>rate(S.xi), simulate, S:()=>S};
 })();

@@ -26,6 +26,9 @@
   <div class="grid">
     <div class="panel">
       <div class="setup">
+        <div class="seg" id="modeSeg" role="group" aria-label="드래프트 방식"></div>
+      </div>
+      <div class="setup">
         <div class="seg" id="formSeg" role="group" aria-label="포메이션"></div>
         <label class="toggle"><input type="checkbox" id="hard"> 하드모드 (능력치 숨김)</label>
       </div>
@@ -44,6 +47,7 @@
           </g>
         </svg>
       </div>
+      <div class="mgr" id="mgrBox"></div>
       <div class="pitchfoot">
         <span>공격 <b id="attV">–</b></span><span>수비 <b id="defV">–</b></span><span>케미 <b id="chemV">+0.0</b></span><span>선발 <b id="cntV">0/11</b></span>
       </div>
@@ -57,10 +61,11 @@
       </div>
       <div class="btnrow">
         <button class="btn primary" id="spinBtn" type="button">스핀</button>
+        <button class="btn ghost" id="mgrBtn" type="button">감독 뽑기</button>
         <button class="btn ghost" id="respinBtn" type="button" disabled>다시 스핀 (2)</button>
         <button class="btn" id="simBtn" type="button" disabled>시즌 시뮬레이션</button>
       </div>
-      <p class="hint" id="hint">스핀하면 팀 하나가 나와요. 그 팀에서 선수 한 명을 골라 빈 자리에 넣으세요.</p>
+      <p class="hint" id="hint"></p>
       <ul class="plist" id="plist"></ul>
       <div class="progress" id="progress" aria-hidden="true"></div>
     </div>
