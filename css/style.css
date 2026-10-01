@@ -144,3 +144,13 @@ footer{margin-top:36px;font-size:12px;color:var(--muted);max-width:75ch}
 .mgrfx{font:500 12px var(--f-num);color:var(--muted);margin-top:6px}
 .pos.MG{background:#6B46C1}
 .prow .n small.blk{display:block;margin:2px 0 0}
+
+/* shared leaderboard */
+.lb{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.lbrow{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--surface-2);font-size:13px}
+.lbn{font:700 12px var(--f-num);color:var(--muted)}
+.lbw{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbw small{display:block;font-weight:500;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis}
+.lbr{font:500 12px var(--f-num);color:var(--muted);white-space:nowrap}
+.lbp{font:700 14px var(--f-num)}
+@media (max-width:520px){.lbrow{grid-template-columns:24px minmax(0,1fr) auto}.lbr{display:none}}

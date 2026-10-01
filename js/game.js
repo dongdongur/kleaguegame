@@ -367,11 +367,27 @@ function showResults(R){
   sh.appendChild(el("p","hint","이미지를 길게 누르거나 우클릭해서 저장한 뒤 단톡방에 올리세요."));
   const cb=el("button","btn ghost","결과 텍스트 복사"); cb.type="button"; cb.onclick=()=>copyText(R,cb);
   sh.appendChild(cb);
+  if(window.KLShare && KLShare.enabled){
+    const ub=el("button","btn primary","친구들 기록에 올리기"); ub.type="button"; ub.style.marginLeft="8px"; ub.onclick=()=>uploadResult(R,ub);
+    sh.appendChild(ub);
+  }
   const img=el("img"); img.alt="시즌 결과 카드"; sh.appendChild(img);
   side.append(tp,sp,sh);
   cols.append(mp,side); box.appendChild(cols);
   drawCard(R,top).then(url=>{ img.src=url; });
   box.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});
+}
+
+async function uploadResult(R,btn){
+  const nick=$("nick").value.trim();
+  if(!nick){ btn.textContent="닉네임을 먼저 입력하세요"; $("nick").focus(); setTimeout(()=>btn.textContent="친구들 기록에 올리기",2200); return; }
+  store.set("kl38-nick",nick);
+  const m=R.me; btn.disabled=true; btn.textContent="올리는 중…";
+  try{
+    await KLShare.save({nickname:nick, team_name:$("teamName").value.trim()||"레전드 FC", form:S.form, mode:S.mode, manager:S.mgr?S.mgr.name:null,
+      w:m.w,d:m.d,l:m.l,pts:m.pts,gf:m.gf,ga:m.ga,rank:R.rank, xi:S.xi.map(p=>p.name)});
+    btn.textContent="올렸어요"; KLShare.refresh();
+  }catch(e){ btn.disabled=false; btn.textContent="실패, 다시 시도"; }
 }
 
 function summaryText(R){
@@ -440,6 +456,6 @@ $("mgrBtn").onclick=drawMgr;
 $("simBtn").onclick=()=>{ const R=simulate(); saveBest(R); showResults(R); };
 $("hard").onchange=()=>{ renderList(); renderPitch(); };
 
-newState(); renderModes(); renderForms(); renderPitch(); renderBest(); idleReel(); $("hint").textContent=idleHint();
+newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; } renderModes(); renderForms(); renderPitch(); renderBest(); idleReel(); $("hint").textContent=idleHint();
 window.__KL38 = {SQUADS, MGRS, FORMS, rate:()=>rate(S.xi), simulate, S:()=>S};
 })();

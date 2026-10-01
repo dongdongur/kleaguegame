@@ -35,6 +35,8 @@
       <div class="setup">
         <label class="label" for="teamName">팀 이름</label>
         <input class="teamname" id="teamName" maxlength="14" value="레전드 FC">
+        <label class="label" for="nick">닉네임</label>
+        <input class="teamname" id="nick" maxlength="12" placeholder="친구들에게 보일 이름">
       </div>
       <div class="pitch" id="pitch">
         <svg class="lines" viewBox="0 0 68 88" preserveAspectRatio="none" aria-hidden="true">
@@ -73,12 +75,22 @@
 
   <div id="results" hidden></div>
 
+  <section class="panel" id="sharedWrap" hidden style="margin-top:26px">
+    <div class="setup" style="justify-content:space-between">
+      <h2 style="margin:0">친구들 기록</h2>
+      <div class="seg" id="sharedSort" role="group" aria-label="정렬"></div>
+    </div>
+    <div id="shared"></div>
+  </section>
+
   <footer>
     비공식 팬 제작 게임이에요. K리그와 각 구단, 선수와는 관련이 없어요. 능력치는 해당 시기 활약을 기준으로 한 주관적 평가이고, 시대별 명단은 대표 선수 위주로 구성해서 실제 등록 명단과 다를 수 있어요. 엠블럼과 공식 이미지는 사용하지 않았어요.
   </footer>
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/config.js"></script>
 <script src="js/game.js"></script>
+<script src="js/share.js"></script>
 </body>
 </html>
