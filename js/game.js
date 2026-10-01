@@ -281,7 +281,7 @@ function roleTags(r){
   const t=[]; const fmt=(v,n)=>v>0?n+" +"+v:v<0?n+" "+v:null;
   [fmt(r.a,"공격"),fmt(r.d,"수비")].forEach(x=>x&&t.push(x));
   if(r.sc!==1) t.push("득점 "+(r.sc>1?"▲":"▼")); if(r.as!==1) t.push("도움 "+(r.as>1?"▲":"▼"));
-  if(r.st>1) t.push("체력소모 ▲"); if(r.risk>=1) t.push("위험"); if(r.pace) t.push("주력 중요"); if(r.h) t.push("키 "+r.h+"cm+");
+  if(r.st>1) t.push("체력소모 ▲"); if(r.risk>=1) t.push("위험"); if(r.pace) t.push("주력 중요"); if(r.aer) t.push("제공권 중요");
   return t; }
 function openRoles(i){
   const lab=FORMS[S.form][i][0], list=K.ROLES[K.ROLE_KEY(lab)]||[], p=S.xi[i];
@@ -289,13 +289,14 @@ function openRoles(i){
   const box=el("div","m-box"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; };
   box.append(x, el("h3",null,lab+" 역할 "+(p?"· "+p.name:"")));
   box.appendChild(el("p","hint","역할은 능력치를 바꾸지 않고, 팀의 공격·수비 계산과 득점·도움 분배, 체력 소모를 바꿔요. 어울리는 역할끼리 맞추면 궁합 보너스가 있고, 위험한 역할이 너무 많으면 감점이에요."));
-  const cur=S.roles[i]|0, ls=el("div","role-list");
-  list.forEach((r,k)=>{
+  const cur=S.roles[i]|0, ls=el("div","role-list"); const rec=p?K.recommendRoles(p,lab):[];
+  if(rec.length) box.insertBefore(el("p","role-rec","★ "+p.name+" 선수에게 어울리는 역할: "+rec.join(", ")),ls.parentNode?null:null);
+  list.map((r,k)=>[r,k]).sort((x,y)=>(rec.indexOf(y[0].name)>=0)-(rec.indexOf(x[0].name)>=0)||(rec.indexOf(x[0].name)>=0&&rec.indexOf(y[0].name)>=0?rec.indexOf(x[0].name)-rec.indexOf(y[0].name):x[1]-y[1])).forEach(([r,k])=>{
     const row=el("button","role-row"+(k===cur?" on":"")); row.type="button";
-    const fit=p?K.roleFit(p,r):1;
-    row.append(el("b",null,r.name+(k===0?" (기본)":"")), el("span","role-desc",r.desc));
+    const fi=p?K.roleFitInfo(p,r):{f:1,why:[]}, fit=fi.f;
+    row.append(el("b",null,(rec.includes(r.name)?"★ ":"")+r.name+(k===0?" (기본)":"")+(rec.includes(r.name)?"  · 추천":"")), el("span","role-desc",r.desc));
     const tg=el("span","role-tags"); roleTags(r).forEach(t=>tg.appendChild(el("i",null,t)));
-    if(fit<.95) tg.appendChild(el("i","warn","이 선수는 효과 "+Math.round(fit*100)+"%"));
+    if(fit<.95) tg.appendChild(el("i","warn","이 선수는 효과 "+Math.round(fit*100)+"% ("+fi.why.join(", ")+")"));
     row.appendChild(tg);
     row.onclick=()=>{ S.roles[i]=k; m.hidden=true; renderPitch(); };
     ls.appendChild(row); });

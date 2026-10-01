@@ -451,3 +451,15 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 .fan-post.tp{border-left-color:#4ade80}.fan-post.tn{border-left-color:#f87171}.fan-post.tz{border-left-color:#94a3b8}
 .fan-who{font-size:11px;opacity:.7;margin-bottom:2px}.fan-txt{font-size:13px;line-height:1.45}
 .ml-fans{margin:10px 0 2px;display:grid;gap:3px;font-size:12px}.mf-line{opacity:.9}
+
+/* ---- 사진은 작게: 능력치(OVR)와 포지션이 가려지지 않게 오른쪽 위에만 ---- */
+.fc-art.face{right:3cqw;top:11cqw;width:44cqw;height:44cqw;border-radius:6px}
+.fc-art.face img{object-position:50% 12%}
+/* ---- 역할 칩: 글자를 키우고 화살표로 눌러서 바꾼다는 걸 알려줘요 ---- */
+.slot .role-chip{font-size:12px;font-weight:700;padding:4px 9px 4px 10px;bottom:-13px;max-width:128%;border-color:rgba(255,255,255,.45);background:rgba(8,14,26,.88);color:#e8f2ec;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.slot .role-chip::after{content:" ▾";font-size:11px;opacity:.85}
+.slot .role-chip.set{background:#1f7a49;color:#fff;border-color:#6cf0a0}
+.slot .role-chip:hover,.slot .role-chip:focus-visible{background:#2c4a7a;border-color:#8ab8ff;outline:none}
+
+.role-rec{margin:6px 0 2px;padding:8px 10px;border-radius:10px;background:rgba(245,181,61,.14);color:#f5d487;font-size:12.5px}
+.role-row.on b,.role-row b{display:block}
