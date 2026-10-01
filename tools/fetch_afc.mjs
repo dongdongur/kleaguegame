@@ -22,7 +22,7 @@ async function wikitext(title){
   const j = await api({action:"parse",page:title,prop:"wikitext",redirects:1}); return j.parse && j.parse.wikitext;
 }
 function squad(w){
-  const out=[]; const re=/\{\{\s*[Ff]s player\s*\|([^}]*)\}\}/g; let m;
+  const out=[]; const re=/\{\{\s*(?:[Ff]s player|[Ff]ootball squad2? player)\s*\|([^}]*)\}\}/g; let m;
   while((m=re.exec(w))){ const a=Object.fromEntries(m[1].split("|").map(s=>{const i=s.indexOf("=");return i<0?[s.trim(),""]:[s.slice(0,i).trim(),s.slice(i+1).trim()];}));
     const nm=(a.name||"").match(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/); const title=nm?nm[1]:null, disp=nm?(nm[2]||nm[1]):(a.name||"").replace(/[\[\]]/g,"");
     const pos=(a.pos||"").toUpperCase().slice(0,2); if(!disp||!POS[pos]) continue;

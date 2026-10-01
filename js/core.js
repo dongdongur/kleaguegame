@@ -218,9 +218,18 @@ function mergeRoster(def,league,avg){
     if(s){ const a=s[2]||s[5], g=s[2]?s[3]:s[6], x=s[2]?s[4]:s[7], L=s[2]?"K리그1":"K리그2";
       p.recTxt = s[0]+" "+L+" "+a+"경기 "+(p.pos==="GK"? g+"실점 클린시트 "+x : g+"골 "+x+"도움")+" · 최근 시즌 가중 · 리그·포지션 내 상위 "+Math.max(1,Math.round((1-pct(key,q))*100))+"%"; } });
 }
-/* 레전드 데이터의 선수 중 지금도 뛰는 선수는 같은 사진을 써요 (이름이 현역 명단에서 하나뿐이고 포지션이 같을 때만) */
+/* 레전드·대표팀 선수와 이름이 같은 현역 선수가 있으면 "같은 사람인지"를 가려서 합쳐요 (선수 고유번호를 같이 쓰게 돼요)
+   같은 사람: ① 생년이 같다  ② 그 레전드가 뛴 구단·시즌이 현역 선수의 K리그 기록에 있다
+   그 외에는 이름만 같은 다른 사람이라 따로 둬요. (docs/namesakes.md 는 이 판별 결과예요) */
 { const by={}; Object.values(SQ26).forEach(cl=>cl.players.forEach(([id,name,pos])=>{ (by[name]=by[name]||[]).push({id,pos}); }));
-  SQUADS.forEach(q=>q.players.forEach(p=>{ if(p.id) return; const m=by[p.name]; if(m&&m.length===1&&m[0].pos===p.pos) p.id=m[0].id; })); }
+  const RECS=window.KL_RECORDS||{};
+  const sameClub=(a,b)=>{ const n=s=>String(s).replace(/FC|F.C.|s/g,""); a=n(a); b=n(b); return !!a&&!!b&&(a===b||a.includes(b)||b.includes(a)); };
+  const same=(p,q,cand)=>{ const r=RECS[cand.id]; if(!r) return false;
+    if(BORN[p.name]!=null && r[0]!=null) return BORN[p.name]===r[0];                       // 생년으로 판별
+    if(q.nat) return false;                                                                  // 대표팀은 구단 기록이 없어서 생년이 없으면 합치지 않아요
+    return r[2].some(s=>s[0]>=q.yrs[0]&&s[0]<=q.yrs[1]&&sameClub(s[1],q.short)); };         // 그 구단·시즌에 뛴 기록
+  SQUADS.forEach(q=>q.players.forEach(p=>{ if(p.id) return; const m=by[p.name]; if(!m) return;
+    const hit=m.filter(cand=>same(p,q,cand)); if(hit.length===1) p.id=hit[0].id; })); }
 /* 2026 현역 선수도 드래프트에서 뽑을 수 있게 구단 시즌 하나로 추가 (상대팀에 있어도 내 팀에 뽑을 수 있어요). 카드에는 능력치 바닥(R_MIN)을 적용 */
 TEAMS26.concat([GIMCHEON],K2_DEFS).forEach(t=>{
   if(!t.players.length) return;
