@@ -69,6 +69,8 @@ const CONFIG = {
   REC_W: {YEAR:[1,.7,.45,.25], K1:1, K2:.93},  // 기록 기반 능력치: 최근 시즌 가중, K리그2 기록은 약간 낮게 반영
   REC_PRIME_MAX: 8,         // 기록 기반 선수의 전성기는 현재보다 최대 이만큼만 높아요
   REC_TOP: 0.85,            // 기록 상위 100% 선수의 위치 = 리그 범위의 85% 지점 (그 위는 직접 적은 스타 선수 몫)
+  AFC_EST_BELOW: 5, AFC_EST_SPREAD: 3,   // 해외 구단의 추정 선수: 팀 기본 능력치 - 5, ±3 범위
+  ROLE_SCALE: 0.4, ROLE_RISK_FREE: 4,   // 역할 보정: 역할 한 개의 a·d 값에 곱하는 크기 / 위험도가 이 값을 넘으면 수비 감점
   EST_PCT: [0.05,0.55],     // 기록이 없는 선수의 추정 위치(리그 안에서 하위 5%~55% 사이)
   EST_TEAM_W: 0.3,          // 팀 수준이 추정 능력치에 반영되는 정도
   EST_PRIME_ADD: 3,         // 추정 선수의 전성기 = 추정 + 이 값
@@ -227,10 +229,21 @@ TEAMS26.concat([GIMCHEON],K2_DEFS).forEach(t=>{
     players:t.players.map(p=>({name:p.name,pos:p.pos,raw:p.ovr,alt:null,det:p.det?p.det.split("/"):null,sq:id,yr:2026,age:27,
       ovrS:Math.max(CONFIG.R_MIN,p.ovr),ovrP:Math.max(CONFIG.R_MIN,p.prime),ovr:Math.max(CONFIG.R_MIN,p.ovr),id:p.id||null,est:!!p.est,recTxt:p.recTxt||null}))});
 });
+{ const REC2=window.KL_RECORDS||{}; SQUADS.forEach(q=>q.players.forEach(p=>{ if(p.id&&REC2[p.id]&&REC2[p.id][1]) p.h=REC2[p.id][1]; })); }
 calcYears();
 /* AFC 챔피언스리그 참가팀(해외): 능력치는 파일에 적힌 최종 값 그대로 써요. 선수단이 없으면 팀 기본 능력치로 계산해요 */
-const mkAfc = t => ({club:t[0],short:t[0],kind:t[1],region:t[2],div:0,base:t[3],
-  players:t[4].map(p=>({name:p[0],pos:p[1],ovr:p[2],det:p[3]||"",prime:Math.max(p[2],p[4]!=null?p[4]:p[2]+CONFIG.PRIME_DEFAULT)}))});
+const AFC_SQ = window.KL_AFC_SQUADS||{};
+const lastWord = s => String(s).trim().split(/s+/).pop().toLowerCase();
+/* 직접 적은 선수 외에 위키백과 선수단에서 온 선수는 "추정": 팀 기본 능력치보다 약간 낮게(팀 수준 - AFC_EST_BELOW 근처로 퍼지게) */
+function afcRoster(name,base,authored){
+  const own=authored.map(p=>({name:p[0],pos:p[1],ovr:p[2],det:p[3]||"",prime:Math.max(p[2],p[4]!=null?p[4]:p[2]+CONFIG.PRIME_DEFAULT)}));
+  const have=new Set(own.map(p=>p.name.replace(/s+/g,"").toLowerCase())), lasts=new Set(own.map(p=>lastWord(p.name)));
+  (AFC_SQ[name]||[]).forEach(([nm,pos])=>{
+    if(have.has(nm.replace(/s+/g,"").toLowerCase()) || lasts.has(lastWord(nm))) return;   // 이미 직접 적은 선수 (표기가 다른 같은 사람 포함)
+    const o=Math.round(base-CONFIG.AFC_EST_BELOW+(hash01(name+nm)*2-1)*CONFIG.AFC_EST_SPREAD);
+    own.push({name:nm,pos,ovr:o,det:"",prime:o+CONFIG.EST_PRIME_ADD,est:true}); });
+  return own; }
+const mkAfc = t => ({club:t[0],short:t[0],kind:t[1],region:t[2],div:0,base:t[3],players:afcRoster(t[0],t[3],t[4])});
 const AFC1 = (window.KL_AFC_ELITE||[]).map(mkAfc), AFC2 = (window.KL_AFC_TWO||[]).map(mkAfc);
 const ACL_POOL = AFC1;   // (옛 이름 호환)
 const DERBIES = window.KL_DERBIES||[];
@@ -268,15 +281,15 @@ function poisson(l){ const L=Math.exp(-l); let k=0,p=1; do{k++; p*=Math.random()
 function randn(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 function pickScorer(players){
   const w={GK:0,DF:.5,MF:2.4,FW:5};
-  const ws=players.map(p=>w[p.g||p.pos]*Math.max(1,p.ovr-62)); const tot=ws.reduce((a,b)=>a+b,0);
+  const ws=players.map(p=>w[p.g||p.pos]*Math.max(1,p.ovr-62)*(p.sc||1)); const tot=ws.reduce((a,b)=>a+b,0);
   if(!(tot>0)) return players[players.length-1];
   let r=Math.random()*tot; for(let i=0;i<players.length;i++){ r-=ws[i]; if(r<=0) return players[i]; } return players[players.length-1];
 }
 /* 도움 선수: 골을 넣은 선수를 뺀 나머지 중에서 중원·공격수 위주로 */
 function pickAssist(players,scorer){
   const w={GK:.05,DF:.9,MF:3,FW:2.2};
-  const c=players.filter(p=>p!==scorer && p.name!==scorer.name);
-  const ws=c.map(p=>w[p.g||p.pos]*Math.max(1,p.ovr-60)); const tot=ws.reduce((a,b)=>a+b,0);
+  const c=players.filter(p=>p!==scorer && (p.ref||p)!==(scorer.ref||scorer));   // 동명이인도 서로 도움을 줄 수 있게 이름이 아니라 같은 선수인지로 가려요
+  const ws=c.map(p=>w[p.g||p.pos]*Math.max(1,p.ovr-60)*(p.as||1)); const tot=ws.reduce((a,b)=>a+b,0);
   if(!c.length||!(tot>0)) return null;
   let r=Math.random()*tot; for(let i=0;i<c.length;i++){ r-=ws[i]; if(r<=0) return c[i]; } return c[c.length-1];
 }
@@ -300,6 +313,30 @@ function mgrFx(m,form){
 const fatigue = st => st>=CONFIG.FATIGUE_FROM ? 0 : (CONFIG.FATIGUE_FROM-st)*CONFIG.FATIGUE_PER;
 
 /* 팀 능력치. xi: 슬롯 순서대로의 선수 배열, st: 선수→체력 Map(없으면 만땅), ctx: {form, mgr} */
+/* ---- 선수 역할 (js/roles.js) ----
+   각 역할의 공격·수비 보정을 합치되, 주력/키가 필요한 역할은 선수에 따라 효과가 줄고(roleFit),
+   역할끼리 맞물리면 궁합 보너스, 위험한 역할이 너무 많거나 한쪽에 쏠리면 감점이에요. */
+const ROLES = window.KL_ROLES||{}, ROLE_KEY = window.KL_ROLE_KEY||(()=>"CM"), ROLE_SYN = window.KL_ROLE_SYN||[];
+function roleOf(lab,idx){ const l=ROLES[ROLE_KEY(lab)]; return l ? (l[idx|0]||l[0]) : null; }
+function roleFit(p,r){
+  let f=1;
+  if(r.pace && p.age>=31) f*=Math.max(.5,1-(p.age-30)*.1);          // 나이 들면 주력 역할은 효과가 줄어요
+  if(r.h){ if(p.h && p.h<r.h) f*=.7; else if(!p.h) f*=.9; }           // 키가 필요한 역할: 작으면 줄고, 키를 모르면 조금 줄어요
+  return f; }
+function roleFx(xi,ctx){
+  const out={att:0,def:0,notes:[],risk:0};
+  if(!ctx || !ctx.roles) return out;
+  const slots=FORMS[ctx.form], tags={}, per=[]; let risk=0;
+  xi.forEach((p,i)=>{ if(!p) return; const r=roleOf(slots[i][0],ctx.roles[i]); if(!r) return;
+    const f=roleFit(p,r); out.att+=r.a*f*CONFIG.ROLE_SCALE; out.def+=r.d*f*CONFIG.ROLE_SCALE; risk+=r.risk;
+    r.tags.forEach(t=>tags[t]=(tags[t]||0)+1); per.push({i,name:r.name,fit:f}); });
+  ROLE_SYN.forEach(s=>{ if(s.need.every(t=>tags[t])){ out.att+=s.att||0; out.def+=s.def||0; out.notes.push({ok:true,text:s.text}); } });
+  if((tags.create||0)>=3){ out.att-=.6; out.notes.push({ok:false,text:"플레이메이커가 너무 많아요: 서로 공을 가지려 해서 흐름이 막혀요 (공격 -0.6)"}); }
+  if((tags.anchor||0)>=2){ out.att-=.5; out.notes.push({ok:false,text:"수비 미드필더가 겹쳐요: 전진할 사람이 부족해요 (공격 -0.5)"}); }
+  const ov=xi.filter((p,i)=>p&&roleOf(slots[i][0],ctx.roles[i])&&roleOf(slots[i][0],ctx.roles[i]).tags.includes("overlap")).length;
+  if(ov>=2 && !tags.anchor && !tags.cover){ out.def-=.8; out.notes.push({ok:false,text:"풀백들이 모두 올라가는데 커버가 없어요: 뒷공간이 비어요 (수비 -0.8)"}); }
+  if(risk>CONFIG.ROLE_RISK_FREE){ const d=(risk-CONFIG.ROLE_RISK_FREE)*.5; out.def-=d; out.notes.push({ok:false,text:"위험한 역할이 많아요 (위험도 "+risk.toFixed(1)+"): 한 번 뚫리면 크게 무너져요 (수비 -"+d.toFixed(1)+")"}); }
+  out.risk=risk; out.per=per; return out; }
 function rate(xi,st,ctx){
   const slots=FORMS[ctx.form]; const g={GK:[],DF:[],MF:[],FW:[]};
   xi.forEach((p,i)=>{ if(!p) return; const lab=slots[i][0], grp=GROUP[lab];
@@ -318,7 +355,8 @@ function rate(xi,st,ctx){
     natPairs+=c*(c-1)/2;
   });
   const chem=Math.min(CONFIG.CHEM_MAX*fx.mult, (pairs*CONFIG.CHEM_PER_PAIR+natPairs*CONFIG.NAT_PER_PAIR)*fx.mult);
-  return {att: fw*.5+mf*.35+df*.15+chem+fx.att, def: df*.45+gk*.25+mf*.3+chem+fx.def, chem, mgr:fx, clubPairs:pairs, natPairs,
+  const ro=roleFx(xi,ctx);
+  return {att: fw*.5+mf*.35+df*.15+chem+fx.att+ro.att, def: df*.45+gk*.25+mf*.3+chem+fx.def+ro.def, chem, mgr:fx, clubPairs:pairs, natPairs, role:ro,
     ovr: avg(xi.filter(Boolean).map(p=>p.ovr))};
 }
 
@@ -363,7 +401,7 @@ function assembleLog(ev,c){
   return out;
 }
 
-window.KLCore = {CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
+window.KLCore = {ROLES, roleOf, roleFit, ROLE_KEY, CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
   clone, mgrFx, fatigue, rate, oppStrength, assembleLog, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();

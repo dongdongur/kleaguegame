@@ -23,9 +23,9 @@ function newState(form,mode,diff,rm){
   K.setRatingMode(rm||"season");
   S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", rm:rm||"season", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
     squad:null, selected:null, respins:CFG.RESPINS, spinning:false, done:false, picks:0, mgr:null, mgrOffer:null,
-    phase:"draft", career:newCareer(), last:null, winter:null};
+    phase:"draft", career:newCareer(), last:null, winter:null, roles:Array(11).fill(0)};
 }
-const ctx = () => ({form:S.form, mgr:S.mgr});
+const ctx = () => ({form:S.form, mgr:S.mgr, roles:S.roles});
 const started = () => S.picks>0 || !!S.mgr || S.career.no>1;
 const offering = () => !!S.squad || !!S.mgrOffer;
 const xiFull = () => S.xi.every(Boolean);
@@ -33,7 +33,9 @@ const benchOpen = () => S.bench.some(b=>!b);
 const benchCount = () => S.bench.filter(Boolean).length;
 const benchPhase = () => !!(S.squad && S.squad.bench);
 const blind = () => hard() && !S.done;
-function usedNames(){ return new Set(S.xi.concat(S.bench).filter(Boolean).map(x=>x.name)); }
+/* 같은 선수인지는 kleague.com 고유번호(id)로 가린다. 번호가 없는 옛 선수는 이름으로 */
+const pkey = p => p.id ? "#"+p.id : p.name;
+function usedNames(){ return new Set(S.xi.concat(S.bench).filter(Boolean).map(pkey)); }
 const ready = () => xiFull() && !benchOpen() && !!S.mgr;
 
 /* ================= 카드 ================= */
@@ -84,7 +86,7 @@ function renderForms(){
   Object.keys(FORMS).forEach(f=>{
     const b=document.createElement("button"); b.type="button"; b.textContent=f;
     b.setAttribute("aria-pressed",String(f===S.form)); b.disabled = started() && f!==S.form;
-    b.onclick=()=>{ if(started()) return; S.form=f; renderForms(); renderPitch(); };
+    b.onclick=()=>{ if(started()) return; S.form=f; S.roles=Array(11).fill(0); renderForms(); renderPitch(); };
     seg.appendChild(b);
   });
 }
@@ -186,7 +188,7 @@ function showInfo(p){
 /* ================= 배치 가능 자리 ================= */
 function eligibleSlots(p){
   if(!p) return [];
-  if(usedNames().has(p.name)) return [];
+  if(usedNames().has(pkey(p))) return [];
   const only = S.squad && S.squad.forSlot!=null ? S.squad.forSlot : null;
   return FORMS[S.form].map((s,i)=>({s,i})).filter(({s,i})=>!S.xi[i] && (only==null || i===only) && fitsSlot(p,s[0])).map(o=>o.i);
 }
@@ -209,6 +211,11 @@ function renderPitch(){
       b.appendChild(cardEl(p,{pos:s[0],badge:dl,badgeCls:p.delta>0?"up":"down"}));
       b.appendChild(infoDot(p)); b.oncontextmenu=e=>{ e.preventDefault(); showInfo(p); };
       b.setAttribute("aria-label", s[0]+" "+p.name);
+      /* 역할 칩: 누르면 이 자리의 역할을 고르는 창이 열려요 */
+      const ro=K.roleOf(s[0],S.roles[i]);
+      if(ro){ const chip=el("span","role-chip"+(S.roles[i]?" set":""),ro.name); chip.setAttribute("role","button"); chip.tabIndex=0; chip.title="역할 바꾸기";
+        const open=e=>{ e.stopPropagation(); e.preventDefault(); openRoles(i); };
+        chip.onclick=open; chip.onkeydown=e=>{ if(e.key==="Enter"||e.key===" ") open(e); }; b.appendChild(chip); }
     } else { b.appendChild(emptyCard(s[0])); b.setAttribute("aria-label", s[0]+" 빈 자리"+(can.has(i)?", 여기에 배치":"")); }
     if(can.has(i)) b.onclick=()=> W ? winterPick({xi:i}) : place(i);
     pitch.appendChild(b);
@@ -216,6 +223,59 @@ function renderPitch(){
   renderBench();
   renderStats();
   renderButtons();
+}
+/* ---- 감독 계약서 사인 ---- */
+function openContract(done){
+  const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=null;
+  const box=el("div","m-box contract"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; };
+  const team=$("teamName").value.trim()||"레전드 FC";
+  box.append(x, el("small","c-kicker","MANAGER CONTRACT"), el("h3","c-title","감독 계약서에\n사인하시겠습니까?"), el("p","hint",team+"과 함께 첫 시즌을 시작합니다."));
+  const wrap=el("div","c-pad"); const cv=document.createElement("canvas"); cv.width=720; cv.height=280; wrap.appendChild(cv); wrap.appendChild(el("i","c-line"));
+  const ctx2=cv.getContext("2d"); ctx2.lineWidth=5; ctx2.lineCap="round"; ctx2.lineJoin="round"; ctx2.strokeStyle="#16307a";
+  let ink=false, down=false, last=null;
+  const pos=e=>{ const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]; };
+  const upd=()=>{ go.disabled=!ink; };
+  cv.style.touchAction="none";
+  cv.onpointerdown=e=>{ down=true; last=pos(e); cv.setPointerCapture(e.pointerId); ctx2.beginPath(); ctx2.moveTo(last[0],last[1]); ctx2.lineTo(last[0]+.01,last[1]); ctx2.stroke(); ink=true; upd(); };
+  cv.onpointermove=e=>{ if(!down) return; const p=pos(e); ctx2.beginPath(); ctx2.moveTo(last[0],last[1]); ctx2.lineTo(p[0],p[1]); ctx2.stroke(); last=p; };
+  cv.onpointerup=cv.onpointercancel=()=>{ down=false; };
+  box.appendChild(wrap);
+  box.appendChild(el("p","c-cap","감독이 사용할 가상 사인입니다"));
+  const row=el("div","c-row");
+  const clear=el("button","btn ghost","다시 쓰기"); clear.type="button"; clear.onclick=()=>{ ctx2.clearRect(0,0,cv.width,cv.height); ink=false; upd(); };
+  const nm=el("button","btn ghost","이름 사인 사용"); nm.type="button";
+  nm.onclick=()=>{ ctx2.clearRect(0,0,cv.width,cv.height); const t=($("nick").value||"").trim()||(S.mgr&&S.mgr.name)||team; ctx2.fillStyle="#16307a"; ctx2.font="italic 86px 'Brush Script MT','Segoe Script','Lucida Handwriting',cursive"; ctx2.textBaseline="middle"; ctx2.textAlign="center"; ctx2.save(); ctx2.translate(cv.width/2,cv.height/2); ctx2.rotate(-.06); let fs2=86; while(ctx2.measureText(t).width>cv.width-80&&fs2>30){ fs2-=4; ctx2.font="italic "+fs2+"px 'Brush Script MT','Segoe Script','Lucida Handwriting',cursive"; } ctx2.fillText(t,0,0); ctx2.restore(); ink=true; upd(); };
+  row.append(clear,nm); box.appendChild(row);
+  const go=el("button","btn go big","사인하고 시즌 시작 →"); go.type="button"; go.disabled=true;
+  go.onclick=()=>{ S.sign=cv.toDataURL("image/png"); store.set("kl38-sign",S.sign); m.hidden=true; done(); };
+  box.appendChild(go); m.appendChild(box);
+  const prev=store.get("kl38-sign");
+  if(prev){ const im=new Image(); im.onload=()=>{ ctx2.drawImage(im,0,0); ink=true; upd(); }; im.src=prev; }   // 지난번 사인을 불러와 둬요 (다시 쓸 수도 있어요)
+}
+/* ---- 역할 고르기 ---- */
+function roleTags(r){
+  const t=[]; const fmt=(v,n)=>v>0?n+" +"+v:v<0?n+" "+v:null;
+  [fmt(r.a,"공격"),fmt(r.d,"수비")].forEach(x=>x&&t.push(x));
+  if(r.sc!==1) t.push("득점 "+(r.sc>1?"▲":"▼")); if(r.as!==1) t.push("도움 "+(r.as>1?"▲":"▼"));
+  if(r.st>1) t.push("체력소모 ▲"); if(r.risk>=1) t.push("위험"); if(r.pace) t.push("주력 중요"); if(r.h) t.push("키 "+r.h+"cm+");
+  return t; }
+function openRoles(i){
+  const lab=FORMS[S.form][i][0], list=K.ROLES[K.ROLE_KEY(lab)]||[], p=S.xi[i];
+  const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=e=>{ if(e.target===m) m.hidden=true; };
+  const box=el("div","m-box"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; };
+  box.append(x, el("h3",null,lab+" 역할 "+(p?"· "+p.name:"")));
+  box.appendChild(el("p","hint","역할은 능력치를 바꾸지 않고, 팀의 공격·수비 계산과 득점·도움 분배, 체력 소모를 바꿔요. 어울리는 역할끼리 맞추면 궁합 보너스가 있고, 위험한 역할이 너무 많으면 감점이에요."));
+  const cur=S.roles[i]|0, ls=el("div","role-list");
+  list.forEach((r,k)=>{
+    const row=el("button","role-row"+(k===cur?" on":"")); row.type="button";
+    const fit=p?K.roleFit(p,r):1;
+    row.append(el("b",null,r.name+(k===0?" (기본)":"")), el("span","role-desc",r.desc));
+    const tg=el("span","role-tags"); roleTags(r).forEach(t=>tg.appendChild(el("i",null,t)));
+    if(fit<.95) tg.appendChild(el("i","warn","이 선수는 효과 "+Math.round(fit*100)+"%"));
+    row.appendChild(tg);
+    row.onclick=()=>{ S.roles[i]=k; m.hidden=true; renderPitch(); };
+    ls.appendChild(row); });
+  box.appendChild(ls); m.appendChild(box);
 }
 function renderStats(){
   const filled=S.xi.filter(Boolean).length;
@@ -227,6 +287,9 @@ function renderStats(){
   $("chemV").textContent = "+"+(r? r.chem:0).toFixed(1);
   $("chemV").title = r ? "같은 팀·시즌 "+r.clubPairs+"쌍, 같은 시기 국가대표 "+r.natPairs+"쌍" : "";
   $("cntV").textContent=filled+"/11 · "+benchCount()+"/"+CFG.BENCH;
+  /* 역할 궁합 안내 */
+  let rn=$("roleNote"); if(!rn){ rn=el("div","role-note"); rn.id="roleNote"; $("pitch").insertAdjacentElement("afterend",rn); }
+  rn.innerHTML=""; if(r && r.role && !hide){ const t=r.role.att||r.role.def?"역할 보정: 공격 "+(r.role.att>=0?"+":"")+r.role.att.toFixed(1)+" / 수비 "+(r.role.def>=0?"+":"")+r.role.def.toFixed(1):""; if(t) rn.appendChild(el("div","rn-sum",t)); r.role.notes.forEach(n=>rn.appendChild(el("div","rn "+(n.ok?"ok":"bad"),(n.ok?"✔ ":"⚠ ")+n.text))); }
   const total=11+CFG.BENCH;
   const pr=$("progress"); pr.innerHTML=""; for(let k=0;k<total;k++){ const i=document.createElement("i"); if(k<filled+benchCount()) i.className="on"; if(k>=11) i.classList.add("bn"); pr.appendChild(i); }
   renderMgr();
@@ -275,12 +338,12 @@ function renderOffers(){
   S.squad.players.slice().sort((a,b)=>b.ovr-a.ovr||order[a.pos]-order[b.pos]).forEach((p,idx)=>{
     const li=el("li","offer-li"); li.style.setProperty("--d",(reduce?0:idx*70)+"ms");
     const b=document.createElement("button"); b.type="button"; b.className="offer";
-    const slots=eligibleSlots(p).length>0, bn=benchPhase()&&!used.has(p.name);
+    const slots=eligibleSlots(p).length>0, bn=benchPhase()&&!used.has(pkey(p));
     const ok=slots||bn;
     b.disabled=!ok; b.setAttribute("aria-pressed",String(S.selected===p));
     const showTag = S.mode==="pos" || benchPhase();
     const dp=p.det?p.det.join("/"):p.pos;
-    b.appendChild(cardEl(p,{sub: showTag?tag(SQUADS[p.sq]):dp, cls:(ok?"":"dim")+(S.selected===p?" sel":""), badge: used.has(p.name)?"선택됨":(!ok?"자리 없음":null), badgeCls:"gray"}));
+    b.appendChild(cardEl(p,{sub: showTag?tag(SQUADS[p.sq]):dp, cls:(ok?"":"dim")+(S.selected===p?" sel":""), badge: used.has(pkey(p))?"선택됨":(!ok?"자리 없음":null), badgeCls:"gray"}));
     if(showTag) b.appendChild(el("span","offer-pos",dp));
     b.onclick=()=>pickPlayer(p);
     li.appendChild(b); li.appendChild(infoBtn(p)); ul.appendChild(li);
@@ -304,7 +367,7 @@ function makePosOffer(){
   const label=FORMS[S.form][slot][0];
   const byYear=new Map();
   YEARS.forEach(y=>{ const seen=new Set(); const c=[];
-    SQUADS.forEach(q=>{ if(coversYear(q,y)) q.players.forEach(p=>{ if(fitsSlot(p,label) && !used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); c.push(p); } }); });
+    SQUADS.forEach(q=>{ if(coversYear(q,y)) q.players.forEach(p=>{ if(fitsSlot(p,label) && !used.has(pkey(p)) && !seen.has(pkey(p))){ seen.add(pkey(p)); c.push(p); } }); });
     if(c.length) byYear.set(y,c); });
   const years=[...byYear.keys()];
   /* 후보가 최대한 여러 명인 해를 우선: 5명 이상 > 3명 이상 > 2명 이상 > 아무 해 */
@@ -355,7 +418,7 @@ function drawMgr(){ if(S.spinning||S.mgr||offering()) return; spin(false,true); 
 /* 후보 뽑기: 선발 11명을 다 뽑은 뒤 5명을 연달아 뽑아요 */
 function benchOffer(){
   const used=usedNames(); const seen=new Set(); const c=[];
-  shuffle(SQUADS.flatMap(s=>s.players)).forEach(p=>{ if(!used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); c.push(p); } });
+  shuffle(SQUADS.flatMap(s=>s.players)).forEach(p=>{ if(!used.has(pkey(p)) && !seen.has(pkey(p))){ seen.add(pkey(p)); c.push(p); } });
   return {club:"후보 영입", sub:"후보 "+(benchCount()+1)+" / "+CFG.BENCH, year:"후보", players:c.slice(0,CFG.BENCH_CANDS), forSlot:null, bench:true};
 }
 function showBenchOffer(){
@@ -413,6 +476,7 @@ function renderOpp(sel,div){
   if(selOpp==null || !oppList(selDiv)[selOpp]){ view.appendChild(el("p","hint","팀을 누르면 선수단과 능력치를 볼 수 있어요. 시즌마다 팀 전력이 조금씩 달라지고, 승강으로 팀이 K리그1과 K리그2를 오가요.")); return; }
   const t=oppList(selDiv)[selOpp], boost=S.career.boost[t.club]||0, o=K.oppStrength(t,hardD,boost);
   view.appendChild(el("p","oppsum",t.club+" ("+(selDiv===1?"K리그1":selDiv===2?"K리그2":(selDiv===3?"AFC챔스 엘리트":"AFC챔스 투")+" · "+t.kind+(t.region==="E"?" · 동아시아":" · 서아시아"))+") · 공격 "+o.att.toFixed(1)+" / 수비 "+o.def.toFixed(1)+(t.players.length?" · 목록에 없는 자리는 기본 "+(t.base+(hardD?CFG.HARD_FILL:0))+"으로 계산":" · 선수 명단 없이 팀 기본 능력치 "+(t.base+(hardD?CFG.HARD_FILL:0))+"로 계산 (명단은 data 파일에 추가하면 반영돼요)")+(boost?" · 이번 시즌 전력 보정 "+sgn(boost):"")));
+  if(t.manager) view.appendChild(el("p","oppsum","감독: "+t.manager+" (2026 실제 감독)"));
   const rivals=K.DERBIES.filter(d=>d[0]===t.club||d[1]===t.club).map(d=>(d[0]===t.club?d[1]:d[0])+" ("+d[2]+")");
   if(rivals.length) view.appendChild(el("p","oppsum","라이벌: "+rivals.join(", ")));
   if(!t.players.length) return;
@@ -432,7 +496,7 @@ function runSeason(){
   const c=S.career;
   c.prev={aclQ:c.aclQ,div:c.div,k1:c.k1.slice(),k2:c.k2.slice()};
   const R=window.KLSeason.run({form:S.form,mgr:S.mgr,xi:S.xi,bench:S.bench,diff:S.diff,teamName:$("teamName").value.trim()||"레전드 FC",
-    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost});
+    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost,roles:S.roles});
   recordSeason(R);
   showResults(R);
 }
@@ -519,7 +583,7 @@ function enterWinter(){
 }
 function winterOffer(){
   const used=usedNames(); const seen=new Set(); const c=[];
-  shuffle(SQUADS.flatMap(s=>s.players)).forEach(p=>{ if(!used.has(p.name) && !seen.has(p.name)){ seen.add(p.name); c.push(p); } });
+  shuffle(SQUADS.flatMap(s=>s.players)).forEach(p=>{ if(!used.has(pkey(p)) && !seen.has(pkey(p))){ seen.add(pkey(p)); c.push(p); } });
   return c.slice(0,CFG.WINTER_CANDS);
 }
 function renderWinter(){
@@ -640,6 +704,7 @@ function showResults(R){
   const [v1,v2]=verdict(R);
   const hero=el("section","panel hero");
   const hl=el("div","hero-l");
+  if(S.sign){ const sg=new Image(); sg.src=S.sign; sg.alt="감독 사인"; sg.className="hero-sign"; hl.appendChild(sg); }
   hl.append(el("div","label","SEASON "+R.seasonNo+" · "+R.year+" · "+R.leagueName+" · 상대 "+(R.diff==="hard"?"어려움":"쉬움")+" · 내 능력치 "+(S.rm==="prime"?"프라임":"시즌")), el("h2","verdict",v1), el("p","vsub",v2));
   const tro=el("div","trophies");
   [[R.leagueName,R.rank===1],["FA컵",R.fa.champion],[R.acl.tier===2?"AFC챔스2":"AFC챔스",R.acl.champion]].forEach(([n,w])=>{ const t=el("div","trophy"+(w?" won":"")); t.append(el("span","tr-i",w?"🏆":"·"), el("span","tr-n",n)); tro.appendChild(t); });
@@ -851,7 +916,7 @@ function shareBlock(R){
 }
 function teamSnapshot(){
   const pk=p=>[p.name,K.squadKey(SQUADS[p.sq])];
-  return {f:S.form,d:S.career.div,m:S.mgr?S.mgr.name:null,rm:S.rm,xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
+  return {f:S.form,d:S.career.div,m:S.mgr?S.mgr.name:null,rm:S.rm,ro:S.roles.slice(),xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
 }
 async function uploadResult(R,btn){
   const nick=$("nick").value.trim();
@@ -926,7 +991,7 @@ const SAVE_KEY="kl38-saves", SAVE_VER=1;
 const savable = () => !S.spinning && S.phase!=="results" && (!S.done || S.phase==="winter");
 function snapState(){
   return {v:SAVE_VER, ts:Date.now(), teamName:$("teamName").value, nick:$("nick").value,
-    S:{form:S.form,mode:S.mode,diff:S.diff,rm:S.rm,xi:S.xi,bench:S.bench,respins:S.respins,picks:S.picks,mgr:S.mgr,phase:S.phase,winter:S.winter},
+    S:{form:S.form,mode:S.mode,diff:S.diff,rm:S.rm,xi:S.xi,bench:S.bench,respins:S.respins,picks:S.picks,mgr:S.mgr,phase:S.phase,winter:S.winter,roles:S.roles,sign:S.sign||null},
     career:S.career};
 }
 function brief(b){ const c=b.career, x=b.S; const n=x.xi.filter(Boolean).length+x.bench.filter(Boolean).length;
@@ -940,7 +1005,7 @@ function loadBlob(b){
   const mgr=b.S.mgr?Object.assign({},b.S.mgr):null;
   newState(b.S.form,b.S.mode,b.S.diff,b.S.rm);
   S.xi=b.S.xi.map(fix); S.bench=b.S.bench.map(fix); S.respins=b.S.respins; S.picks=b.S.picks; S.mgr=mgr; S.career=b.career;
-  S.phase=b.S.phase; S.winter=b.S.winter?Object.assign({},b.S.winter,{cand:b.S.winter.cand?fix(b.S.winter.cand):null}):null;
+  S.roles=Array.isArray(b.S.roles)?b.S.roles.slice():Array(11).fill(0); S.sign=b.S.sign||null; S.phase=b.S.phase; S.winter=b.S.winter?Object.assign({},b.S.winter,{cand:b.S.winter.cand?fix(b.S.winter.cand):null}):null;
   S.done=S.phase==="winter"; S.squad=null; S.selected=null; S.last=null;
   $("teamName").value=b.teamName||"레전드 FC"; if(b.nick) $("nick").value=b.nick;
   $("results").hidden=true; $("results").innerHTML=""; $("careerWrap").hidden=true;
@@ -988,7 +1053,7 @@ $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);
 $("mgrBtn").onclick=drawMgr;
 $("benchBtn").onclick=startBench;
-$("simBtn").onclick=()=>{ if(S.done){ enterWinter(); } else if(ready()){ runSeason(); } };
+$("simBtn").onclick=()=>{ if(S.done){ enterWinter(); } else if(ready()){ if(!S.sign) openContract(runSeason); else runSeason(); } };
 $("hard").onchange=()=>{ renderOffers(); renderPitch(); };
 
 newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; }

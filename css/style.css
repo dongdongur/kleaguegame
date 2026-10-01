@@ -418,3 +418,25 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 .save-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.04)}
 .save-info{display:grid;gap:2px;min-width:0}.save-info small{opacity:.75}
 .save-act{display:flex;gap:6px}.save-file{display:flex;gap:8px;margin:8px 0}
+
+/* 선수 역할 */
+.slot .role-chip{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);max-width:112%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;line-height:1;padding:2px 5px;border-radius:7px;background:rgba(0,0,0,.72);color:#cfe3d6;border:1px solid rgba(255,255,255,.18);cursor:pointer;z-index:3}
+.slot .role-chip.set{background:#1f6f43;color:#fff;border-color:#4ade80}
+.role-list{display:grid;gap:6px;margin-top:8px;max-height:60vh;overflow:auto}
+.role-row{display:grid;gap:3px;text-align:left;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.04);color:inherit;cursor:pointer;font:inherit}
+.role-row:hover{border-color:#4ade80}.role-row.on{border-color:#4ade80;background:rgba(74,222,128,.12)}
+.role-desc{font-size:12px;opacity:.8}.role-tags{display:flex;gap:4px;flex-wrap:wrap}
+.role-tags i{font-style:normal;font-size:10.5px;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.1)}
+.role-tags i.warn{background:#7a4a12;color:#ffd9a0}
+.role-note{margin-top:14px;display:grid;gap:3px;font-size:12px}
+.role-note .rn-sum{font-weight:700;margin-bottom:2px}.role-note .ok{color:#4ade80}.role-note .bad{color:#fbbf24}
+
+/* 감독 계약서 */
+.contract{max-width:460px}
+.contract .c-kicker{display:block;font-weight:800;letter-spacing:.12em;color:#4ea3ff;font-size:11px}
+.contract .c-title{white-space:pre-line;font-size:24px;line-height:1.25;margin:6px 0 4px}
+.c-pad{position:relative;margin:12px 0 6px;border-radius:14px;border:1.5px solid rgba(160,180,220,.5);background:#fff;overflow:hidden}
+.c-pad canvas{display:block;width:100%;height:auto;cursor:crosshair}
+.c-pad .c-line{position:absolute;left:6%;right:6%;bottom:22%;height:1px;background:#e1e6ef}
+.c-cap{font-size:12px;opacity:.8;margin:2px 0 8px}.c-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.hero-sign{display:block;height:44px;width:auto;max-width:180px;background:#fff;border-radius:8px;padding:2px 8px;margin-bottom:8px}

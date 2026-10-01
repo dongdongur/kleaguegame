@@ -15,9 +15,9 @@ function buildFriend(snap){
   if(!snap || !snap.xi) return null;
   const xi=snap.xi.map(resolve); if(xi.length!==11 || xi.some(x=>!x)) return null;
   const fit=p=>{ const c=K.clone(p); c.ovr = snap.rm==="prime" ? p.ovrP : p.ovrS; return c; };   // 친구가 고른 능력치 기준(시즌/프라임)으로 복원
-  return {form:snap.f, xi:xi.map(fit), mgr:K.MGRS.find(m=>m.name===snap.m)||null};
+  return {form:snap.f, xi:xi.map(fit), mgr:K.MGRS.find(m=>m.name===snap.m)||null, roles:Array.isArray(snap.ro)?snap.ro:null};
 }
-const sideRate = t => K.rate(t.xi,null,{form:t.form,mgr:t.mgr});
+const sideRate = t => K.rate(t.xi,null,{form:t.form,mgr:t.mgr,roles:t.roles});
 const withGroup = t => t.xi.map((p,i)=>Object.assign({},p,{g:K.GROUP[K.FORMS[t.form][i][0]]}));
 
 /* 한 경기: 홈/원정 팀 객체와 능력치로 결과를 만들어요. 득점자·도움은 팀 선수들 중에서 뽑아요 */
@@ -63,7 +63,7 @@ function open(row){
   card.appendChild(el("h4","sec","친구 팀 맞대결"));
   if(!friend){ card.appendChild(el("p","hint","이 기록은 선수 정보를 불러올 수 없어요. (옛 형식이거나 데이터가 바뀌었어요)")); box.appendChild(card); return; }
   if(!S.xi.every(Boolean) || !S.mgr){ card.appendChild(el("p","hint","내 팀을 먼저 완성해 주세요. 선발 11명과 감독이 필요해요. (후보는 없어도 돼요)")); box.appendChild(card); box.scrollIntoView({behavior:"smooth",block:"center"}); return; }
-  const me={form:S.form, xi:S.xi, mgr:S.mgr};
+  const me={form:S.form, xi:S.xi, mgr:S.mgr, roles:S.roles};
   const rm=sideRate(me), rf=sideRate(friend);
   const myN=$("teamName").value.trim()||"레전드 FC", frN=row.nickname+"의 "+row.team_name;
   const head=el("div","duel-head");

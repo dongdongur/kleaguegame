@@ -23,7 +23,7 @@ function run(o){
   const K=window.KLCore, CFG=K.CONFIG, G=K.GROUP;
   const hardDiff=o.diff==="hard";
   const div=o.div||1;
-  const ctx={form:o.form,mgr:o.mgr};
+  const ctx={form:o.form,mgr:o.mgr,roles:o.roles||null};
   const slots=K.FORMS[o.form];
   const xi=o.xi.slice(), bench=o.bench.filter(Boolean);
   const roster=xi.concat(bench);
@@ -132,7 +132,7 @@ function run(o){
     const res = pk ? (pk[0]>pk[1]?"W":"L") : (f>a?"W":f===a?"D":"L");
     const advance = m.ko ? ((f+aggF>a+aggA) || (f+aggF===a+aggA && !!pk && pk[0]>pk[1])) : null;
 
-    const myP=lineup.map((p,i)=>Object.assign({},p,{g:G[slots[i][0]],ref:p}));
+    const myP=lineup.map((p,i)=>{ const r=K.roleOf(slots[i][0],o.roles&&o.roles[i]); return Object.assign({},p,{g:G[slots[i][0]],ref:p,sc:r?r.sc:1,as:r?r.as:1}); });
     const league=m.comp==="리그";
     const ms=[], as=[], myG=[], opG=[];
     for(let k=0;k<f;k++){ const s=K.pickScorer(myP); ms.push(s.name); goalsAll[s.name]=(goalsAll[s.name]||0)+1;
@@ -144,8 +144,8 @@ function run(o){
     for(let k=0;k<a;k++){
       let sn="상대 선수", an=null;
       if(opp.players && opp.players.length){ const s=K.pickScorer(opp.players); sn=s.name;
-        if(Math.random()<.6){ const asst=K.pickAssist(opp.players,s); if(asst) an=asst.name; }
-        if(league && Math.random()<.72){ tally(opp,s,"g"); if(an){ const o2=opp.players.find(p=>p.name===an); if(o2) tally(opp,o2,"a"); } } }
+        let asO=null; if(Math.random()<.6){ asO=K.pickAssist(opp.players,s); if(asO) an=asO.name; }
+        if(league && Math.random()<.72){ tally(opp,s,"g"); if(asO) tally(opp,asO,"a"); } }
       os.push(sn); opG.push({s:sn,a:an,et:k>=a0}); }
     if(a===0 && lineup[0] && ps.has(lineup[0])) ps.get(lineup[0]).cs++;
 
@@ -156,7 +156,7 @@ function run(o){
       if(Math.random()<pr){ let x=Math.random(), len=1; for(const [pp,mn,mx] of CFG.INJ_LEN){ if(x<pp){ len=mn+Math.floor(Math.random()*(mx-mn+1)); break; } x-=pp; }
         s.inj=len+1; s.injN++; hurt.push(p.name+"("+len+"경기)"); hurtP.push({p,len}); injured.push({name:p.name,matches:len,comp:m.comp,stage:m.stage}); } });
     const playing=new Set(lineup);
-    lineup.forEach((p,i)=>{ if(!stM.has(p)) return; ps.get(p).apps++; stM.set(p,Math.max(CFG.STAM_MIN, stM.get(p)-CFG.STAM_COST[G[slots[i][0]]]+CFG.STAM_PLAY_REC)); });
+    lineup.forEach((p,i)=>{ if(!stM.has(p)) return; ps.get(p).apps++; stM.set(p,Math.max(CFG.STAM_MIN, stM.get(p)-CFG.STAM_COST[G[slots[i][0]]]*(((K.roleOf(slots[i][0],o.roles&&o.roles[i])||{}).st)||1)+CFG.STAM_PLAY_REC)); });
     roster.forEach(p=>{ if(!playing.has(p)) stM.set(p,Math.min(100, stM.get(p)+CFG.STAM_REST)); });
     serving.forEach(p=>{ const s=ps.get(p); if(s.susp>0){ s.susp--; s.missed++; } if(s.inj>0){ s.inj--; s.injOut++; } });
     ys.forEach(p=>{ const s=ps.get(p); s.y++; totY++; if(s.y%5===0) s.susp++; });
