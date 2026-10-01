@@ -70,7 +70,7 @@ const CONFIG = {
   REC_PRIME_MAX: 8,         // 기록 기반 선수의 전성기는 현재보다 최대 이만큼만 높아요
   REC_TOP: 0.85,            // 기록 상위 100% 선수의 위치 = 리그 범위의 85% 지점 (그 위는 직접 적은 스타 선수 몫)
   AFC_EST_BELOW: 5, AFC_EST_SPREAD: 3,   // 해외 구단의 추정 선수: 팀 기본 능력치 - 5, ±3 범위
-  ROLE_SCALE: 0.4, ROLE_RISK_FREE: 4,   // 역할 보정: 역할 한 개의 a·d 값에 곱하는 크기 / 위험도가 이 값을 넘으면 수비 감점
+  ROLE_SCALE: 0.2, ROLE_RISK_FREE: 4,   // 역할 보정: 역할 한 개의 a·d 값에 곱하는 크기 / 위험도가 이 값을 넘으면 수비 감점
   EST_PCT: [0.05,0.55],     // 기록이 없는 선수의 추정 위치(리그 안에서 하위 5%~55% 사이)
   EST_TEAM_W: 0.3,          // 팀 수준이 추정 능력치에 반영되는 정도
   EST_PRIME_ADD: 3,         // 추정 선수의 전성기 = 추정 + 이 값
@@ -355,8 +355,8 @@ function rate(xi,st,ctx){
     natPairs+=c*(c-1)/2;
   });
   const chem=Math.min(CONFIG.CHEM_MAX*fx.mult, (pairs*CONFIG.CHEM_PER_PAIR+natPairs*CONFIG.NAT_PER_PAIR)*fx.mult);
-  const ro=roleFx(xi,ctx);
-  return {att: fw*.5+mf*.35+df*.15+chem+fx.att+ro.att, def: df*.45+gk*.25+mf*.3+chem+fx.def+ro.def, chem, mgr:fx, clubPairs:pairs, natPairs, role:ro,
+  const ro=roleFx(xi,ctx), mo=ctx.morale||0;   // mo: 선수단 사기 보정 (기자회견·성적으로 변해요)
+  return {att: fw*.5+mf*.35+df*.15+chem+fx.att+ro.att+mo, def: df*.45+gk*.25+mf*.3+chem+fx.def+ro.def+mo, morale:mo, chem, mgr:fx, clubPairs:pairs, natPairs, role:ro,
     ovr: avg(xi.filter(Boolean).map(p=>p.ovr))};
 }
 

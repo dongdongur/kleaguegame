@@ -83,6 +83,16 @@ window.KL_ROLES={
   R("채널 포워드","측면 채널로 빠져나가 침투와 마무리를 노립니다.",{a:.8,sc:1.3,as:1.1,pace:true,tags:["run"]}),
  ],
 };
+
+/* ---- 균형 보정 ----
+   역할은 공짜 이득이 아니라 성향을 바꾸는 선택이에요: 공격+수비 보정의 합이 (체력 소모 대가 + 위험 대가)를 넘지 않게
+   a·d 를 같은 만큼 깎아요. 그래서 기본 역할이 손해를 보지 않고, 역할의 이득은 성향 선택·궁합 보너스·득점/도움 분배에서 나와요.
+   허용 합 = (체력 소모 배수 - 1) x 3 + 위험도 x 0.3 */
+Object.values(window.KL_ROLES).forEach(list=>list.forEach((r,i)=>{
+  if(i===0){ r.a=0; r.d=0; return; }
+  const target=(r.st-1)*3+r.risk*.3, over=r.a+r.d-target;
+  if(over>0){ r.a=Math.round((r.a-over/2)*100)/100; r.d=Math.round((r.d-over/2)*100)/100; }
+}));
 /* 슬롯 이름 → 역할 묶음 */
 const KEY={GK:"GK",CB:"CB",LB:"FB",RB:"FB",LWB:"WB",RWB:"WB",DM:"DM",CM:"CM",AM:"AM",LM:"WG",RM:"WG",LW:"WG",RW:"WG",ST:"ST"};
 window.KL_ROLE_KEY=lab=>KEY[lab]||"CM";

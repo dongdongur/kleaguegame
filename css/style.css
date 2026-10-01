@@ -440,3 +440,14 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 .c-pad .c-line{position:absolute;left:6%;right:6%;bottom:22%;height:1px;background:#e1e6ef}
 .c-cap{font-size:12px;opacity:.8;margin:2px 0 8px}.c-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .hero-sign{display:block;height:44px;width:auto;max-width:180px;background:#fff;border-radius:8px;padding:2px 8px;margin-bottom:8px}
+
+/* 팬 반응 · 기자회견 */
+.rep-bars{display:grid;gap:5px;margin:8px 0}.rep-row{display:grid;grid-template-columns:78px 1fr 28px;gap:8px;align-items:center;font-size:12px}
+.rep-bar{height:7px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}.rep-bar i{display:block;height:100%;background:#5aa7ff}.rep-bar i.hi{background:#4ade80}.rep-bar i.lo{background:#f87171}
+.press-who{font-size:12px;opacity:.75;margin:6px 0 0}.press-q{font-size:18px;line-height:1.45;margin:2px 0 10px}
+.press-ans{display:grid;gap:7px;margin-top:10px}.press-a{text-align:left;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05);color:inherit;font:inherit;cursor:pointer;line-height:1.4}.press-a:hover{border-color:#5aa7ff;background:rgba(90,167,255,.1)}
+.fans-panel{margin-top:18px}.fans-goal{font-weight:700;margin:4px 0}.fans-goal.ok{color:#4ade80}.fans-goal.bad{color:#f87171}
+.fans-list{display:grid;gap:7px;margin:10px 0}.fan-post{padding:9px 11px;border-radius:10px;border:1px solid var(--line);border-left-width:4px;background:rgba(255,255,255,.04)}
+.fan-post.tp{border-left-color:#4ade80}.fan-post.tn{border-left-color:#f87171}.fan-post.tz{border-left-color:#94a3b8}
+.fan-who{font-size:11px;opacity:.7;margin-bottom:2px}.fan-txt{font-size:13px;line-height:1.45}
+.ml-fans{margin:10px 0 2px;display:grid;gap:3px;font-size:12px}.mf-line{opacity:.9}

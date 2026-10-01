@@ -23,7 +23,7 @@ function run(o){
   const K=window.KLCore, CFG=K.CONFIG, G=K.GROUP;
   const hardDiff=o.diff==="hard";
   const div=o.div||1;
-  const ctx={form:o.form,mgr:o.mgr,roles:o.roles||null};
+  const ctx={form:o.form,mgr:o.mgr,roles:o.roles||null,morale:o.morale||0};
   const slots=K.FORMS[o.form];
   const xi=o.xi.slice(), bench=o.bench.filter(Boolean);
   const roster=xi.concat(bench);

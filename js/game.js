@@ -18,14 +18,14 @@ const hard = () => $("hard").checked;
 /* ================= 상태 ================= */
 let S;
 const copyDef = d => Object.assign({},d,{players:d.players.map(p=>Object.assign({},p))});
-function newCareer(){ return {no:1,year:2026,div:1,k1:K.TEAMS26.map(copyDef),k2:K.K2_DEFS.map(copyDef),news:[],history:[],trophies:{league:0,k2:0,fa:0,acl:0},aclQ:false,prev:null,boost:{},moves:0}; }
+function newCareer(){ return {no:1,year:2026,div:1,k1:K.TEAMS26.map(copyDef),k2:K.K2_DEFS.map(copyDef),news:[],history:[],rep:{fans:50,press:50,squad:50},goal:null,goalResult:null,trophies:{league:0,k2:0,fa:0,acl:0},aclQ:false,prev:null,boost:{},moves:0}; }
 function newState(form,mode,diff,rm){
   K.setRatingMode(rm||"season");
   S = {form:form||"4-3-3", mode:mode||"team", diff:diff||"easy", rm:rm||"season", xi:Array(11).fill(null), bench:Array(CFG.BENCH).fill(null),
     squad:null, selected:null, respins:CFG.RESPINS, spinning:false, done:false, picks:0, mgr:null, mgrOffer:null,
     phase:"draft", career:newCareer(), last:null, winter:null, roles:Array(11).fill(0)};
 }
-const ctx = () => ({form:S.form, mgr:S.mgr, roles:S.roles});
+const ctx = () => ({form:S.form, mgr:S.mgr, roles:S.roles, morale:window.KLPress?KLPress.moraleFx(S.career):0});
 const started = () => S.picks>0 || !!S.mgr || S.career.no>1;
 const offering = () => !!S.squad || !!S.mgrOffer;
 const xiFull = () => S.xi.every(Boolean);
@@ -223,6 +223,30 @@ function renderPitch(){
   renderBench();
   renderStats();
   renderButtons();
+}
+/* ---- 기자회견 ---- */
+function repBars(c){
+  const r=c.rep||{fans:50,press:50,squad:50}, box=el("div","rep-bars");
+  [["팬 신뢰","fans"],["언론","press"],["선수단 사기","squad"]].forEach(([t,k])=>{
+    const row=el("div","rep-row"); const bar=el("span","rep-bar"); const fl=el("i"); fl.style.width=r[k]+"%"; fl.className=r[k]>=65?"hi":r[k]<=35?"lo":""; bar.appendChild(fl);
+    row.append(el("span","rep-k",t), bar, el("b",null,String(Math.round(r[k])))); box.appendChild(row); });
+  return box; }
+function openPress(title,qs,done){
+  const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=null;
+  const box=el("div","m-box press"); const c=S.career; let i=0;
+  const draw=()=>{
+    box.innerHTML="";
+    if(i>=qs.length){ box.append(el("h3",null,title+" 종료"), el("p","hint","기자회견이 끝났어요. 답변에 따라 팬 신뢰, 언론, 선수단 사기가 달라졌어요."), repBars(c));
+      if(c.goal) box.appendChild(el("p","hint","이번 시즌 공개 목표: "+c.goal.label+" (시즌 끝에 달성 여부를 따져요)"));
+      const ok=el("button","btn go big","확인 →"); ok.type="button"; ok.onclick=()=>{ m.hidden=true; renderAll(); if(done) done(); }; box.appendChild(ok); return; }
+    const q=qs[i];
+    box.append(el("small","c-kicker",title+" · 질문 "+(i+1)+"/"+qs.length), el("p","press-who",q.who), el("h3","press-q","“"+q.text+"”"), repBars(c));
+    const ls=el("div","press-ans");
+    q.answers.forEach(a=>{ const b=el("button","press-a",a.label); b.type="button";
+      b.onclick=()=>{ KLPress.apply(c,a); i++; draw(); }; ls.appendChild(b); });
+    box.appendChild(ls);
+  };
+  draw(); m.appendChild(box);
 }
 /* ---- 감독 계약서 사인 ---- */
 function openContract(done){
@@ -494,9 +518,10 @@ function renderOpp(sel,div){
 /* ================= 시즌 진행 ================= */
 function runSeason(){
   const c=S.career;
-  c.prev={aclQ:c.aclQ,div:c.div,k1:c.k1.slice(),k2:c.k2.slice()};
+  c.prev={aclQ:c.aclQ,div:c.div,k1:c.k1.slice(),k2:c.k2.slice(),rep:Object.assign({},c.rep),goal:c.goal};
   const R=window.KLSeason.run({form:S.form,mgr:S.mgr,xi:S.xi,bench:S.bench,diff:S.diff,teamName:$("teamName").value.trim()||"레전드 FC",
-    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost,roles:S.roles});
+    year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost,roles:S.roles,morale:KLPress.moraleFx(c)});
+  KLPress.settle(R,c);
   recordSeason(R);
   showResults(R);
 }
@@ -525,7 +550,7 @@ function resim(){
   /* 같은 선수단으로 이번 시즌만 다시 돌려요 (커리어 기록과 승강은 이번 시즌 결과로 교체) */
   const c=S.career, last=c.history.pop();
   if(last){ if(last.trophies.includes("리그 우승")) c.trophies.league--; if(last.trophies.includes("K리그2 우승")) c.trophies.k2--; if(last.trophies.includes("FA컵 우승")) c.trophies.fa--; if(last.trophies.includes("AFC챔스 우승")||last.trophies.includes("AFC챔스2 우승")) c.trophies.acl--; }
-  if(c.prev){ c.aclQ=c.prev.aclQ; c.div=c.prev.div; c.k1=c.prev.k1; c.k2=c.prev.k2; }
+  if(c.prev){ c.aclQ=c.prev.aclQ; c.div=c.prev.div; c.k1=c.prev.k1; c.k2=c.prev.k2; if(c.prev.rep) c.rep=Object.assign({},c.prev.rep); c.goal=c.prev.goal; }
   runSeason();
 }
 function resetGame(){
@@ -663,7 +688,7 @@ function startNextSeason(){
   S.xi.concat(S.bench).filter(Boolean).forEach(p=>{ p.delta=0; });
   $("deskWinter").hidden=true; $("deskDraft").hidden=false;
   setReel("SEASON "+c.no,"시즌 진행 중",(c.div===1?"K리그1":"K리그2")+" · FA컵"+(c.aclQ?(c.aclQ===1?" · AFC챔스":" · AFC챔스2"):""));
-  runSeason();
+  KLPress.drift(c); openPress("시즌 전 기자회견",KLPress.pre(c,S),runSeason);
 }
 
 /* ================= 결과 화면 ================= */
@@ -749,6 +774,7 @@ function paneSum(R){
     R.newAch.forEach(d=>{ const b=el("span","badge "+d.tier); b.append(el("i",null,d.icon), el("b",null,d.name), el("small",null,d.desc)); na.appendChild(b); });
     wrap.appendChild(na);
   }
+  wrap.appendChild(fansPanel(R));
   const row=el("div","btnrow"); row.style.marginTop="14px";
   const nxt=el("button","btn go","겨울 이적시장 →"); nxt.type="button"; nxt.disabled=S.phase==="winter"; nxt.onclick=enterWinter;
   const again=el("button","btn ghost","새 게임 (다시 드래프트)"); again.type="button"; again.onclick=()=>{ if(confirm("커리어가 초기화돼요. 새로 드래프트할까요?")) resetGame(); };
@@ -791,6 +817,26 @@ function matchLogEl(g,R){
     }
     ul.appendChild(li); });
   box.appendChild(ul);
+  if(window.KLFans){ const fr=KLFans.match(g); if(fr.length){ const fb=el("div","ml-fans"); fb.appendChild(el("span","label","팬 반응")); fr.forEach(p=>fb.appendChild(el("div","mf-line",p.emoji+" "+p.nick+": "+p.text))); box.appendChild(fb); } }
+  return box;
+}
+/* ---- 팬 반응 패널 (결과 화면) ---- */
+function fansPanel(R){
+  const c=S.career, team=$("teamName").value.trim()||"레전드 FC", box=el("section","fans-panel");
+  box.appendChild(el("h4","sec","팬 반응 · 기자회견"));
+  if(c.goalResult) box.appendChild(el("p","fans-goal "+(c.goalResult.ok?"ok":"bad"),(c.goalResult.ok?"✔ ":"✖ ")+"시즌 전 공개 목표 '"+c.goalResult.label+"' "+(c.goalResult.ok?"달성":"실패")));
+  box.appendChild(repBars(c));
+  const F=R._fans||(R._fans=KLFans.season(R,c,team)); let tab="fmk";
+  const tabs=el("div","seg"); const list=el("div","fans-list");
+  const paint=()=>{ list.innerHTML=""; tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===tab)));
+    (tab==="fmk"?F.fmk:F.sns).forEach(p=>{ const r=el("div","fan-post t"+(p.tone>0?"p":p.tone<0?"n":"z"));
+      r.append(el("div","fan-who",p.emoji+" "+p.nick+(tab==="fmk"?"  · 추천 "+p.up+" · 비추 "+p.dn+" · 조회 "+p.views:"")), el("div","fan-txt",p.text)); list.appendChild(r); });
+    if(!list.children.length) list.appendChild(el("p","hint","조용한 시즌이었어요.")); };
+  [["fmk","커뮤니티"],["sns","SNS"]].forEach(([k,t])=>{ const b=el("button",null,t); b.type="button"; b.dataset.k=k; b.onclick=()=>{ tab=k; paint(); }; tabs.appendChild(b); });
+  box.append(tabs,list); paint();
+  const pc=el("button","btn ghost","시즌 종료 기자회견"); pc.type="button"; pc.disabled=!!R._postDone;
+  pc.onclick=()=>{ pc.disabled=true; R._postDone=true; openPress("시즌 종료 기자회견",KLPress.post(R,c),()=>{ box.replaceWith(fansPanel(R)); }); };
+  box.appendChild(pc);
   return box;
 }
 function paneFx(R){
@@ -1053,7 +1099,7 @@ $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);
 $("mgrBtn").onclick=drawMgr;
 $("benchBtn").onclick=startBench;
-$("simBtn").onclick=()=>{ if(S.done){ enterWinter(); } else if(ready()){ if(!S.sign) openContract(runSeason); else runSeason(); } };
+$("simBtn").onclick=()=>{ if(S.done){ enterWinter(); } else if(ready()){ const go=()=>openPress("부임 기자회견",KLPress.pre(S.career,S),runSeason); if(!S.sign) openContract(go); else go(); } };
 $("hard").onchange=()=>{ renderOffers(); renderPitch(); };
 
 newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; }
