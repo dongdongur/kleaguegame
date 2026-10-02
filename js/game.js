@@ -1025,6 +1025,11 @@ function teamSnapshot(){
   const pk=p=>[p.name,K.squadKey(SQUADS[p.sq])];
   return {f:S.form,d:S.career.div,m:S.mgr?S.mgr.name:null,rm:S.rm,ro:S.roles.slice(),xi:S.xi.map(pk),b:S.bench.filter(Boolean).map(pk)};
 }
+function careerSummary(){
+  const c=S.career; let dbl=0, tre=0;
+  c.history.forEach(x=>{ const t=x.trophies||[]; const lg=t.includes("리그 우승")||t.includes("K리그2 우승"), fa=t.includes("FA컵 우승"), ac=t.some(s=>/AFC챔스/.test(s)); if(lg&&fa&&ac) tre++; else if((lg&&(fa||ac))||(fa&&ac)) dbl++; });
+  return {n:c.history.length,tr:Object.assign({},c.trophies),dbl,tre,h:c.history.map(x=>[x.no,x.year,x.div,x.rank,x.pts,x.w,x.d,x.l,x.gf,x.ga,(x.trophies||[]).join("/")])};
+}
 async function uploadResult(R,btn){
   const nick=$("nick").value.trim();
   if(!nick){ btn.textContent="닉네임을 먼저 입력하세요"; $("nick").focus(); setTimeout(()=>btn.textContent="친구들 기록에 올리기",2200); return; }
@@ -1032,7 +1037,7 @@ async function uploadResult(R,btn){
   const m=R.me; btn.disabled=true; btn.textContent="올리는 중…";
   try{
     await KLShare.save({nickname:nick, team_name:$("teamName").value.trim()||"레전드 FC", form:S.form, mode:S.mode, diff:S.diff, manager:S.mgr?S.mgr.name:null,
-      w:m.w,d:m.d,l:m.l,pts:m.pts,gf:m.gf,ga:m.ga,rank:R.rank, xi:S.xi.map(p=>p.name), season:R.seasonNo, team:teamSnapshot()});
+      w:m.w,d:m.d,l:m.l,pts:m.pts,gf:m.gf,ga:m.ga,rank:R.rank, xi:S.xi.map(p=>p.name), season:R.seasonNo, team:Object.assign(teamSnapshot(),{ov:S.xi.map(p=>p.ovr),cr:careerSummary()})});
     btn.textContent="올렸어요"; KLShare.refresh();
   }catch(e){ btn.disabled=false; btn.textContent="실패, 다시 시도"; }
 }

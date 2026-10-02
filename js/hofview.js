@@ -31,6 +31,12 @@ function style(){
 .hv table{width:100%;border-collapse:collapse;font-size:12.5px}.hv th,.hv td{padding:5px 4px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}.hv th:nth-child(2),.hv td:nth-child(2){text-align:left}.hv th{color:#8d9bc4;font-weight:500}
 .hv .tw{overflow-x:auto}
 .hv .ln{display:grid;grid-template-columns:30px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)}.hv .ln b{color:#19f2a3;font-family:Oswald,sans-serif}
+.hv .pitch{position:relative;width:100%;aspect-ratio:3/4;border-radius:14px;background:repeating-linear-gradient(0deg,#0f5a31 0 36px,#116b39 36px 72px);border:2px solid rgba(255,255,255,.35);overflow:hidden}
+.hv .pitch:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid rgba(255,255,255,.25)}
+.hv .pp{position:absolute;transform:translate(-50%,-50%);text-align:center;width:62px}
+.hv .pp i{display:grid;place-items:center;width:34px;height:34px;margin:0 auto;border-radius:50%;background:#0b1230;border:2px solid #ffcf4a;color:#ffcf4a;font:700 14px Oswald,sans-serif;font-style:normal}
+.hv .pp b{display:block;font-size:11.5px;line-height:1.15;text-shadow:0 1px 3px #000;margin-top:2px}
+.hv .pp small{display:block;font-size:9.5px;color:#cfe0ff;text-shadow:0 1px 3px #000}
 .hv .note{padding:10px 12px;border-radius:12px;background:rgba(255,207,74,.1);border:1px solid rgba(255,207,74,.3);color:#ffe9a8}
 `; document.head.appendChild(s);
 }
@@ -59,10 +65,27 @@ function player(r){
   if(d.seasons&&d.seasons.length){ h+=`<h3>시즌별 커리어</h3><div class="tw"><table><tr><th>나이</th><th>팀</th><th>리그</th><th>출전</th><th>골</th><th>도움</th><th>평점</th><th>OVR</th></tr>${d.seasons.map(s=>`<tr><td>${s[0]}</td><td>${esc(s[1])}</td><td>${esc(s[2])}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]||"-"}</td><td>${s[7]||""}</td></tr>`).join("")}</table></div>`; }
   open(h);
 }
+const FORMS={"4-3-3":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["CM",28,50],["CM",50,55],["CM",72,50],["LW",17,24],["ST",50,15],["RW",83,24]],"4-4-2":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["LM",14,45],["CM",38,51],["CM",62,51],["RM",86,45],["ST",36,19],["ST",64,19]],"3-5-2":[["GK",50,90],["CB",26,74],["CB",50,77],["CB",74,74],["LWB",10,47],["CM",32,55],["AM",50,40],["CM",68,55],["RWB",90,47],["ST",36,18],["ST",64,18]],"4-2-3-1":[["GK",50,90],["LB",14,70],["CB",37,75],["CB",63,75],["RB",86,70],["DM",36,59],["DM",64,59],["LW",17,35],["AM",50,37],["RW",83,35],["ST",50,14]],"4-1-4-1":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["DM",50,60],["LM",14,42],["CM",38,47],["CM",62,47],["RM",86,42],["ST",50,15]],"4-4-1-1":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["LM",14,52],["CM",38,56],["CM",62,56],["RM",86,52],["AM",50,33],["ST",50,14]],"4-3-2-1":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["CM",28,57],["CM",50,60],["CM",72,57],["AM",33,34],["AM",67,34],["ST",50,14]],"4-1-2-1-2":[["GK",50,90],["LB",14,72],["CB",37,76],["CB",63,76],["RB",86,72],["DM",50,62],["CM",28,50],["CM",72,50],["AM",50,36],["ST",38,16],["ST",62,16]],"3-4-3":[["GK",50,90],["CB",26,75],["CB",50,77],["CB",74,75],["LWB",11,52],["CM",38,56],["CM",62,56],["RWB",89,52],["LW",18,25],["ST",50,15],["RW",82,25]],"3-4-2-1":[["GK",50,90],["CB",26,75],["CB",50,77],["CB",74,75],["LWB",11,52],["CM",38,57],["CM",62,57],["RWB",89,52],["AM",32,33],["AM",68,33],["ST",50,14]],"5-3-2":[["GK",50,90],["LWB",10,62],["CB",30,76],["CB",50,78],["CB",70,76],["RWB",90,62],["CM",28,48],["CM",50,52],["CM",72,48],["ST",38,18],["ST",62,18]],"5-4-1":[["GK",50,90],["LWB",10,62],["CB",30,76],["CB",50,78],["CB",70,76],["RWB",90,62],["LM",15,44],["CM",38,50],["CM",62,50],["RM",85,44],["ST",50,15]]};
+function pitch(form,xi,ov){
+  const sl=FORMS[form]; if(!sl||!xi||xi.length!==11) return "";
+  const dots=xi.map((p,i)=>{ const s=sl[i], o=ov&&ov[i]!=null?ov[i]:""; const nm=String(p[0]||p).split(" ").slice(-1)[0]; return '<div class="pp" style="left:'+s[1]+'%;top:'+s[2]+'%"><i>'+esc(o)+'</i><b>'+esc(nm)+'</b><small>'+esc(s[0])+(p[1]?" · "+esc(String(p[1]).slice(0,9)):"")+'</small></div>'; }).join("");
+  return '<div class="pitch">'+dots+'</div>';
+}
 function manager(r){
   let h=`<div class="hd"><div><small>by ${esc(r.nickname)} · ${esc(r.form)}${r.manager?" · 감독 "+esc(r.manager):""}</small><h2>${esc(r.team_name)}</h2><small>${r.w}승 ${r.d}무 ${r.l}패 · ${r.rank}위 · 득실 ${r.gf}:${r.ga}</small></div><div style="text-align:right"><span class="pill">${r.pts}점</span><br><button class="x" data-hvx style="margin-top:6px">✕</button></div></div>`;
-  const xi=r.xi||[]; if(xi.length) h+=`<h3>선발 라인업</h3>`+xi.map((n,i)=>`<div class="ln"><b>${i+1}</b><span>${esc(n)}</span></div>`).join("");
-  else h+=`<p class="note">라인업 정보가 없어요.</p>`;
+  const t=r.team||{}, ov=t.ov, cr=t.cr;
+  const sum=ov?ov.reduce((a,b)=>a+(b||0),0):null;
+  h+='<div class="kv"><div><small>포메이션</small><b>'+esc(t.f||r.form)+'</b></div><div><small>선발 총 능력치</small><b>'+(sum!=null?sum+' <small>(평균 '+(sum/11).toFixed(1)+')</small>':'-')+'</b></div><div><small>시즌 수</small><b>'+(cr?cr.n:(r.season||1))+'</b></div></div>';
+  if(r.diff) h+='<div class="tags"><span class="tag '+(r.diff==="hard"?"g":"")+'">'+(r.diff==="hard"?"어려움":"쉬움")+'</span>'+(t.rm?'<span class="tag">'+(t.rm==="prime"?"전성기 능력치":"시즌 능력치")+'</span>':'')+(t.m?'<span class="tag">감독 '+esc(t.m)+'</span>':'')+'</div>';
+  const pt=(t.xi&&t.xi.length===11)?pitch(t.f||r.form,t.xi,ov):"";
+  if(pt) h+='<h3>선발 라인업</h3>'+pt;
+  else if((r.xi||[]).length) h+='<h3>선발 라인업</h3>'+r.xi.map((n,i)=>'<div class="ln"><b>'+(i+1)+'</b><span>'+esc(n)+'</span></div>').join("");
+  if(t.b&&t.b.length) h+='<h3>후보</h3><p class="mu">'+t.b.map(b=>esc(b[0])+(b[1]?" ("+esc(String(b[1]).slice(0,8))+")":"")).join(" · ")+'</p>';
+  if(cr){
+    const T=cr.tr||{}; const tags=[]; if(T.league) tags.push("K리그1 우승 "+T.league+"회"); if(T.k2) tags.push("K리그2 우승 "+T.k2+"회"); if(T.fa) tags.push("FA컵 우승 "+T.fa+"회"); if(T.acl) tags.push("AFC 챔피언스리그 우승 "+T.acl+"회"); if(cr.tre) tags.push("🏆 트레블 "+cr.tre+"회"); if(cr.dbl) tags.push("더블 "+cr.dbl+"회");
+    h+='<h3>커리어 업적</h3>'+(tags.length?'<div class="tags">'+tags.map(x=>'<span class="tag g">'+esc(x)+'</span>').join("")+'</div>':'<p class="mu">아직 우승 기록이 없어요.</p>');
+    if(cr.h&&cr.h.length) h+='<h3>시즌별 성적</h3><div class="tw"><table><tr><th>시즌</th><th>리그</th><th>순위</th><th>승점</th><th>승</th><th>무</th><th>패</th><th>우승</th></tr>'+cr.h.map(s=>'<tr><td>'+s[0]+'</td><td>'+(s[2]===1?"K1":"K2")+'</td><td>'+s[3]+'</td><td>'+s[4]+'</td><td>'+s[5]+'</td><td>'+s[6]+'</td><td>'+s[7]+'</td><td style="text-align:left;white-space:normal">'+esc((s[10]||"").replace(/\//g,", "))+'</td></tr>').join("")+'</table></div>';
+  } else h+='<p class="note">이 기록은 커리어 정보가 함께 올라오기 전에 등록됐어요. 라인업과 시즌 성적만 볼 수 있어요.</p>';
   open(h);
 }
 window.KLHofView={player,manager};
