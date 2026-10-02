@@ -53,7 +53,9 @@ L.joinTournament=function(S,c){
   const ref=t.rel!=null?L.youthLevel(Math.min(L.age(S),18))+(S.stage==="youth"?S.youthTier:0)+(S.stage==="pro"?6:0):t.thr;
   const rel=p.ovr-ref+(L.traitFx(p).big-1)*12;
   const sr=clamp(logistic((rel+(t.rel!=null?t.rel:1))/3.2)*.85+.1,.1,.97);               // 대회에서의 비중(선발 확률)
-  const stepP=(base,i)=>clamp(base*Math.exp(rel*(t.sens||.012)*(i<1?1:.6)),.05,.97);
+  /* 초특급 에이스(능력치 90 후반)는 혼자서 경기를 뒤집어요: 팀이 약해도 통과 확률을 크게 끌어올려요 */
+  const carry=clamp((p.ovr-88)/9,0,1);
+  const stepP=(base,i)=>{ const v=clamp(base*Math.exp(rel*(t.sens||.012)*(i<1?1:.6)),.05,.97); return clamp(v+(1-v)*carry*.5,.05,.97); };
   let played=0, stage, title=false, medal=null;
   if(t.id==="oly"){
     /* 조별 → 8강 → 4강 → (승: 결승 / 패: 동메달 결정전) */
@@ -84,6 +86,7 @@ L.joinTournament=function(S,c){
   if(t.medal){ if((t.id==="ag"&&gl)||(t.id==="oly"&&medal)){ if(S.military==="none"||S.military==="sangmu"||S.military==="serving"&&S.milKind==="sangmu"){ if(S.military==="none"){ S.military="exempt"; r.exempt=true; L.addMoment(S,"병역 특례","병역 특례",t.name+" "+stage+"! 병역 혜택을 받았습니다."); } } } }
   if(caps>0) L.addMoment(S,t.short+" "+(stage==="우승"||/금/.test(stage)?"우승":"출전"),t.short,t.name+" "+S.year+" · "+stage+" ("+caps+"경기 "+goals+"골)");
   L.feedAdd(S,S.year+" "+t.short,t.name+" "+stage+" · "+caps+"경기 "+goals+"골",title?1:0);
+  if(title&&carry>=.45){ r.carry=true; r.text=(t.id==="wc"?"월드컵을 혼자 지배했습니다. ":"대회를 혼자 지배했습니다. ")+"결정적인 순간마다 당신이 있었어요."; if(t.id==="wc"||t.id==="ac"){ r.golden=true; S.awards.push({year:S.year,name:t.id==="wc"?"월드컵 골든볼":"아시안컵 MVP",youth:false}); } }
   r.text=r.text||(title?"우승을 차지했습니다.":stage);
   return r;
 };

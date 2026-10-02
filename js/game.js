@@ -1121,7 +1121,49 @@ function openSaves(){
 }
 
 /* ================= 전체 렌더 · 시작 ================= */
-function renderAll(){ renderModes(); renderRatings(); renderForms(); renderDiffs(); renderPitch(); renderOffers(); renderBest(); renderAch(); renderCareer(); autoSave(); }
+/* ================= 초청경기: 프리미어리그 팀과 친선전 =================
+ * 지금 선수단(베스트 11)으로 EPL 구단과 한 판 붙어요. 시즌 기록·승점에는 영향이 없고, 전적은 커리어에 남아요.
+ * 이길수록 팬심이 오르고(소폭) 업적에 기록돼요. 상대 능력치는 추정값이에요. */
+function inviteStat(){ const c=S.career; c.invites=c.invites||{}; return c.invites; }
+function renderInvite(){
+  const wrap=$("inviteWrap"); if(!wrap) return;
+  const defs=K.EPL_DEFS||[]; if(!defs.length){ wrap.hidden=true; return; }
+  wrap.hidden=false; const box=$("inviteBody"); box.innerHTML="";
+  if(!xiFull()){ box.appendChild(el("p","hint","베스트 11을 모두 채우면 프리미어리그 팀을 초청해 친선전을 치를 수 있어요.")); return; }
+  const mine=K.rate(S.xi,null,{form:S.form,mgr:S.mgr,roles:S.roles,morale:0}); const st=inviteStat();
+  box.appendChild(el("p","hint","내 베스트 11 평균 "+Math.round(mine.ovr)+" · 공격 "+mine.att.toFixed(1)+" / 수비 "+mine.def.toFixed(1)+". 시즌 기록에는 영향이 없는 친선전이에요."));
+  const list=el("div","inv-list");
+  defs.slice().sort((a,b)=>b.base-a.base).forEach(d=>{
+    const o=K.oppStrength(d,false,0), r=st[d.id]||{w:0,d:0,l:0};
+    const row=el("div","inv-row"); const info=el("div","inv-info");
+    info.append(el("b",null,d.club), el("small",null,"전력 "+d.base+" · 공격 "+o.att.toFixed(1)+" / 수비 "+o.def.toFixed(1)+(r.w+r.d+r.l?" · 전적 "+r.w+"승 "+r.d+"무 "+r.l+"패":"")));
+    const b=el("button","btn small go","초청경기"); b.type="button"; b.onclick=()=>playInvite(d);
+    row.append(info,b); list.appendChild(row); });
+  box.appendChild(list);
+}
+function playInvite(def){
+  const slots=K.FORMS[S.form]; const mine=K.rate(S.xi,null,{form:S.form,mgr:S.mgr,roles:S.roles,morale:KLPress.moraleFx(S.career)+captainFx()}); const opp=K.oppStrength(def,false,0);
+  const C=K.CONFIG; const lm=C.GOAL_BASE*Math.exp((mine.att-opp.def)/C.SPREAD), lo=C.GOAL_BASE*Math.exp((opp.att-mine.def)/C.SPREAD);
+  let f=K.poisson(lm), a=K.poisson(lo), pk=null;
+  if(f===a){ const w=Math.random()<.5+K.clamp((mine.att+mine.def-opp.att-opp.def)/2/60,-.15,.15); pk=w?[4,3]:[3,4]; }
+  const res=pk?(pk[0]>pk[1]?"W":"L"):(f>a?"W":f===a?"D":"L");
+  const myP=S.xi.map((p,i)=>Object.assign({},p,{g:K.GROUP[slots[i][0]],ref:p,sc:1,as:1}));
+  const goals=[]; for(let i=0;i<f;i++){ const s=K.pickScorer(myP); const as=K.pickAssist(myP,s); goals.push({m:1+Math.floor(Math.random()*90),t:s.name+(as?" (도움 "+as.name+")":"")}); }
+  goals.sort((x,y)=>x.m-y.m);
+  const oppG=[]; for(let i=0;i<a;i++){ const pl=opp.players.map(p=>Object.assign({},p,{g:p.pos})); const s=pl.length?K.pickScorer(pl):{name:"상대 선수"}; oppG.push({m:1+Math.floor(Math.random()*90),t:s.name}); }
+  oppG.sort((x,y)=>x.m-y.m);
+  const st=inviteStat(); const r=st[def.id]=st[def.id]||{w:0,d:0,l:0}; if(res==="W") r.w++; else if(res==="D") r.d++; else r.l++;
+  const c=S.career; c.rep.fans=Math.max(0,Math.min(100,c.rep.fans+(res==="W"?3:res==="L"?-1:1)));
+  const total=Object.values(st).reduce((x,y)=>x+y.w,0);
+  const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=e=>{ if(e.target===m){ m.hidden=true; renderAll(); } };
+  const box=el("div","m-box"); const x=el("button","m-x","✕"); x.type="button"; x.onclick=()=>{ m.hidden=true; renderAll(); };
+  box.append(x, el("small","c-kicker","초청경기 · 친선전"), el("h3",null,(S.xi.length?($("teamName").value.trim()||"레전드 FC"):"내 팀")+" "+f+" : "+a+" "+def.club+(pk?" (승부차기 "+pk[0]+"-"+pk[1]+")":"")));
+  box.append(el("p","hint",res==="W"?"프리미어리그 팀을 꺾었어요! 팬들이 열광해요.":res==="D"?"팽팽한 승부였어요.":"한 수 배웠어요."));
+  const log=el("div","inv-log"); goals.forEach(gl=>log.appendChild(el("p",null,"⚽ "+gl.m+"' "+gl.t))); oppG.forEach(gl=>log.appendChild(el("p","opp","🔻 "+gl.m+"' "+def.short+" "+gl.t))); if(!goals.length&&!oppG.length) log.appendChild(el("p",null,"득점 없음")); box.appendChild(log);
+  box.appendChild(el("p","hint","친선전 누적: 승 "+total+" · 이 팀 상대 "+r.w+"승 "+r.d+"무 "+r.l+"패"));
+  const ok=el("button","btn go big","확인"); ok.type="button"; ok.onclick=()=>{ m.hidden=true; renderAll(); }; box.appendChild(ok); m.appendChild(box);
+}
+function renderAll(){ try{ renderInvite(); }catch(e){} renderModes(); renderRatings(); renderForms(); renderDiffs(); renderPitch(); renderOffers(); renderBest(); renderAch(); renderCareer(); autoSave(); }
 
 $("saveBtn").onclick=openSaves;
 $("spinBtn").onclick=()=>spin(false);
@@ -1134,6 +1176,6 @@ $("hard").onchange=()=>{ renderOffers(); renderPitch(); };
 newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; }
 idleReel(); $("hint").textContent=idleHint();
 renderAll(); renderOpp(null);
-window.__KL38 = {K, S:()=>S, snapshot:snapshotNow, runSeason, enterWinter};
+window.__KL38 = {K, S:()=>S, snapshot:snapshotNow, runSeason, enterWinter, renderAll};
 window.KLGame = {showInfo, state:()=>S, snapshot:snapshotNow, cardEl, el, crest, renderAch, matchLogEl};
 })();

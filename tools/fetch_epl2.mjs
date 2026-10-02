@@ -1,7 +1,7 @@
 /*
  * 프리미어리그 20개 구단의 현재 선수단을 위키백과(영어판 "Fs player" 선수단 표)에서 가져오고,
  * 선수 문서에 한국어판 제목이 있으면 그 이름(한글 표기)으로 바꿔요. 한글 문서가 없는 선수는 영어 이름 그대로 둬요.
- * 요청 사이에 간격을 두고, 결과를 data-raw/epl_squads.json 에 저장해요. (위키백과 글은 CC BY-SA 라이선스 — 개인 비상업 용도로 사실 정보(이름·포지션·등번호)만 써요)
+ * 요청 사이에 간격을 두고, 결과를 data-raw/epl_squads2.json 에 저장해요. (위키백과 글은 CC BY-SA 라이선스 — 개인 비상업 용도로 사실 정보(이름·포지션·등번호)만 써요)
  *
  *     node tools/fetch_epl.mjs
  */
@@ -14,17 +14,23 @@ const api = async (params,lang="en") => { const u=`https://${lang}.wikipedia.org
 /* 한국어 구단명 → 영어판 문서 제목 (틀리면 검색으로 다시 찾아요) */
 const TITLES = {"arsenal":"Arsenal F.C.","avl":"Aston Villa F.C.","bou":"AFC Bournemouth","bre":"Brentford F.C.","bha":"Brighton & Hove Albion F.C.","bur":"Burnley F.C.","chl":"Chelsea F.C.","cry":"Crystal Palace F.C.","eve":"Everton F.C.","ful":"Fulham F.C.","lee":"Leeds United F.C.","liv":"Liverpool F.C.","mci":"Manchester City F.C.","mun":"Manchester United F.C.","new":"Newcastle United F.C.","nfo":"Nottingham Forest F.C.","sun":"Sunderland A.F.C.","tot":"Tottenham Hotspur F.C.","whu":"West Ham United F.C.","wol":"Wolverhampton Wanderers F.C."};
 const POS = {GK:"GK",DF:"DF",MF:"MF",FW:"FW"};
-const outFile = path.join(root,"data-raw/epl_squads_raw.json");
+const outFile = path.join(root,"data-raw/epl_squads.json");
 const res = fs.existsSync(outFile) ? JSON.parse(fs.readFileSync(outFile,"utf8")) : {};
 
 async function wikitext(title){
   const j = await api({action:"parse",page:title,prop:"wikitext",redirects:1}); return j.parse && j.parse.wikitext;
 }
 function squad(w){
-  const out=[]; const re=/\{\{\s*(?:[Ff]s player|[Ff]ootball squad2? player)\s*\|([^}]*)\}\}/g; let m;
-  while((m=re.exec(w))){ const a=Object.fromEntries(m[1].split("|").map(s=>{const i=s.indexOf("=");return i<0?[s.trim(),""]:[s.slice(0,i).trim(),s.slice(i+1).trim()];}));
+  const out=[]; const SKIP=/loan|academy|under|youth|u-?2[13]|development|reserve|former|released|not registered|unregistered/i;
+  /* 소제목(== ... ==) 단위로 나눠서, 임대·유스 구간은 건너뛰어요 */
+  const parts=w.split(/\n(?==+[^=\n]+=+[ \t]*\n)/); const kept=[];
+  parts.forEach(p=>{ const h=(p.match(/^=+\s*([^=\n]+?)\s*=+/)||[])[1]||""; if(!SKIP.test(h)) kept.push(p); });
+  const txt=kept.join("\n");
+  const re=/\{\{\s*(?:[Ff]s player|[Ff]ootball squad2? player)\s*\|([^}]*)\}\}/g; let m;
+  while((m=re.exec(txt))){ const a=Object.fromEntries(m[1].split("|").map(s=>{const i=s.indexOf("=");return i<0?[s.trim(),""]:[s.slice(0,i).trim(),s.slice(i+1).trim()];}));
     const nm=(a.name||"").match(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/); const title=nm?nm[1]:null, disp=nm?(nm[2]||nm[1]):(a.name||"").replace(/[\[\]]/g,"");
     const pos=(a.pos||"").toUpperCase().slice(0,2); if(!disp||!POS[pos]) continue;
+    if(+a.no>=60) continue;
     out.push({en:disp.replace(/\s*\(.*\)$/,""),title,pos,no:+a.no||null,nat:a.nat||null}); }
   return out;
 }

@@ -52,27 +52,27 @@ Object.assign(L,{POSDEF,TYPES,STATE_VER,BORN,YOUTH_END,PRO_START,UNIV_END,UNIV_D
  * grow: 성장폭 배수(양수일 때) · shift: 나이 곡선 이동(+면 일찍 크고 일찍 꺾임) · focus: 집중훈련 효과 배수 · inj: 부상 배수
  * fame: 인기 배수 · vari: 해마다 성장 들쭉날쭉 정도 · big: 큰 경기(대표팀·컵) 보정 · trust: 감독 신뢰 증가 배수 · decl: 노화 속도 배수 */
 const TRAIT_LIST=[
- {id:"effort",name:"노력의 천재",icon:"🔥",desc:"훈련한 만큼 크게 올라요. 집중 훈련 효과가 크지만 시작은 평범해요.",fx:{focus:1.7,grow:1.0,vari:.8}},
- {id:"genius",name:"천재",icon:"✨",desc:"어릴 때 폭발적으로 성장해요. 대신 일찍 정점에 닿아요.",fx:{grow:1.2,shift:1.5,decl:1.1}},
- {id:"late",name:"대기만성",icon:"🌱",desc:"늦게 피고 오래 가요. 20대 중반부터 진가가 나와요.",fx:{shift:-2,decl:.8}},
- {id:"iron",name:"강철 체력",icon:"🛡️",desc:"부상이 크게 줄고 노화도 느려요.",fx:{inj:.5,decl:.8}},
- {id:"clutch",name:"큰 경기 체질",icon:"🎯",desc:"대표팀·컵 대회·중요한 경기에서 더 강해요.",fx:{big:1.25}},
- {id:"star",name:"스타 기질",icon:"⭐",desc:"인기와 평판이 빠르게 올라요.",fx:{fame:1.5}},
- {id:"leader",name:"리더형",icon:"🧭",desc:"감독의 신뢰가 빨리 쌓이고 팀 분위기를 끌어요.",fx:{trust:1.7}},
- {id:"steady",name:"꾸준한 성실파",icon:"📈",desc:"성장은 평범해도 기복이 없어요.",fx:{vari:.4,grow:1.05}},
- {id:"streaky",name:"기복형 승부사",icon:"🎲",desc:"잘 풀리면 크게 크고, 안 풀리면 정체돼요.",fx:{vari:1.9,grow:1.05}},
+ {id:"effort",name:"노력의 천재",icon:"🔥",desc:"집중 훈련한 능력치가 70% 더 크게 올라요. 시작은 평범하고 성장 기복이 작아요.",eff:"훈련 능력치 ▲▲ · 기복 ▼",fx:{focus:1.7,grow:1.0,vari:.8}},
+ {id:"genius",name:"천재",icon:"✨",desc:"어릴 때 기술 능력치가 폭발적으로 올라요. 대신 일찍 정점에 닿고, 체력 능력치는 일찍 꺾여요.",eff:"기술 ▲▲ · 체력 ▼ · 일찍 정점",fx:{grow:1.2,shift:1.5,decl:1.1,tech:.5,phys:-.2}},
+ {id:"late",name:"대기만성",icon:"🌱",desc:"어릴 땐 느리지만 20대 중반부터 진가가 나와요. 체력 능력치가 오래 유지돼요.",eff:"후반 성장 ▲ · 체력 유지 ▲ · 초반 ▼",fx:{shift:-2,decl:.8,tech:.15,phys:.25}},
+ {id:"iron",name:"강철 체력",icon:"🛡️",desc:"피지컬·스피드·활동량이 잘 늘고 늦게까지 유지돼요. 부상이 절반으로 줄어요.",eff:"체력 ▲▲ · 부상 ▼",fx:{inj:.5,decl:.8,phys:.35}},
+ {id:"clutch",name:"큰 경기 체질",icon:"🎯",desc:"대표팀·컵 대회·중요한 경기에서 더 강해요. 능력치 자체는 변하지 않아요.",eff:"큰 경기 ▲",fx:{big:1.25}},
+ {id:"star",name:"스타 기질",icon:"⭐",desc:"인기와 평판이 빠르게 올라요. 능력치에는 영향이 없어요.",eff:"인기·평판 ▲",fx:{fame:1.5}},
+ {id:"leader",name:"리더형",icon:"🧭",desc:"감독의 신뢰가 빨리 쌓이고 팀 분위기를 끌어요. 능력치에는 영향이 없어요.",eff:"감독 신뢰 ▲",fx:{trust:1.7}},
+ {id:"steady",name:"꾸준한 성실파",icon:"📈",desc:"성장은 평범해도 해마다 기복이 거의 없어요.",eff:"기복 ▼▼",fx:{vari:.4,grow:1.05}},
+ {id:"streaky",name:"기복형 승부사",icon:"🎲",desc:"잘 풀리면 크게 크고, 안 풀리면 정체돼요. 해마다 결과가 들쭉날쭉해요.",eff:"기복 ▲▲",fx:{vari:1.9,grow:1.05}},
 ];
 const HIDDEN_LIST=[
- {id:"mega",name:"대천재",icon:"👑",desc:"백 년에 한 번 나올 재능. 잠재력이 크게 올라가고 성장도 빨라요.",fx:{grow:1.35,potAdd:7},p:.02},
- {id:"monster",name:"늦게 터지는 괴물",icon:"🐉",desc:"한동안 평범해 보이지만 20대에 폭발해요.",fx:{shift:-3,grow:1.25,potAdd:5},p:.02},
- {id:"ironman",name:"철인",icon:"🦾",desc:"부상이 거의 없고 30대 중반까지 기량을 유지해요.",fx:{inj:.3,decl:.55},p:.02},
- {id:"glass",name:"유리 대포",icon:"💥",desc:"재능은 넘치지만 몸이 따라 주지 않아요. 부상이 잦아요.",fx:{inj:2.2,grow:1.2,potAdd:4},p:.02},
+ {id:"mega",name:"대천재",icon:"👑",desc:"백 년에 한 번 나올 재능. 잠재력이 크게 올라가고 모든 능력치가 빨리 커요.",fx:{grow:1.35,potAdd:7,tech:.3,phys:.3},p:.02},
+ {id:"monster",name:"늦게 터지는 괴물",icon:"🐉",desc:"한동안 평범해 보이지만 20대에 폭발해요. 체력도 오래 유지돼요.",fx:{shift:-3,grow:1.25,potAdd:5,tech:.3,phys:.3},p:.02},
+ {id:"ironman",name:"철인",icon:"🦾",desc:"부상이 거의 없고 30대 중반까지 체력 능력치를 유지해요.",fx:{inj:.3,decl:.55,phys:.5},p:.02},
+ {id:"glass",name:"유리 대포",icon:"💥",desc:"재능은 넘치지만 몸이 따라 주지 않아요. 기술은 쑥쑥 크지만 체력은 약하고 부상이 잦아요.",fx:{inj:2.2,grow:1.2,potAdd:4,tech:.2,phys:-.3},p:.02},
 ];
 L.TRAIT_LIST=TRAIT_LIST; L.HIDDEN_LIST=HIDDEN_LIST;
 L.traitFx=function(p){
-  const out={grow:1,shift:0,focus:1,inj:1,fame:1,vari:1,big:1,trust:1,decl:1,potAdd:0};
+  const out={grow:1,shift:0,focus:1,inj:1,fame:1,vari:1,big:1,trust:1,decl:1,potAdd:0,tech:0,phys:0};
   [TRAIT_LIST.find(t=>t.id===p.trait),HIDDEN_LIST.find(t=>t.id===p.hidden)].forEach(t=>{ if(!t) return; const f=t.fx;
-    ["grow","focus","inj","fame","vari","big","trust","decl"].forEach(k=>{ if(f[k]!=null) out[k]*=f[k]; }); if(f.shift) out.shift+=f.shift; if(f.potAdd) out.potAdd+=f.potAdd; });
+    ["grow","focus","inj","fame","vari","big","trust","decl"].forEach(k=>{ if(f[k]!=null) out[k]*=f[k]; }); if(f.shift) out.shift+=f.shift; if(f.potAdd) out.potAdd+=f.potAdd; if(f.tech) out.tech+=f.tech; if(f.phys) out.phys+=f.phys; });
   return out;
 };
 L.traitName=function(id,hidden){ const t=(hidden?HIDDEN_LIST:TRAIT_LIST).find(x=>x.id===id); return t?t.icon+" "+t.name:""; };
@@ -87,11 +87,36 @@ const INV_CATS=[["skill","개인 레슨","기술 능력치 ▲"],["body","피지
 L.FAMILY=FAMILY; L.INV_CATS=INV_CATS;
 L.rollFamily=function(){ let r=Math.random(); for(const f of FAMILY){ r-=f.w; if(r<0) return f; } return FAMILY[2]; };
 L.familyPts=S=>S.family&&(S.stage==="youth"||S.stage==="univ")?Math.max(0,S.family.pts):0;
+/* ===== 체격 효과 =====
+ * 키와 몸무게는 포지션 평균(공격수 180·미드필더 177·수비수 183·골키퍼 188cm)과 비교해서 시작 능력치에 반영돼요.
+ * 크고 무거울수록 피지컬·수비·제공권이 유리하고 스피드·민첩성(드리블)이 불리해요. 작고 가벼우면 반대예요. */
+const POS_AVG={FW:[180,73],MF:[177,70],DF:[183,77],GK:[188,82]};
+L.bodyFx=function(pos,h,w){
+  const av=POS_AVG[pos]; h=h||av[0]; w=w||av[1];
+  const tall=clamp((h-av[0])/8,-2.5,2.5), bmi=w/Math.pow(h/100,2), heavy=clamp((bmi-22.5)/1.8,-2.5,2.5);
+  const o={}; const add=(k,v)=>{ o[k]=(o[k]||0)+v; };
+  const d=POSDEF[pos];
+  d.stats.forEach(([k])=>{
+    if(k==="physical"||k==="tackle"||k==="defending") add(k,1.6*tall+1.1*heavy);
+    else if(k==="pace") add(k,-1.4*tall-1.2*heavy);
+    else if(k==="dribble") add(k,-1.1*tall-.5*heavy);
+    else if(k==="stamina") add(k,-.5*heavy);
+    else if(k==="saving"||k==="handling"||k==="command") add(k,1.2*tall);
+    else if(k==="reflex") add(k,-1.0*tall-.5*heavy);
+  });
+  const res={}; Object.keys(o).forEach(k=>{ const v=Math.round(clamp(o[k],-5,5)); if(v) res[k]=v; });
+  return {stats:res,tall:Math.round(tall*10)/10,bmi:Math.round(bmi*10)/10};
+};
+L.bodyText=function(pos,h,w){
+  const fx=L.bodyFx(pos,h,w), d=POSDEF[pos]; const nm=Object.fromEntries(d.stats);
+  const ent=Object.entries(fx.stats); if(!ent.length) return "포지션 평균 체격이에요. 능력치 변화는 없어요.";
+  return ent.map(([k,v])=>nm[k]+" "+(v>0?"+":"")+v).join(" · ");
+};
 L.rollTalent=function(){ const x=Math.random(), pot=x<.05?ri(90,97):x<.22?ri(82,89):x<.55?ri(74,81):ri(64,73); return {pot,grade:pot>=90?"S":pot>=82?"A":pot>=74?"B":"C"}; };
 
 /* 나이별 성장(한 해 평균 상승): 어릴 때 크게, 20대 중반에 정점, 30대에 완만히 하락 */
 const AGE_RATE={13:3.0,14:3.0,15:3.0,16:3.0,17:3.2,18:3.2,19:3.0,20:2.7,21:2.3,22:1.9,23:1.5,24:1.1,25:.7,26:.4,27:.1,28:-.1,29:-.4,30:-.8,31:-1.3,32:-1.8,33:-2.3,34:-2.8,35:-3.3,36:-3.8};
-const ageRate=(ag,pos)=>{ const sh=pos==="GK"?3:pos==="DF"?1:0; const a=clamp(ag-sh,13,36); return AGE_RATE[a]!=null?AGE_RATE[a]:-4; };
+const ageRate=(ag,pos)=>{ const sh=pos==="GK"?3:pos==="DF"?1:0; const a=Math.round(clamp(ag-sh,13,36)); return AGE_RATE[a]!=null?AGE_RATE[a]:-4; };
 L.ageRate=ageRate;
 
 /* ================= 생성 ================= */
@@ -101,10 +126,10 @@ L.create=function(o){
   const a0=o.route==="mid"?13:o.route==="hs"?16:o.route==="univ"?UNIV_DRAFT:PRO_START;
   const target19=42+(t.pot-60)*.30;                                   // 19세 시점 능력 (재능이 높을수록 높아요)
   const base=Math.max(16,target19-(a0<PRO_START?(PRO_START-a0)*3.1:0)+(a0>PRO_START?(a0-PRO_START)*2.4:0)+rnd(-2,2));
-  const stats={}; d.stats.forEach(([k],i)=>{ stats[k]=clamp(Math.round(base+ty[2][i]+rnd(-3,3)),10,95); });
+  const HH=o.height||Math.round(POS_AVG[pos][0]+rnd(-6,6)), WW=o.weight||Math.round(POS_AVG[pos][1]+rnd(-6,6)); const bfx=L.bodyFx(pos,HH,WW).stats; const stats={}; d.stats.forEach(([k],i)=>{ stats[k]=clamp(Math.round(base+ty[2][i]+rnd(-3,3)+(bfx[k]||0)),10,95); });
   const S={v:STATE_VER,startYear:BORN+a0,year:BORN+a0,
     p:{name:o.name||"이름 없는 선수",pos,sub:o.sub||d.subs[0][0],type:ty[0],typeName:ty[1],born:BORN,pot:t.pot,pot0:t.pot,grade:t.grade,stats,peak:0,route:o.route||"high",trait:o.trait||null,hidden:hid||null,
-       height:o.height||ri(172,190),weight:o.weight||ri(64,82),foot:o.foot||"오른발",number:o.number||(pos==="GK"?1:pick([7,8,9,10,11,14,17,19,20,22]))},
+       height:HH,weight:WW,foot:o.foot||"오른발",number:o.number||(pos==="GK"?1:pick([7,8,9,10,11,14,17,19,20,22]))},
     club:null,salary:0,contractYears:0,trust:.4,military:"none",mildone:0,team:"1군",stage:a0<PRO_START?"youth":"pro",youthTier:0,
     phase:a0<PRO_START?"prep":"draft",offers:[],plan:null,history:[],awards:[],trophies:[],moments:[],feed:[],incentives:[],
     career:{apps:0,starts:0,minutes:0,goals:0,assists:0,cs:0,caps:0,intGoals:0,ratingSum:0,ratingN:0,mom:0,youthApps:0,youthGoals:0,bonus:0},
@@ -428,7 +453,7 @@ L.growth=function(S,R){
   const ty=TYPES[p.pos].find(x=>x[0]===p.type);
   const sorted=d.stats.map(([k])=>k).sort((a,b)=>p.stats[a]-p.stats[b]); const weakest=sorted[0], strongest=sorted[sorted.length-1];
   d.stats.forEach(([k],i)=>{
-    let dv=rate>0?(rate*gap+ptBonus)*tf.grow:rate*tf.decl; if(rate>0) dv+=.22*(PHYS.has(k)?(al.body|0):(al.skill|0));
+    let dv=rate>0?(rate*gap+ptBonus)*tf.grow:rate*tf.decl; if(rate>0) dv+=.22*(PHYS.has(k)?(al.body|0):(al.skill|0)); dv+=PHYS.has(k)?tf.phys:tf.tech;
     if(PHYS.has(k)&&ag>=28) dv-=.5+(ag-28)*.18;
     dv+=(ty?ty[2][i]:0)*.025;
     if(plan.focus===k) dv+=1.0*tf.focus;
@@ -485,7 +510,7 @@ L.contractOffer=function(S){
   return {last:S.salary,offer,rate:Math.round((offer/Math.max(.1,S.salary)-1)*100),years:ag<=23?3:ag<=30?2:1,market};
 };
 L.negotiate=function(S,offer){ const x=Math.random(), mult=x<.45?1.12:x<.8?1.0:.93; return {offer:r1(offer.offer*mult),mult,rate:Math.round((offer.offer*mult/Math.max(.1,S.salary)-1)*100),years:offer.years}; };
-L.acceptContract=function(S,offer){ S.salary=offer.offer; S.contractYears=offer.years; };
+L.acceptContract=function(S,offer){ if(S.club&&S.club.lg==="MIL"||S.military==="serving"||S.military==="sangmu") return; S.salary=offer.offer; S.contractYears=offer.years; };
 
 /* 이적 제의: 선수의 수준(능력치+평판)에 맞는 구단만 와요. 수준이 한참 낮은 팀은 오지 않고, 해외는 프리미어리그뿐이에요 */
 function foreignBench(S){ const h=S.history.filter(x=>!x.youth); const l=h[h.length-1]; return !!l&&l.lg==="EPL"&&l.apps<15; }
@@ -516,10 +541,10 @@ L.doTransfer=function(S,offer){
 L.militaryPrompt=function(S){ const ag=age(S)+1; if(S.military!=="none"||ag<26) return null; return {must:ag>=29,canMil:S.p.ovr>=66}; };
 L.enlist=function(S,kind){
   S.military="serving"; S.mildone=0;
-  if(kind==="sangmu"){ S.milKind="sangmu"; S.club={id:K.GIMCHEON.club,name:"김천 상무",short:"김천",lg:"MIL",code:CODE("김천 상무"),origin:S.club}; S.military="sangmu"; S.salary=.3; S.contractYears=2; L.addMoment(S,"입대","군복무","김천 상무에 입대했습니다. 2년 동안 선수 생활과 복무를 병행합니다."); }
+  if(kind==="sangmu"){ S.milOrigSalary=S.salary; S.milKind="sangmu"; S.club={id:K.GIMCHEON.club,name:"김천 상무",short:"김천",lg:"MIL",code:CODE("김천 상무"),origin:S.club}; S.military="sangmu"; S.salary=.3; S.contractYears=2; L.addMoment(S,"입대","군복무","김천 상무에 입대했습니다. 2년 동안 선수 생활과 복무를 병행합니다."); }
   else { S.milKind="army"; S.origin=S.club; L.addMoment(S,"입대","군복무","현역으로 입대했습니다. 2년 동안 그라운드를 떠납니다."); }
 };
-function afterMil(S){ if(S.military==="sangmu"){ S.mildone++; if(S.mildone>=2){ S.military="served"; const o=S.club.origin; if(o) S.club=Object.assign({},o); S.contractYears=2; L.addMoment(S,"전역","군복무","전역하고 "+S.club.name+"으로 복귀합니다."); } } }
+function afterMil(S){ if(S.military==="sangmu"){ S.mildone++; if(S.mildone>=2){ S.military="served"; const o=S.club.origin; if(o) S.club=Object.assign({},o); S.contractYears=2; if(S.milOrigSalary){ S.salary=S.milOrigSalary; S.milOrigSalary=null; } L.addMoment(S,"전역","군복무","전역하고 "+S.club.name+"으로 복귀합니다."); } } }
 /* 현역 복무 시즌: 경기에 못 나가고 몸 상태가 조금 떨어져요 */
 L.armyYear=function(S){
   const R={year:S.year,age:age(S),ovr0:S.p.ovr,club:Object.assign({},S.club),plan:{},military:true,apps:0,starts:0,minutes:0,goals:0,assists:0,cs:0,mom:0,rating:0,rank:0,N:0,W:0,D:0,L:0,gf:0,ga:0,trophies:[],awards:[],matches:[],leagueName:"군 복무",role:"복무",sr:0,table:null,natEvents:[],cups:[],youth:false};

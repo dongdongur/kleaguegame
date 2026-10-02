@@ -470,3 +470,7 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 /* 주장단 */
 .cap-btn{margin-bottom:6px}.cap-badge{position:absolute;top:-6px;right:-4px;z-index:4;font-size:11px;font-weight:900;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:2px solid #fff;color:#111}.cap-badge.C{background:#f5c542}.cap-badge.V{background:#cfd8e3}
 .cap-list{display:grid;gap:6px;max-height:55vh;overflow:auto;margin-top:8px}.cap-row{display:grid;grid-template-columns:34px 1fr auto auto auto;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--line,#2a3550);border-radius:10px;font-size:13px}.cap-row.on{border-color:#f5c542;background:rgba(245,197,66,.1)}.cap-row small{grid-column:2;opacity:.7}.cap-row em{font-style:normal;color:#9fd3ff;font-size:12px;grid-column:3}.cap-row .btn{grid-row:1 / span 2}.cap-sum{margin:8px 0 2px;font-weight:700;color:#f5d487}
+
+/* 초청경기 */
+.inv-list{display:grid;gap:8px}.inv-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03)}
+.inv-info{flex:1;min-width:0;display:grid}.inv-info small{color:var(--muted);font-size:12px}.inv-log{display:grid;gap:4px;margin:8px 0;font-size:14px}.inv-log .opp{color:var(--muted)}

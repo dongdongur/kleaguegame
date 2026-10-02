@@ -61,3 +61,36 @@ create policy "duels insert" on public.duels for insert to anon with check (true
 
 grant select, insert on public.results to anon;
 grant select, insert on public.duels   to anon;
+
+
+-- 5) 선수 키우기(K-라이프) 명예의 전당: 은퇴한 선수 기록을 서버에 올려 친구와 비교해요
+create table if not exists public.life_hof (
+  id          bigint generated always as identity primary key,
+  created_at  timestamptz not null default now(),
+  nickname    text not null check (char_length(nickname) between 1 and 12),
+  name        text not null check (char_length(name) between 1 and 12),
+  pos         text not null,
+  type_name   text,
+  club        text,
+  years       smallint not null default 0,
+  apps        int not null default 0,
+  goals       int not null default 0,
+  assists     int not null default 0,
+  caps        int not null default 0,
+  trophies    smallint not null default 0,
+  awards      smallint not null default 0,
+  ballon      smallint not null default 0,
+  ballon_cand smallint not null default 0,
+  wc          smallint not null default 0,
+  peak        smallint not null default 0,
+  cs          int not null default 0,
+  score       int not null default 0,
+  grade       text,
+  jersey      smallint not null default 0
+);
+alter table public.life_hof enable row level security;
+drop policy if exists "life_hof read"   on public.life_hof;
+drop policy if exists "life_hof insert" on public.life_hof;
+create policy "life_hof read"   on public.life_hof for select to anon using (true);
+create policy "life_hof insert" on public.life_hof for insert to anon with check (true);
+grant select, insert on public.life_hof to anon;

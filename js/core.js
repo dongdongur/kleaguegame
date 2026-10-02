@@ -254,6 +254,8 @@ function afcRoster(name,base,authored){
   return own; }
 const mkAfc = t => ({club:t[0],short:t[0],kind:t[1],region:t[2],div:0,base:t[3],players:afcRoster(t[0],t[3],t[4])});
 const AFC1 = (window.KL_AFC_ELITE||[]).map(mkAfc), AFC2 = (window.KL_AFC_TWO||[]).map(mkAfc);
+/* 프리미어리그 20개 구단 (초청경기용): 선수단은 js/data_epl.js, 능력치는 추정값 */
+const EPL_DEFS = (window.KL_EPL||[]).map(t=>({club:t.name,short:t.short,kind:"프리미어리그",region:"EPL",div:0,id:t.id,base:t.l,col:t.col,players:(t.players||[]).map(p=>({name:p[0],pos:p[1],ovr:p[2],prime:p[2],det:""}))}));
 const ACL_POOL = AFC1;   // (옛 이름 호환)
 const DERBIES = window.KL_DERBIES||[];
 function derbyName(a,b){ const d=DERBIES.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a)); return d?d[2]:null; }
@@ -455,7 +457,7 @@ function assembleLog(ev,c){
   return out;
 }
 
-window.KLCore = {GIMCHEON, ROLES, roleOf, roleFit, roleFitInfo, playerStyle, recommendRoles, liteOf, ROLE_KEY, CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
+window.KLCore = {GIMCHEON, ROLES, roleOf, roleFit, roleFitInfo, playerStyle, recommendRoles, liteOf, ROLE_KEY, CONFIG, MGRS, STYLE_NAME, SQUADS, NATS, TEAMS26, K2_DEFS, ACL_POOL, AFC1, AFC2, EPL_DEFS, DERBIES, FORMS, GROUP, ACCEPT, YEARS,
   yearsOf, overlap, tag, squadKey, coversYear, derbyName, fitsSlot, tier, avg, shuffle, poisson, randn, clamp, pickScorer, pickAssist,
   clone, mgrFx, fatigue, rate, oppStrength, assembleLog, rescale, agePen, setRatingMode, ratingMode:()=>RATING_MODE};
 })();
