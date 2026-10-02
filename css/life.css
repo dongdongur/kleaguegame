@@ -133,3 +133,14 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .chk{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line2)}
 .chk input{width:22px;height:22px;margin-top:2px;accent-color:#19f2a3}.chk small{color:var(--muted);display:block}
 .pay{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px}.pay small{color:var(--muted)}.pay b{font-family:var(--f-num);color:var(--gold);text-align:right}
+
+/* 훈련 화면 · 표 · 안내 */
+.big.needs{background:#1a2547;color:var(--gold);border:1px solid var(--gold);box-shadow:none}
+@keyframes flash{0%,100%{box-shadow:0 0 0 0 rgba(255,207,74,0)}30%{box-shadow:0 0 0 4px rgba(255,207,74,.9)}}
+.flash{animation:flash 1.3s ease 1;border-radius:14px}
+.tablewrap{max-height:340px;overflow:auto;border-radius:10px;-webkit-overflow-scrolling:touch}
+.tab .tr.full{grid-template-columns:24px 1fr 34px 70px 40px 38px;font-size:12.5px}
+.tab .tr.full span:nth-child(3),.tab .tr.full span:nth-child(4),.tab .tr.full span:nth-child(5),.tab .tr.full span:nth-child(6){text-align:right;font-family:var(--f-num)}
+.tab .tr.hd.full{position:sticky;top:0;background:var(--panel);z-index:1}
+.trainbtn em{display:block}
+.load .sheet{animation:none}

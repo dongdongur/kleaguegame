@@ -11,17 +11,17 @@ const L=window.LIFE, {rnd,ri,pick,clamp,logistic,r1,binom}=L;
 
 /* 통과 확률 사다리: 한국의 평균적인 실력 기준 (조별 → 토너먼트). 선수 한 명이 바꾸는 폭은 작아요 */
 const TOURN={
-  wc:{id:"wc",name:"FIFA 월드컵",short:"월드컵",first:2026,every:4,after:"h2",minAge:19,thr:77,
+  wc:{id:"wc",name:"FIFA 월드컵",short:"월드컵",first:2026,every:4,m:[6,7],minAge:19,thr:77,
       rounds:[["조별리그",.46],["32강",.60],["16강",.40],["8강",.30],["4강",.30],["결승",.30]],matches:[3,1,1,1,1,1],medal:false,sens:.004},
-  ac:{id:"ac",name:"AFC 아시안컵",short:"아시안컵",first:2027,every:4,after:"h1",minAge:19,thr:73,
+  ac:{id:"ac",name:"AFC 아시안컵",short:"아시안컵",first:2027,every:4,m:[1,1],minAge:19,thr:73,
       rounds:[["조별리그",.90],["16강",.78],["8강",.65],["4강",.58],["결승",.50]],matches:[3,1,1,1,1],medal:false},
-  oly:{id:"oly",name:"올림픽",short:"올림픽",first:2028,every:4,after:"h2",minAge:19,maxAge:23,thr:64,
+  oly:{id:"oly",name:"올림픽",short:"올림픽",first:2028,every:4,m:[7,8],minAge:19,maxAge:23,thr:64,
       rounds:[["조별리그",.62],["8강",.45],["4강",.45],["동메달 결정전",.55]],matches:[3,1,1,1],medal:true},
-  ag:{id:"ag",name:"아시안게임",short:"아시안게임",first:2026,every:4,after:"h3",minAge:19,maxAge:23,thr:62,
+  ag:{id:"ag",name:"아시안게임",short:"아시안게임",first:2026,every:4,m:[9,10],minAge:19,maxAge:23,thr:62,
       rounds:[["조별리그",.95],["16강",.84],["8강",.70],["4강",.68],["결승",.62]],matches:[3,1,1,1,1],medal:true},
-  u20:{id:"u20",name:"FIFA U-20 월드컵",short:"U-20 월드컵",first:2027,every:2,after:"h1",minAge:18,maxAge:20,thr:0,rel:2,
+  u20:{id:"u20",name:"FIFA U-20 월드컵",short:"U-20 월드컵",first:2027,every:2,m:[5,6],minAge:18,maxAge:20,thr:0,rel:2,
       rounds:[["조별리그",.74],["16강",.58],["8강",.50],["4강",.46],["결승",.48]],matches:[3,1,1,1,1],medal:false},
-  u17:{id:"u17",name:"FIFA U-17 월드컵",short:"U-17 월드컵",first:2000,every:1,after:"h3",minAge:15,maxAge:17,thr:0,rel:3,
+  u17:{id:"u17",name:"FIFA U-17 월드컵",short:"U-17 월드컵",first:2000,every:1,m:[10,11],minAge:15,maxAge:17,thr:0,rel:3,
       rounds:[["조별리그",.72],["16강",.55],["8강",.50],["4강",.45],["결승",.46]],matches:[3,1,1,1,1],medal:false},
 };
 L.TOURN=TOURN;
@@ -39,16 +39,23 @@ L.callupProb=function(S,t){
   const lg=S.club&&S.club.lg, bonus=lg==="EPL"?4:lg==="K2"?-3:0;
   return clamp(logistic((p.ovr+bonus+S.rep*.02+S.fame*.02-1-t.thr)/2.6),0,.97);
 };
+/* 개최 달 → 이 구간 뒤에 소집돼요. K리그(3~12월 시즌)와 프리미어리그(8~5월 시즌)는 구간 달이 달라요 */
+function segFor(cal,month){ if(cal==="E") return month>=8&&month<=10?"h1":month>=11?"h2":month<=3?"h3":"h4"; return month<=6?"h1":month<=8?"h2":month<=10?"h3":"h4"; }
 L.planCallups=function(S,sim){
   const out=[]; if(S.military==="serving"&&S.milKind==="army") return out;
-  Object.values(TOURN).forEach(t=>{ if(!held(t,S.year)) return; const pr=L.callupProb(S,t); if(pr>0&&Math.random()<pr) out.push({t:t.id,name:t.name,short:t.short,after:t.after,done:false,pr:Math.round(pr*100)}); });
+  const cal=sim&&sim.cal||"K";
+  Object.values(TOURN).forEach(t=>{
+    /* K리그: 같은 해에 열리는 대회. 프리미어리그 시즌(8월~이듬해 5월): 올해 8월 이후 + 내년 8월까지의 대회 */
+    const years=cal==="E"?[S.year,S.year+1]:[S.year];
+    years.forEach(y=>{ if(!held(t,y)) return; const m=t.m[0]; if(cal==="E"&&!((y===S.year&&m>=8)||(y===S.year+1&&m<=8))) return;
+      const pr=L.callupProb(S,t); if(pr>0&&Math.random()<pr) out.push({t:t.id,name:t.name,short:t.short,after:segFor(cal,m),year:y,months:t.m[0]===t.m[1]?t.m[0]+"월":t.m[0]+"~"+t.m[1]+"월",done:false,pr:Math.round(pr*100)}); }); });
   /* 월드컵·아시안컵 해에는 확실한 에이스가 못 나가는 일이 없도록 부상 시 제외 */
   return out;
 };
 
 /* 대회를 치러요. 결과는 {stage, title, medal, caps, goals, text} */
 L.joinTournament=function(S,c){
-  const t=TOURN[c.t], p=S.p, sim=S.sim; c.done=true;
+  const t=TOURN[c.t], p=S.p, sim=S.sim; c.done=true; const YR=c.year||S.year;
   const inj=sim&&sim.out>3; if(inj){ const r={t:t.id,name:t.name,year:S.year,skipped:true,text:"부상으로 대표팀 소집에서 제외되었습니다."}; sim.natRecs.push(r); return r; }
   const ref=t.rel!=null?L.youthLevel(Math.min(L.age(S),18))+(S.stage==="youth"?S.youthTier:0)+(S.stage==="pro"?6:0):t.thr;
   const rel=p.ovr-ref+(L.traitFx(p).big-1)*12;
@@ -73,7 +80,7 @@ L.joinTournament=function(S,c){
   let games=0; for(let i=0;i<played;i++) games+=t.matches[i];
   const caps=Math.max(0,Math.round(games*sr)); const mf=sr>.5?.9:.5;
   const goals=binom(caps,clamp(L.shareG(p.sub)*mf*.8*Math.exp((p.ovr-ref)/30),0,.5));
-  const r={t:t.id,name:t.name,short:t.short,year:S.year,stage,caps,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
+  const r={t:t.id,name:t.name,short:t.short,year:YR,stage,caps,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
   if(t.id==="wc"&&r.stage==="우승") r.text="월드컵 우승! 온 나라가 뒤집어졌습니다.";
   /* 반영 */
   S.career.caps+=caps; S.career.intGoals+=goals;
@@ -86,7 +93,7 @@ L.joinTournament=function(S,c){
   if(t.medal){ if((t.id==="ag"&&gl)||(t.id==="oly"&&medal)){ if(S.military==="none"||S.military==="sangmu"||S.military==="serving"&&S.milKind==="sangmu"){ if(S.military==="none"){ S.military="exempt"; r.exempt=true; L.addMoment(S,"병역 특례","병역 특례",t.name+" "+stage+"! 병역 혜택을 받았습니다."); } } } }
   if(caps>0) L.addMoment(S,t.short+" "+(stage==="우승"||/금/.test(stage)?"우승":"출전"),t.short,t.name+" "+S.year+" · "+stage+" ("+caps+"경기 "+goals+"골)");
   L.feedAdd(S,S.year+" "+t.short,t.name+" "+stage+" · "+caps+"경기 "+goals+"골",title?1:0);
-  if(title&&carry>=.45){ r.carry=true; r.text=(t.id==="wc"?"월드컵을 혼자 지배했습니다. ":"대회를 혼자 지배했습니다. ")+"결정적인 순간마다 당신이 있었어요."; if(t.id==="wc"||t.id==="ac"){ r.golden=true; S.awards.push({year:S.year,name:t.id==="wc"?"월드컵 골든볼":"아시안컵 MVP",youth:false}); } }
+  if(title&&carry>=.45){ r.carry=true; r.text=(t.id==="wc"?"월드컵을 혼자 지배했습니다. ":"대회를 혼자 지배했습니다. ")+"결정적인 순간마다 당신이 있었어요."; if(t.id==="wc"||t.id==="ac"){ r.golden=true; S.awards.push({year:S.year,name:t.id==="wc"?"월드컵 골든볼":"아시안컵 MVP",youth:false,comp:t.name}); } }
   r.text=r.text||(title?"우승을 차지했습니다.":stage);
   return r;
 };

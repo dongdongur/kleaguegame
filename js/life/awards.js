@@ -26,14 +26,14 @@ L.awardsFor=function(S,R,sim){
   if(R.apps<10) { L.ballonCheck(S,R); return; }
   const ag=L.age(S), K1=lg==="K1", K2=lg==="K2", E=lg==="EPL";
   /* 득점·도움·클린시트 */
-  const tg=ri(lead.g[0],lead.g[1]), ta=ri(lead.a[0],lead.a[1]), tc=ri(lead.cs[0],lead.cs[1]);
+  const bd=R.board; const tg=bd?Math.max(1,bd.maxG):ri(lead.g[0],lead.g[1]), ta=bd?Math.max(1,bd.maxA):ri(lead.a[0],lead.a[1]), tc=ri(lead.cs[0],lead.cs[1]);
   const goalTitle=E?"골든부트":"득점왕", assistTitle=E?"플레이메이커상":"도움왕";
   if(p.pos!=="GK"){
     if(R.goals>=tg&&R.goals>=8) A.push(R.goals===tg&&Math.random()<.18?"공동 "+goalTitle:goalTitle);
     if(R.assists>=ta&&R.assists>=6) A.push(R.assists===ta&&Math.random()<.18?"공동 "+assistTitle:assistTitle);
   } else if(R.cs>=tc&&R.cs>=9) A.push(E?"골든글러브":"올해의 골키퍼");
   /* 올해의 선수(MVP) */
-  const sc=mvpScore(R,S), need=2.9+rnd(-.5,.7);
+  const sc=mvpScore(R,S)+(R.board&&R.board.maxRt&&R.rating>=R.board.maxRt?.8:0), need=2.9+rnd(-.5,.7);
   if(sc>=need){ A.push(E?"PFA 올해의 선수":K1?"리그 MVP":"K리그2 MVP"); }
   /* 베스트 11 · 올해의 팀 */
   const pa=p.pos==="GK"?R.rating-.0:R.rating; const bx=(pa-6.5)*1.6+(R.rank<=4?.6:0)+(R.apps>=24?.4:-.6)+rnd(-.5,.5);
@@ -99,6 +99,7 @@ L.titlesOf=function(S){
   if(tr.length>=15) out.push("트로피 수집가");
   if(clubs>=7) out.push("방랑자");
   if((S.jersey||[]).length) out.push("영구결번의 주인공");
+  if(((S.nat&&S.nat.refused)||0)>=3) out.push("대표팀 기피자 ('매국노' 소리를 들은)");
   if(!out.length) out.push(sc>=1200?"믿음직한 프로":"묵묵한 선수");
   return out.slice(0,4);
 };
