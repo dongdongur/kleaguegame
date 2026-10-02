@@ -7,7 +7,7 @@
 const L=window.LIFE, {rnd,ri,pick,clamp,logistic,r1,shuffle}=L;
 
 /* 리그 1위 기록 기준 (K1/K2/EPL) */
-const LEADERS={K1:{g:[15,23],a:[9,14],cs:[13,19]},K2:{g:[14,22],a:[8,13],cs:[12,17]},EPL:{g:[20,32],a:[12,20],cs:[14,20]},EPL2:{g:[18,28],a:[11,17],cs:[13,19]},BUN:{g:[22,36],a:[12,20],cs:[12,17]},LAL:{g:[20,32],a:[11,18],cs:[14,20]},SEA:{g:[19,30],a:[10,16],cs:[14,20]},L1:{g:[18,30],a:[10,16],cs:[12,17]}};
+const LEADERS={K1:{g:[15,23],a:[9,14],cs:[13,19]},K2:{g:[14,22],a:[8,13],cs:[12,17]},EPL:{g:[20,32],a:[12,20],cs:[14,20]},EPL2:{g:[18,28],a:[11,17],cs:[13,19]},BUN:{g:[22,36],a:[12,20],cs:[12,17]},LAL:{g:[20,32],a:[11,18],cs:[14,20]},SEA:{g:[19,30],a:[10,16],cs:[14,20]},L1:{g:[18,30],a:[10,16],cs:[12,17]},J1:{g:[16,26],a:[9,14],cs:[13,18]},SPL:{g:[20,32],a:[10,16],cs:[12,17]}};
 const mvpScore=(R,S)=>{
   const pos=S.p.pos, lead=LEADERS[R.leagueKey]||LEADERS.K1;
   const out=(R.rating-6.4)*2.4+(R.rank<=3?1.0:R.rank<=6?.4:0)+(R.rank===1?.8:0);
@@ -53,7 +53,7 @@ L.awardsFor=function(S,R,sim){
 /* 점수 = 능력치·시즌 활약·팀 성과(리그/챔스)·국제대회·인지도. 가상 경쟁자 30명의 점수와 비교해 순위를 정해요 */
 L.ballonCheck=function(S,R,sc){
   const p=S.p; if(p.ovr<76||R.apps<15||R.youth) return;
-  const lgBonus={EPL:0,LAL:0,BUN:-.5,SEA:-1,L1:-2.5,EPL2:-8,K1:-6,K2:-10}[R.leagueKey]||-6;
+  const lgBonus={EPL:0,LAL:0,BUN:-.5,SEA:-1,L1:-2.5,EPL2:-8,K1:-6,K2:-10,J1:-6,SPL:-5}[R.leagueKey]||-6;
   const nat=R.natEvents||[]; let natB=0; nat.forEach(n=>{ if(n.skipped) return; natB+=n.t==="wc"?(n.title?6:/준우승|4강/.test(n.stage)?2.5:.6):n.t==="ac"?(n.title?1.5:.4):0; });
   const cup=R.trophies.reduce((a,t)=>a+(/(프리미어리그|라리가|분데스리가|세리에 A) 우승/.test(t)?2.2:/리그 1 우승/.test(t)?1.5:/챔피언스리그 우승/.test(t)?3:0),0);
   const prod=p.pos==="FW"?R.goals*.12+R.assists*.05:p.pos==="MF"?R.goals*.1+R.assists*.1:p.pos==="DF"?R.goals*.15+R.cs*.04:R.cs*.12;
@@ -110,7 +110,7 @@ L.titlesOf=function(S){
 };
 /* ================= 리그 기록 · 챔피언스리그 기록 =================
  * 수치는 공개 기록을 바탕으로 한 근사치예요. 내 시즌 기록이 리그 역대 기록을 넘으면 '신기록' 업적이 붙어요. */
-const REC={K1:{g:28,a:17},K2:{g:24,a:14},EPL:{g:34,a:20},EPL2:{g:31,a:16},LAL:{g:50,a:21},BUN:{g:41,a:21},SEA:{g:36,a:17},L1:{g:44,a:21}};
+const REC={K1:{g:28,a:17},K2:{g:24,a:14},EPL:{g:34,a:20},EPL2:{g:31,a:16},LAL:{g:50,a:21},BUN:{g:41,a:21},SEA:{g:36,a:17},L1:{g:44,a:21},J1:{g:30,a:16},SPL:{g:35,a:17}};
 L.LEAGUE_REC=REC; L.UCL_REC={season:17,career:140,leader:[7,12]};
 L.recordsFor=function(S,R){
   const out=R.records=[]; if(R.youth||R.military) return; const rc=REC[R.leagueKey], ln=L.lgLabel(R.leagueKey);

@@ -48,7 +48,7 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .jersey{border-radius:20px;padding:14px;background:linear-gradient(160deg,rgba(255,90,90,.10),rgba(14,22,49,.9) 45%);border:1px solid rgba(255,120,120,.3);display:grid;gap:10px}
 .jersey .bt{display:flex;justify-content:space-between;align-items:baseline}.jersey .bt b{font-family:var(--f-head);font-weight:400;font-size:17px}.jersey .bt small{color:var(--muted);font-size:11.5px}
 .jwall{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.jw{display:grid;justify-items:center;gap:2px;padding:10px 6px 8px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--line);text-align:center}
+.jw{color:inherit;font:inherit;cursor:pointer;display:grid;justify-items:center;gap:2px;padding:10px 6px 8px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--line);text-align:center}
 .jw svg{width:100%;max-width:150px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))}
 .jw b{font-size:14px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jw small{color:var(--muted);font-size:11.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -60,6 +60,13 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .brand{display:flex;align-items:baseline;gap:6px;font-family:var(--f-head);font-size:30px;line-height:1}
 .brand .k{color:var(--acc);font-size:38px}.brand b{font-weight:400;color:var(--gold);font-size:38px}
 .sub{color:var(--muted);font-size:13.5px;margin-top:-6px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{position:relative;display:grid;gap:2px;padding:14px 14px 12px;border-radius:16px;text-decoration:none;color:#04281b;min-height:92px;align-content:end;overflow:hidden}
+.mode.m{background:linear-gradient(135deg,var(--acc),#12c987)}.mode.p{background:linear-gradient(135deg,var(--acc2),#2f9bff);color:#041c2b}
+.mode small{font:700 10.5px var(--f-num);letter-spacing:.14em;opacity:.7}.mode b{font:400 20px/1.15 var(--f-head)}
+.mode i{position:absolute;right:12px;top:10px;font-style:normal;font-weight:900;font-size:20px}
+.mode .save{font-size:11.5px;color:inherit;opacity:.85;min-height:0;font-weight:700}
+.modeinfo{color:var(--muted);font-size:12.5px;margin-top:-4px}.modeinfo b{color:var(--txt)}
 .card{display:grid;gap:10px;padding:18px 16px;border-radius:20px;text-decoration:none;color:inherit;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);position:relative;overflow:hidden;min-height:150px}
 .card::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;opacity:.18}
 .card.m::after{background:var(--acc)}.card.p::after{background:var(--acc2)}
@@ -69,7 +76,8 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .card .go{margin-top:4px;display:flex;justify-content:space-between;align-items:center;min-height:50px;padding:0 18px;border-radius:14px;background:linear-gradient(90deg,var(--acc),#12c987);color:var(--acc-ink);font-weight:900}
 .card.p .go{background:linear-gradient(90deg,var(--acc2),#2f9bff)}
 .save{font-size:12.5px;color:var(--gold);min-height:18px}
-.soon{padding:12px 14px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:13px}
+.soon{padding:12px 14px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:12.5px}
+@media(max-width:560px){.jersey{padding:12px}.jwall{grid-template-columns:repeat(3,1fr);gap:8px}.jw svg{max-width:84px}.jw b{font-size:12.5px}.hof h2{font-size:19px}.board{padding:12px}.rk{padding:8px 10px}.rk .who small{white-space:normal}}
 footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margin-top:6px}
 </style>
 </head>
@@ -78,20 +86,12 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
 <main>
   <div class="brand"><span class="k">K</span>LEGEND<b>38</b></div>
   <p class="sub">팬이 만든 비영리 K리그 시뮬레이션 · 모드를 골라 주세요</p>
-  <a class="card m" href="manager.html">
-    <small>MANAGER MODE</small><h2>감독판 · K-레전드 38</h2>
-    <p>역대 레전드 카드를 뽑아 베스트 11을 짜고, K리그1·FA컵·AFC 챔피언스리그 38경기에 도전해요.</p>
-    <span class="save" id="saveM"></span>
-    <span class="go"><span>감독으로 시작</span><span>→</span></span>
-  </a>
-  <a class="card p" href="player.html">
-    <small>PLAYER MODE</small><h2>선수판 · K-라이프</h2>
-    <p>중학교 유소년부터 은퇴까지. 훈련·계약·이적·국가대표·병역, 발롱도르와 영구결번에 도전해요.</p>
-    <span class="save" id="saveP"></span>
-    <span class="go"><span>선수로 시작</span><span>→</span></span>
-  </a>
-  <div class="soon"><b>업데이트 예정</b><br>· 선수판: 라리가 · 분데스리가 · 리그 1 · 세리에 A · 챔피언십 실제 선수 명단 (리그 하나씩 순서대로)<br>· 선수판: J리그 · 사우디 프로리그 이적과 AFC 챔피언스리그 확장<br>· 선수판: 유로파리그, 각국 리그 승강<br>· 선수판: 감독의 전술 색(공격·수비·점유 등)과 내가 선호하는 포지션·역할이 맞는지에 따라 달라지는 출전·성장
-<br>· 감독판: 시즌 도중 이벤트·인터뷰, 커리어 성장 요소, K리그 기록 업적, 달력 개편<br>· 감독판: 모바일 화면 다듬기</div>
+  <div class="modes">
+    <a class="mode m" href="manager.html"><small>MANAGER</small><b>감독판 플레이</b><span class="save" id="saveM"></span><i>→</i></a>
+    <a class="mode p" href="player.html"><small>PLAYER</small><b>선수판 플레이</b><span class="save" id="saveP"></span><i>→</i></a>
+  </div>
+  <p class="modeinfo"><b>감독판</b> 역대 레전드 카드로 베스트 11을 짜서 K리그1·FA컵·AFC 챔스 38경기에 도전 · <b>선수판</b> 중학교 유소년부터 은퇴까지, 발롱도르와 영구결번에 도전</p>
+  <div class="soon"><b>업데이트 예정</b><br>· 선수판: 2부 리그 승강(라리가·분데스리가·리그 1·세리에 A), 리그별 컵대회 보강<br>· 선수판: 감독의 전술 색과 내 선호 역할이 맞을 때·안 맞을 때의 상황<br>· 선수판: 더 많은 이벤트와 스토리, 연출 다듬기<br>· 감독판(다음 주): 시즌 도중 이벤트·인터뷰, 커리어 성장 요소, K리그 기록 업적, 달력 개편, 모바일 화면</div>
   <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
 </main>
 <aside class="col" id="jerCol">
@@ -119,7 +119,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   function get(path){ return fetch(C.SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:C.SUPABASE_ANON_KEY,Authorization:"Bearer "+C.SUPABASE_ANON_KEY}}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
   function rows(list,fn,emptyMsg){ if(!list.length) return '<p class="empty">'+emptyMsg+'</p>'; return list.map(function(x,i){ var o=fn(x); return '<button type="button" class="rk r'+(i+1)+'" data-i="'+i+'"><span class="no">'+(i+1)+'</span><div class="who"><b>'+esc(o.t)+'</b><small>'+esc(o.s)+'</small></div><div class="sc">'+esc(o.v)+'<small>'+esc(o.u)+'</small></div></button>'; }).join(""); }
   var jg=document.getElementById("jGrid"), js=document.getElementById("jStat");
-  document.addEventListener("click",function(e){ var b=e.target.closest(".rk"); if(!b||!window.KLHofView) return; var box=b.parentNode.id; var i=+b.getAttribute("data-i"); if(box==="hofM"&&mRows[i]) KLHofView.manager(mRows[i]); else if(box==="hofP"&&pRows[i]) KLHofView.player(pRows[i]); });
+  document.addEventListener("click",function(e){ var jb=e.target.closest(".jw"); if(jb&&window.KLHofView){ var jr=jRows[+jb.getAttribute("data-ri")]; if(jr) KLHofView.player(jr); return; } var b=e.target.closest(".rk"); if(!b||!window.KLHofView) return; var box=b.parentNode.id; var i=+b.getAttribute("data-i"); if(box==="hofM"&&mRows[i]) KLHofView.manager(mRows[i]); else if(box==="hofP"&&pRows[i]) KLHofView.player(pRows[i]); });
   function hue(s){ var x=0; for(var i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))%360; return x; }
   function shirt(n,club){
     var hh=hue(club||"x"), c1="hsl("+hh+",62%,42%)", c2="hsl("+hh+",62%,30%)", t=String(n); var fs=t.length>2?34:46;
@@ -130,12 +130,12 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   }
   function jersey(){
     function q(sel){ return get("life_hof?select="+sel+"&jersey=gt.0&order=created_at.desc&limit=60"); }
-    q("name,nickname,club,jerseys,jersey,created_at").catch(function(){ return q("name,nickname,club,jersey,created_at"); }).then(function(l){
-      var items=[]; l.forEach(function(x){ if(x.jerseys&&x.jerseys.length) x.jerseys.forEach(function(j){ items.push({n:j.number,club:j.club,name:x.name,by:x.nickname}); }); else items.push({n:"★",club:x.club,name:x.name,by:x.nickname}); });
+    q("*").then(function(l){
+      var items=[]; jRows=l; l.forEach(function(x,ri){ if(x.jerseys&&x.jerseys.length) x.jerseys.forEach(function(j){ items.push({n:j.number,club:j.club,name:x.name,by:x.nickname,ri:ri}); }); else items.push({n:"★",club:x.club,name:x.name,by:x.nickname,ri:ri}); });
       if(!items.length){ jg.innerHTML='<p class="empty">아직 영구결번이 나오지 않았어요. 한 구단에서 오래, 압도적으로 활약해 보세요.</p>'; js.innerHTML=""; return; }
       var clubs={}; items.forEach(function(i){ clubs[i.club]=1; });
       js.innerHTML='<span><b>'+items.length+'</b> 개 영구결번</span><span><b>'+Object.keys(clubs).length+'</b> 개 구단</span>';
-      jg.innerHTML=items.slice(0,12).map(function(i){ return '<div class="jw">'+shirt(i.n,i.club)+'<b>'+esc(i.name)+'</b><small>'+esc(i.club)+' · by '+esc(i.by)+'</small></div>'; }).join("");
+      jg.innerHTML=items.slice(0,12).map(function(i){ return '<button type="button" class="jw" data-ri="'+i.ri+'">'+shirt(i.n,i.club)+'<b>'+esc(i.name)+'</b><small>'+esc(i.club)+' '+(i.n==="★"?'영구결번':'No.'+esc(i.n)+' 영구결번')+'</small></button>'; }).join("");
     }).catch(function(){ jg.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
   }
   jersey();
@@ -145,7 +145,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   }).catch(function(){ document.getElementById("srvStat").innerHTML='<span class="empty">집계를 불러오지 못했어요.</span>'; });
   var m=document.getElementById("hofM"), p=document.getElementById("hofP");
   if(!C.SUPABASE_URL){ m.innerHTML=p.innerHTML='<p class="empty">서버 설정이 없어요.</p>'; return; }
-  var mRows=[], pRows=[];
+  var mRows=[], pRows=[], jRows=[];
   get("results?select=nickname,team_name,manager,w,d,l,pts,gf,ga,rank,form,xi,diff,season,team&diff=eq.hard&order=pts.desc,gf.desc&limit=3").then(function(l){
     mRows=l; m.innerHTML=rows(l,function(x){ return {t:x.nickname+" · "+x.team_name,s:x.w+"승 "+x.d+"무 "+x.l+"패 · "+x.rank+"위 · "+x.form+(x.manager?" · 감독 "+x.manager:""),v:x.pts,u:"승점"}; },"아직 어려움 난이도 기록이 없어요. 어려움으로 시즌을 마치고 첫 기록을 올려 보세요!"); }).catch(function(){ m.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
   function loadP(sel){ return get("life_hof?select="+sel+"&order=score.desc&limit=3"); }

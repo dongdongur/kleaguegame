@@ -212,7 +212,7 @@ function compCard(){
   const key=S.stage==="youth"||S.stage==="univ"?"YOUTH":L.leagueKey(S); const names=[];
   names.push(key==="YOUTH"?(S.stage==="univ"?"대학 리그":(S.club.abroad?"해외 유스 리그":"유소년 리그")):L.lgLabel(key==="K1"&&S.club.lg==="MIL"?"MIL":key));
   if(key==="K1"||key==="K2") names.push("FA컵"); if(L.isForeign(key)) L.cupNames(key).forEach(n=>names.push(n)); if(key==="YOUTH") names.push("전국대회");
-  if(key==="K1"&&S.acl) names.push("AFC 챔피언스리그 🌏"); if(L.isForeign(key)&&S.uel&&!S.ucl) names.push("UEFA 유로파리그 🟠"); if(L.isForeign(key)&&S.ucl) names.push("UEFA 챔피언스리그 ⭐");
+  if((key==="K1"||(L.FL[key]&&L.FL[key].acl))&&S.acl) names.push("AFC 챔피언스리그 🌏"); if(L.isForeign(key)&&S.uel&&!S.ucl) names.push("UEFA 유로파리그 🟠"); if(L.isForeign(key)&&S.ucl) names.push("UEFA 챔피언스리그 ⭐");
   return `<p class="note">🏟 올해 출전 대회: ${names.map(esc).join(" · ")}${(key==="K1"&&S.acl)?"<br><small>지난 시즌 성적(또는 구단 전력)으로 AFC 챔피언스리그 출전권을 얻었어요.</small>":""}</p>`;
 }
 function prepView(){
