@@ -107,7 +107,8 @@ function homeView(){
     <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button></section>
    <section class="card"><h3 class="sec">명예의 전당</h3>${hof.length?hof.slice().sort((a,b)=>b.score-a.score).slice(0,10).map((x,i)=>`<div class="hof"><b>${i+1}</b><div><b>${esc(x.name)}</b><br><small>${esc(x.pos)} · ${esc(x.club)} · ${x.years}년 · 통산 ${x.goals}골 ${x.assists}도움${x.retire?" · 영구결번":""}</small></div><span class="pill gold">${x.grade} ${x.score}</span></div>`).join(""):`<p class="muted">아직 은퇴한 선수가 없어요.</p>`}</section>
    <div class="grid2"><button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button><button class="wide" data-act="dex">📖 이벤트 도감</button></div>
-   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 결혼·자녀 이야기 확대, 광고 계약 동시 다중 슬롯<br>· 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 감독판: 시즌 전 예상 비교, 시즌 도중 이벤트·인터뷰, 커리어 성장, K리그 기록 업적 (다음 주)</p></section>
+   <a class="wide" href="patch-notes.html" style="display:grid;place-items:center;text-decoration:none">📰 패치노트${(()=>{ try{ return window.KL_PATCH_LATEST&&localStorage.getItem("kl-patch-seen")!==window.KL_PATCH_LATEST?" 🔴 NEW":""; }catch(e){ return ""; } })()}</a>
+   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 자녀 대회·유소년 시절 이야기 확대<br>· 감독판: 시즌 전 예상 비교, 시즌 도중 이벤트·인터뷰, 커리어 성장, K리그 기록 업적 (다음 주)</p></section>
    <p class="muted c"><a class="lnk" href="index.html">게임 선택 메뉴로</a>${S?` · <button class="lnk" data-act="wipe">저장 삭제</button>`:""}</p></main>`;
 }
 
@@ -315,7 +316,7 @@ function resultView(){
    ${comps}${R.nextAcl?`<p class="note good">🌏 다음 시즌 AFC 챔피언스리그 출전권을 얻었어요!</p>`:""}${R.nextUel?`<p class="note good">🟠 다음 시즌 UEFA 유로파리그에 진출해요!</p>`:""}${R.nextUcl?`<p class="note good">⭐ 다음 시즌 UEFA 챔피언스리그에 진출해요!</p>`:""}
    ${(R.natEvents||[]).map(e=>e.skipped?`<p class="note warn">🇰🇷 ${esc(e.name)} — ${esc(e.text)}</p>`:e.declined?`<p class="note warn">🇰🇷 ${esc(e.name)} — 소집 불참</p>`:`<p class="note ${e.title?"good":""}">🇰🇷 ${esc(e.name)}${e.host?" ("+esc(e.host)+")":""} · ${esc(e.stage)} (팀 ${e.games||e.caps}경기 중 ${e.caps}경기 출전 · ${e.goals}골)${e.exempt?" · 병역 특례!":""}</p>`).join("")}
    ${R.injury?`<p class="note warn">🩹 ${esc(R.injury.text)}</p>`:""}${R.bonus?`<p class="note good">💰 옵션 보너스 ${R.bonus}억 (${(R.bonusHit||[]).map(esc).join(", ")})</p>`:""}
-   ${R.endorse?`<p class="note ${R.endorse.ok?"good":"warn"}">🤝 ${esc(R.endorse.brand)} 광고 ${R.endorse.ok?"조건 달성":"조건 미달"} — ${money(R.endorse.pay)}</p>`:""}${R.famNote?`<p class="note">${esc(R.famNote)}</p>`:""}
+   ${(R.endorses||[]).map(e=>`<p class="note ${e.ok?"good":"warn"}">🤝 ${esc(e.brand)} 광고 ${e.ok?"조건 달성":"조건 미달"} — ${money(e.pay)}</p>`).join("")}${R.famNote?`<p class="note">${esc(R.famNote)}</p>`:""}
    ${S.promoNote?`<p class="note">${esc(S.promoNote)}</p>`:""}
    ${boardCard(R)}
    ${R.table?`<button class="wide" data-act="det">${openDet?"▾":"▸"} 내 경기 기록 보기</button>${openDet?`<section class="card flat">${(R.matches||[]).filter(m=>m.min>0).slice(0,60).map(m=>`<div class="mrow ${m.res}"><b>${m.comp==="리그"?m.r+"R":esc(m.comp.slice(0,3))}</b><span>${m.home?"홈":"원정"} ${esc(L.teamName({teams:R.simTeams||[]},m.opp))}</span><small>${m.g?m.g+"골 ":""}${m.as?m.as+"도움 ":""}${m.rt}</small><em>${m.f}:${m.a}</em></div>`).join("")}</section>`:""}`:""}
@@ -333,7 +334,7 @@ function offseasonView(){
   const lg=S.club.lg==="MIL"?"K1":S.club.lg, pay=L.clubPayroll(S,S.club.id,lg);
   let h=`<small class="kick">OFFSEASON · 이적 시장</small><h2>${S.year+1}년 오프시즌</h2>`;
   if(S.promoNote) h+=`<p class="note">${esc(S.promoNote)}</p>`;
-  if(off.retire){ h+=`<section class="card"><p class="note warn">${esc(S.p.name)}의 나이와 기량으로는 더 이상 계약을 이어 가기 어려워요.</p></section><div class="cta"><button class="big" data-act="retire"><span>현역 은퇴</span><b>→</b></button></div>`; return h; }
+  if(off.retire){ h+=`${L.canPlayCoach&&L.canPlayCoach(S)?`<section class="card flat"><h3 class="sec">🧑‍🏫 플레잉코치 제안</h3><p class="muted">계약은 끝났지만 플레잉코치로 남을 수 있어요. 연봉 25% 감소, 출전 비중 낮음, 팀 전력 +0.5, 은퇴 후 지도자의 길 보너스. 42세까지 뛸 수 있어요.</p><button class="wide" data-act="pcoach">플레잉코치로 남기</button></section>`:""}<section class="card"><p class="note warn">${esc(S.p.name)}의 나이와 기량으로는 더 이상 계약을 이어 가기 어려워요.</p></section><div class="cta"><button class="big" data-act="retire"><span>현역 은퇴</span><b>→</b></button></div>`; return h; }
   if(off.mil&&!off.milDone){
     h+=`<section class="card"><h3 class="sec">병역</h3><p class="muted">${off.mil.must?"올해는 병역을 해결해야 해요. 상무에 지원하거나 현역으로 입대해요.":"병역을 미리 해결할 수 있어요. 상무는 선발되어야 해요."}</p>
      ${off.mil.canMil?`<button class="wide" data-act="mil" data-v="sangmu">김천 상무 지원</button>`:`<p class="muted">상무 지원은 OVR 66 이상부터 가능해요.</p>`}
@@ -351,10 +352,10 @@ function offseasonView(){
      <div class="grid2"><button class="ghost" data-act="renego" ${off.renego?"disabled":""}>재협상 (1회)</button><button class="ghost" data-act="accept">계약 수락</button></div>
      ${off.accepted?`<p class="note good">계약 완료: 연봉 ${money(S.salary)} · ${S.contractYears}년${S.incentives.length?" · 옵션 "+S.incentives.length+"개":""}</p>`:""}</section>`;
   } else h+=`<section class="card"><h3 class="sec">계약</h3><p class="muted">연봉 ${money(S.salary)} · 계약 ${S.contractYears}년 남음</p>${pay?`<div class="pay"><small>구단 최고 연봉</small><b>${money(pay.top.sal)}</b><small>구단 최저 연봉</small><b>${money(pay.low.sal)}</b></div>`:""}</section>`;
-  if(S.endorse) h+=`<section class="card flat"><h3 class="sec">광고 계약 중</h3><p class="muted">${esc(S.endorse.brand)} · 연 ${money(S.endorse.fee)} · ${S.endorse.years}년 남음 — 조건: ${esc(S.endorse.clause.label)}</p></section>`;
-  else if(off.endorse&&off.endorse.length) h+=`<h3 class="sec">광고 제의 <small class="muted">하나만 고를 수 있어요</small></h3>${off.endorse.map((o,i)=>`<button class="offer" data-act="endorse" data-v="${i}"><div><b>${esc(o.brand)}</b><small>${o.years}년 계약 · 조건: ${esc(o.clause.label)} (못 채우면 절반만)</small><span class="sal">연 ${money(o.fee)}</span></div></button>`).join("")}`;
+  if(L.endorsesOf(S).length) h+=`<section class="card flat"><h3 class="sec">광고 계약 중 <small class="muted">슬롯 ${L.endorsesOf(S).length}/${L.endorseSlots(S)}</small></h3>${L.endorsesOf(S).map(e=>`<p class="muted">🤝 ${esc(e.brand)} · 연 ${money(e.fee)} · ${e.years}년 남음 — 조건: ${esc(e.clause.label)}</p>`).join("")}${L.endorseFree(S)>0?`<small class="muted">슬롯이 ${L.endorseFree(S)}개 남아 있어요. 인기가 30·70·150을 넘으면 슬롯이 늘어요.</small>`:`<small class="muted">슬롯이 가득 찼어요.</small>`}</section>`;
+  if(off.endorse&&off.endorse.length&&L.endorseFree(S)>0) h+=`<h3 class="sec">광고 제의 <small class="muted">슬롯 ${L.endorseFree(S)}개 남음 · 여러 개 고를 수 있어요</small></h3>${off.endorse.map((o,i)=>`<button class="offer" data-act="endorse" data-v="${i}"><div><b>${esc(o.brand)}</b><small>${o.years}년 계약 · 조건: ${esc(o.clause.label)} (못 채우면 절반만)</small><span class="sal">연 ${money(o.fee)}</span></div></button>`).join("")}`;
   h+=`<h3 class="sec">이적 제의</h3>${off.transfers.length?off.transfers.map((o,i)=>`<button class="offer" data-act="transfer" data-v="${i}">${emblem(o.club,48)}<div><b>${esc(o.club.name)}</b><small>${esc(o.tag)} · 전력 ${o.lvl} · 예상 ${esc(o.role)}</small><span class="sal">연봉 ${money(o.salary)} · ${o.years}년</span></div></button>`).join(""):`<p class="muted">${inMil?"복무 중에는 이적 제의가 오지 않아요.":"지금은 들어온 이적 제의가 없어요."}</p>`}`;
-  h+=`${L.canRetire(S)?`<button class="wide red" data-act="retire">현역 은퇴</button>`:""}
+  h+=`${L.canPlayCoach&&L.canPlayCoach(S)?`<section class="card flat"><h3 class="sec">🧑‍🏫 플레잉코치 제안</h3><p class="muted">선수와 코치를 겸하는 길이에요. 연봉은 25% 줄고 출전 비중은 낮아지지만, 팀 전력 +0.5와 신뢰·평판이 오르고 은퇴 후 지도자의 길에서 크게 유리해요. 능력이 떨어져도 42세까지 뛸 수 있어요.</p><button class="wide" data-act="pcoach">플레잉코치로 전환</button></section>`:""}${S.playcoach?`<p class="note good">🧑‍🏫 플레잉코치 ${S.pcYears||0}년차</p>`:""}${L.canRetire(S)?`<button class="wide red" data-act="retire">현역 은퇴</button>`:""}
    <div class="cta"><button class="big ${(!inMil&&S.contractYears<=1&&!off.accepted)?"needs":""}" data-act="nextyear"><span>${(!inMil&&S.contractYears<=1&&!off.accepted)?"계약을 먼저 확정해 주세요 ↑":"다음 시즌으로"}</span><b>→</b></button></div>`;
   return h;
 }
@@ -366,11 +367,15 @@ function playerTab(){
    ${d.stats.map(([k,n])=>`<div class="sbar"><span>${n}</span><div class="bar"><i style="width:${p.stats[k]}%"></i></div><b>${p.stats[k]}</b></div>`).join("")}
    <div class="three"><div class="stat"><small>최고 OVR</small><b>${p.peak}</b></div><div class="stat"><small>재능${b.final?"":" 예상"}</small><b>${b.label}</b></div><div class="stat"><small>나이</small><b>${age()}</b></div></div>
    ${b.final?"":`<p class="muted">재능 등급은 20세 시즌이 끝나면 확정돼요. 경기 결과와 성장에 따라 달라질 수 있어요.</p>`}</section>
-   ${styleCard()}
+   ${styleCard()}${familyCard()}
    ${meters()}
    <section class="card flat"><h3 class="sec">계약</h3><div class="pay"><small>소속</small><b>${esc(S.club.name)}</b><small>연봉</small><b>${S.stage==="pro"?money(S.salary):"-"}</b><small>계약 기간</small><b>${S.stage==="pro"?S.contractYears+"년":"-"}</b><small>보유 자금</small><b>${money(S.funds)}</b><small>가정 환경</small><b>${S.family?esc(S.family.name)+(L.familyPts(S)?" · "+L.familyPts(S)+"점":""):"-"}</b><small>병역</small><b>${({none:"미필",exempt:"특례(면제)",sangmu:"상무 복무 중",serving:"현역 복무 중",served:"군필"})[S.military]||"-"}</b></div>${S.incentives.length?`<span class="lab">연봉 옵션</span>${S.incentives.map(o=>`<p class="muted">· ${esc(o.label)} (+${o.bonus}억)</p>`).join("")}`:""}
-    ${S.endorse?`<p class="muted">🤝 ${esc(S.endorse.brand)} 광고 · 연 ${money(S.endorse.fee)}</p>`:""}${(S.cars||[]).length?`<p class="muted">🚗 보유 차량: ${(S.cars).map(c=>esc(c.name)).join(", ")}</p>`:""}
+    ${L.endorsesOf(S).map(e=>`<p class="muted">🤝 ${esc(e.brand)} 광고 · 연 ${money(e.fee)}</p>`).join("")}${(S.cars||[]).length?`<p class="muted">🚗 보유 차량: ${(S.cars).map(c=>esc(c.name)).join(", ")}</p>`:""}
     <button class="wide" data-act="shop">💸 소비·후원</button></section>`;
+}
+function familyCard(){
+  if(!S.married&&!S.dating&&!(S.kids||[]).length) return ""; const ks=S.kids||[];
+  return `<section class="card flat"><h3 class="sec">가족</h3><p class="muted">${S.married?"💍 "+S.married.year+"년 결혼":S.dating?"💕 연애 중":""}</p>${ks.map(k=>`<div class="row"><span style="font-size:22px">${k.girl?"👧":"👦"}</span><div class="grow"><b>${esc(k.name)}</b> <small class="muted">${L.kidAge(S,k)}세</small><br><small class="muted">${k.hinted?esc(k.grade+"급 · "+L.kidHint(k)):L.kidAge(S,k)>=8?"재능 조짐을 지켜보는 중":"아직 어려요"}</small></div></div>`).join("")}</section>`;
 }
 function styleCard(){
   const p=S.p, r=L.roleDef(p.sub,p.role), f=L.footInfo(p.sub,p.foot), tr=L.TRAIT_ALL.find(t=>t.id===p.trait), ty=L.TYPES[p.pos].find(x=>x[0]===p.type);
@@ -418,7 +423,7 @@ function mainClub(){ const e=Object.entries(S.clubYears||{}).sort((a,b)=>b[1]-a[
 function hofDetail(){
   const p=S.p, d=L.POSDEF[p.pos], pro=S.history.filter(h=>!h.youth), hid=p.hidden?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null, tr=L.TRAIT_ALL.find(t=>t.id===p.trait);
   return {v:1,ovr:p.ovr,stats:d.stats.map(([k,n])=>[n,p.stats[k]]),sub:subName(),role:L.roleName(p),foot:p.foot,height:p.height,weight:p.weight,trait:tr?tr.icon+" "+tr.name:"",hidden:hid?hid.name:"",
-    after:S.after?{name:S.after.name,title:S.after.title,lines:S.after.lines.map(x=>[x.y,x.t])}:null,fame:Math.round(S.fameMax||S.fame),fameTier:L.fameTier(S.fameMax||S.fame).name,char:Math.round(L.charOf(S)),charTier:L.charTier(L.charOf(S)).name,styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
+    family:{married:!!S.married,kids:(S.kids||[]).map(k=>k.name+"("+(k.girl?"딸":"아들")+")")},after:S.after?{name:S.after.name,title:S.after.title,lines:S.after.lines.map(x=>[x.y,x.t])}:null,fame:Math.round(S.fameMax||S.fame),fameTier:L.fameTier(S.fameMax||S.fame).name,char:Math.round(L.charOf(S)),charTier:L.charTier(L.charOf(S)).name,styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
     jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number})),chain:L.clubChain(S).map(c=>c.name+" ("+c.from+(c.to>c.from?"~"+c.to:"")+")"),ballon:S.ballon.map(b=>[b.year,b.rank]),
     seasons:pro.map(h=>[h.age,h.club,h.leagueName||h.lg||"",h.apps,h.goals,h.assists,h.rating,h.ovr1])};
 }
@@ -558,16 +563,18 @@ function quitView(){
    <button class="big" data-act="new"><span>다시, 새로운 인생</span><b>→</b></button><button class="wide" data-act="home">K-라이프 홈</button></main>`;
 }
 function childCard(){
-  const fam=L.childFamily(S);
+  const fam=L.childFamily(S); const kids=S.kids||[];
+  if(!kids.length) return `<section class="card flat"><small class="kick">NEXT GENERATION</small><h3 class="sec">세대 계승</h3><p class="muted">세대 계승은 결혼해서 자녀가 태어난 선수만 할 수 있어요. 다음 인생에서는 선수 시절에 가정을 꾸려 보세요. 자녀가 12세가 되기 전에 돈과 튜터링으로 미리 방향을 정해 줄 수 있어요.</p></section>`;
   return `<section class="card flat"><small class="kick">NEXT GENERATION</small><h3 class="sec">세대 계승 — 자녀로 이어하기</h3>
    <p class="muted">부모(전성기 OVR ${S.p.peak})의 재능이 자녀에게 이어져요. 같은 포지션이면 안정적이고, 다른 포지션을 고르면 부모보다 훨씬 좋거나 훨씬 나쁜 재능이 나올 수 있어요. 집안 형편은 부모의 커리어로 정해져요 (<b>${esc(fam.name)}</b>).</p>
-   <input type="text" id="kid" maxlength="8" placeholder="자녀 이름" value="${esc(S.p.name.slice(0,1))}">
-   <div class="chips">${Object.keys(L.POSDEF).map(k=>`<button data-act="kidpos" data-v="${k}" class="${(draft.kidPos||S.p.pos)===k?"on":""}">${POSK[k]}${k===S.p.pos?" (부모와 같음)":""}</button>`).join("")}</div>
-   <button class="wide" data-act="kid">자녀 키우기 →</button></section>`;
+   ${kids.length?`<p class="muted">내 아이들이에요. 한 명을 고르면 그 아이의 재능이 이어져요. 재능 조짐은 8세 즈음 보이기 시작해요.</p><div class="chips">${kids.map((k,i)=>`<button data-act="kidpick" data-v="${i}" class="${draft.kidPick===i?"on":""}">${esc(k.name)} · ${k.girl?"딸":"아들"} · ${L.kidAge(S,k)}세${k.hinted?" · "+k.grade+"급":""}</button>`).join("")}</div>`:""}
+   ${(()=>{ const kk=kids[draft.kidPick]; if(!kk) return `<p class="note warn">위에서 이어서 키울 자녀를 골라 주세요.</p>`; const inv=kk.inv||{}; const dir=kk.dir?POSK[kk.dir]:null; return `<p class="note">${esc(kk.name)}${kk.hinted?" · "+kk.grade+"급 재능 조짐":""} · 목표 포지션: <b>${dir||"미정 (아래에서 고르세요)"}</b><br><small class="muted">${Object.entries(L.KID_INV).filter(([k])=>inv[k]).map(([k,d])=>d.name+" "+inv[k]+"단계").join(" · ")||"아직 육성 기록이 없어요"}</small></p>${dir?"":`<div class="chips">${Object.keys(L.POSDEF).map(k=>`<button data-act="kidpos" data-v="${k}" class="${(draft.kidPos||S.p.pos)===k?"on":""}">${POSK[k]}${k===S.p.pos?" (부모와 같음)":""}</button>`).join("")}</div>`}`; })()}
+   <input type="hidden" id="kid" value="${esc(draft.kidName||"")}">
+   <button class="wide" data-act="kid">선택한 자녀로 새 인생 시작 →</button></section>`;
 }
 
 /* ================= 소비 · 후원 ================= */
-function shopTabs(m){ const t=m.tab||"buy"; return `<div class="chips shoptabs">${[["buy","🛍 소비"],["staff","🧑‍💼 스태프"],["invest","📈 투자"],["honor","🏅 명예"]].map(([k,n])=>`<button data-act="shoptab" data-v="${k}" class="${t===k?"on":""}">${n}</button>`).join("")}</div>`; }
+function shopTabs(m){ const t=m.tab||"buy"; return `<div class="chips shoptabs">${[["buy","🛍 소비"],["staff","🧑‍💼 스태프"],["invest","📈 투자"],["honor","🏅 명예"]].concat((S.kids||[]).length?[["kids","👶 자녀"]]:[]).map(([k,n])=>`<button data-act="shoptab" data-v="${k}" class="${t===k?"on":""}">${n}</button>`).join("")}</div>`; }
 function staffBody(){
   const tot=r1((S.staff||[]).reduce((s,id)=>{ const d=L.STAFF.find(x=>x.id===id); return s+(d?L.staffCost(S,d):0); },0));
   return `<p class="muted">전담 스태프는 해마다 비용을 내고 계속 도움을 받아요. 시즌이 끝날 때 자동으로 정산되고, 자금이 모자라면 계약이 끝나요. 현재 연 비용 <b>${money(tot)}</b>. (연봉이 높을수록 비용도 올라가요)</p>${L.STAFF.map(s=>{ const has=L.hasStaff(S,s.id), c=L.staffCost(S,s); return `<div class="card flat" style="gap:4px"><div class="row"><div class="grow"><b>${s.icon} ${esc(s.name)}</b> <span class="pill gold">연 ${money(c)}</span><br><small class="muted">${esc(s.desc)}</small></div>${has?`<button class="ghost" data-act="fire" data-v="${s.id}">해지</button>`:`<button class="ghost" data-act="hire" data-v="${s.id}" ${S.funds<c?"disabled":""}>고용</button>`}</div></div>`; }).join("")}`;
@@ -577,6 +584,11 @@ function investBody(){
   return `<p class="muted">투자 수익은 시즌이 끝날 때 반영돼요. 팔면 그 순간의 가치를 받아요. 보유 자산 <b>${money(L.assetValue(S))}</b>${S.assetProfit?` · 지금까지 실현 손익 ${S.assetProfit>=0?"+":""}${money(S.assetProfit)}`:""}</p>${L.ASSETS.map(d=>{ const a=(S.assets||[]).find(x=>x.id===d.id); const gain=a?r1(a.value-a.cost):0;
     return `<div class="card flat" style="gap:6px"><div class="row"><div class="grow"><b>${d.icon} ${esc(d.name)}</b> <span class="pill">최소 ${money(d.min)}</span><br><small class="muted">${esc(d.desc)}</small></div></div>${a?`<p class="note ${gain>=0?"good":"warn"}">보유 ${money(a.value)} (원금 ${money(a.cost)}, ${gain>=0?"+":""}${money(gain)})${a.last!=null?" · 작년 "+(a.last>=0?"+":"")+Math.round(a.last*100)+"%":""} <button class="ghost" data-act="sellasset" data-v="${d.id}" style="min-height:34px;margin-left:6px">전부 팔기</button></p>`:""}<div class="chips">${amts.filter(x=>x>=d.min&&x<=S.funds).map(x=>`<button data-act="buyasset" data-v="${d.id}:${x}">${x}억</button>`).join("")||'<small class="muted">투자할 자금이 부족해요</small>'}</div></div>`; }).join("")}`;
 }
+function kidsBody(){
+  const ks=S.kids||[]; return `<p class="muted">자녀가 12세가 되기 전까지 목표 포지션을 정하고 돈·튜터링으로 미리 키울 수 있어요. 은퇴 후 세대 계승 때 그 결과가 그대로 이어져요. (방향을 정한 포지션으로 이어 가면 효과가 더 커요)</p>${ks.map((k,i)=>{ const open=L.kidOpen(S,k), inv=k.inv||{}; return `<div class="card flat" style="gap:6px"><div class="row"><span style="font-size:22px">${k.girl?"👧":"👦"}</span><div class="grow"><b>${esc(k.name)}</b> <small class="muted">${L.kidAge(S,k)}세 · ${open?"육성 가능":"방향 확정"}</small><br><small class="muted">${k.hinted?esc(k.grade+"급 · "+L.kidHint(k)):"재능은 8세 즈음 조짐이 보여요"}</small></div></div>
+    <div class="chips">${Object.keys(L.POSDEF).map(p=>`<button data-act="kiddir" data-v="${i}:${p}" class="${k.dir===p?"on":""}" ${open?"":"disabled"}>${POSK[p]}</button>`).join("")}</div>
+    ${Object.entries(L.KID_INV).map(([key,d])=>`<div class="row"><div class="grow"><b>${d.name}</b> <span class="pill">${inv[key]||0}/${d.max}</span><br><small class="muted">${d.desc}</small></div><button class="ghost" data-act="kidinv" data-v="${i}:${key}" ${open&&(inv[key]||0)<d.max&&S.funds>=L.kidCost(S,key)?"":"disabled"}>${money(L.kidCost(S,key))}</button></div>`).join("")}</div>`; }).join("")}`;
+}
 function honorBody(){
   return `<p class="muted">돈으로 이름을 남기는 곳이에요. 항목마다 은퇴 후 커리어 점수가 오르고, 평판과 인기도 올라요.</p>${L.HONORS.map(h=>{ const has=L.hasHonor(S,h.id); return `<div class="card flat" style="gap:4px"><div class="row"><div class="grow"><b>${h.icon} ${esc(h.name)}</b> <span class="pill gold">${money(h.price)}</span><br><small class="muted">${esc(h.note)} · 커리어 점수 +${h.legacy}${h.rep?" · 평판 +"+h.rep:""}${h.fame?" · 인기 +"+h.fame:""}</small></div><button class="ghost" data-act="honor" data-v="${h.id}" ${has||S.funds<h.price?"disabled":""}>${has?"완료":"하기"}</button></div></div>`; }).join("")}`;
 }
@@ -585,8 +597,8 @@ function shopHtml(){
     return `<div class="card flat" style="gap:4px"><div class="row"><div class="grow"><b>${esc(it.name)}</b> <span class="pill gold">${money(it.price)}</span><br><small class="muted">${esc(it.note)} · 사기 +${it.mood}${it.cond?" · 컨디션 +"+it.cond:""}${it.fame?" · 인기 +"+it.fame:""}${it.rep?" · 평판 +"+it.rep:""}</small></div><button class="ghost" data-act="buy" data-v="${kind}:${it.id}" ${owned||S.funds<it.price?"disabled":""}>${owned?"보유":"구매"}</button></div></div>`; };
   return `<div class="ov"><div class="sheet"><div class="grab"></div><small class="kick">SPENDING</small><h3>소비·후원</h3><p class="muted">보유 자금 <b style="color:var(--gold)">${money(S.funds)}</b> · 차량은 해마다 가격의 5%가 유지비로 나가요.</p>
    ${m.msg?`<p class="note ${m.ok?"good":"warn"}">${esc(m.msg)}</p>`:""}
-   ${shopTabs(m)}${(m.tab||"buy")==="buy"?`<h3 class="sec">자동차</h3>${L.CARS.map(c=>row("car",c)).join("")}<h3 class="sec">생활·기부</h3>${L.GIFTS.map(g=>row("gift",g)).join("")}`:m.tab==="staff"?staffBody():m.tab==="invest"?investBody():honorBody()}
-   <p class="muted">${S.endorse?"광고 계약 중: "+esc(S.endorse.brand):"광고 제의는 인기가 높아지면 오프시즌에 들어와요."}</p><button class="wide" data-act="mok">닫기</button></div></div>`;
+   ${shopTabs(m)}${(m.tab||"buy")==="buy"?`<h3 class="sec">자동차</h3>${L.CARS.map(c=>row("car",c)).join("")}<h3 class="sec">생활·기부</h3>${L.GIFTS.map(g=>row("gift",g)).join("")}`:m.tab==="staff"?staffBody():m.tab==="invest"?investBody():m.tab==="kids"?kidsBody():honorBody()}
+   <p class="muted">${L.endorsesOf(S).length?"광고 계약 중: "+L.endorsesOf(S).map(e=>esc(e.brand)).join(", ")+" (슬롯 "+L.endorsesOf(S).length+"/"+L.endorseSlots(S)+")":"광고 제의는 인기가 높아지면 오프시즌에 들어와요."}</p><button class="wide" data-act="mok">닫기</button></div></div>`;
 }
 
 /* ================= 팝업 ================= */
@@ -748,6 +760,9 @@ document.addEventListener("click",e=>{
     case "xi": modals.push({t:"xi",list:L.bestXI(S,S.lastR)}); render(); break;
     case "shop": modals.push({t:"shop"}); keep(render); break;
     case "after": { L.afterDo(S,v); save(); keep(render); break; }
+    case "kiddir": { const [i,p]=v.split(":"); const r=L.kidDirect(S,+i,p); const m=modals[0]; if(m){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
+    case "kidinv": { const [i,key]=v.split(":"); const r=L.kidInvest(S,+i,key); const m=modals[0]; if(m){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
+    case "pcoach": { L.setPlayCoach(S); off=null; save(); say("플레잉코치로 전환했어요"); break; }
     case "shoptab": { const m=modals[0]; if(m&&m.t==="shop"){ m.tab=v; m.msg=null; } keep(render); break; }
     case "hire": { const r=L.hire(S,v); const m=modals[0]; if(m){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
     case "fire": { const r=L.fire(S,v); const m=modals[0]; if(m){ m.msg=r.text; m.ok=true; } save(); keep(render); break; }
@@ -755,7 +770,7 @@ document.addEventListener("click",e=>{
     case "sellasset": { const r=L.sellAsset(S,v); const m=modals[0]; if(m){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
     case "honor": { const r=L.buyHonor(S,v); const m=modals[0]; if(m){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
     case "buy": { const [kind,id]=v.split(":"); const r=L.buyItem(S,kind,id); const m=modals[0]; if(m&&m.t==="shop"){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
-    case "endorse": { const o=off.endorse[+v]; L.signEndorse(S,o); off.endorse=[]; save(); say(o.brand+"와 광고 계약을 맺었어요"); break; }
+    case "endorse": { const o=off.endorse[+v]; L.signEndorse(S,o); off.endorse.splice(+v,1); if(L.endorseFree(S)<=0) off.endorse=[]; save(); say(o.brand+"와 광고 계약을 맺었어요"); break; }
     case "offseason": goOffseason(); break;
     case "nextyear": if(off&&S.stage==="pro"&&S.contractYears<=1&&!off.accepted&&!(S.club.lg==="MIL"||S.military==="serving"||S.military==="sangmu")){ hint("[data-act=accept]","계약을 먼저 확정해 주세요"); break; } nextYear(); break;
     case "inc": chosenInc=chosenInc.includes(v)?chosenInc.filter(x=>x!==v):chosenInc.concat(v); keep(render); break;
@@ -764,8 +779,9 @@ document.addEventListener("click",e=>{
     case "transfer": { const o=off.transfers[+v]; askSign("이적 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약"],()=>{ if(L.doTransfer(S,o)===false){ say("군 복무 중에는 이적할 수 없어요"); return; } off.accepted=true; leagueWelcome(); off.transfers=[]; off.contract={last:o.salary,offer:o.salary,rate:0,years:o.years}; S.contractYears=o.years; save(); say(o.club.name+"(으)로 이적했어요"); }); break; }
     case "mil": { if(v==="skip"){ off.milDone=true; } else { L.enlist(S,v); off.milDone=true; off.transfers=[]; off.endorse=[]; off.contract=L.contractOffer(S); } save(); keep(render); break; }
     case "retire": doRetire(); break;
+    case "kidpick": { draft.kidPick=+v; const k=(S.kids||[])[+v]; if(k) draft.kidName=k.name; keep(render); break; }
     case "kidpos": { const k=(document.getElementById("kid")||{}).value; draft.kidName=k; draft.kidPos=v; keep(render); break; }
-    case "kid": { const nm=((document.getElementById("kid")||{}).value||draft.kidName||"").trim(); if(nm.length<2){ say("자녀 이름을 두 글자 이상 적어 주세요"); break; } const pos=draft.kidPos||S.p.pos; const res=L.createChild(S,{name:nm,pos,trait:S.p.trait}); const par=S; S=res.state; plan=NEWPLAN(); view="game"; tab="season"; save();
+    case "kid": { const kk0=(S.kids||[])[draft.kidPick]; if(!kk0){ say("이어서 키울 자녀를 먼저 골라 주세요"); break; } const nm=kk0.name; const pos=kk0.dir||draft.kidPos||S.p.pos; const kidObj=(draft.kidPick!=null&&(S.kids||[])[draft.kidPick]&&(S.kids[draft.kidPick].name===nm))?S.kids[draft.kidPick]:null; const res=L.createChild(S,{name:nm,pos,trait:S.p.trait,kid:kidObj}); const par=S; S=res.state; plan=NEWPLAN(); view="game"; tab="season"; save();
       const tl=res.talent; modals.push({t:"msg",kick:"NEXT GENERATION",title:nm+" — "+par.p.name+"의 "+(S.gen)+"세대",body:(tl.same?"부모와 같은 포지션이라 재능이 안정적으로 이어졌어요.":"다른 포지션을 선택해 재능이 크게 달라질 수 있었어요.")+" 재능 바탕 "+tl.base+" (±"+tl.spread+" 범위)에서 뽑은 결과는 비밀이에요. 20세가 되면 스카우터가 알려줄 거예요. 집안 형편: "+S.family.name+"."}); render(); break; }
     case "dex": view="dex"; render(); break;
     case "hoflist": view="hof"; render(); hofLoad(); break;

@@ -70,6 +70,8 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .mode small{font:700 10.5px var(--f-num);letter-spacing:.14em;opacity:.7}.mode b{font:400 20px/1.15 var(--f-head)}
 .mode i{position:absolute;right:12px;top:10px;font-style:normal;font-weight:900;font-size:20px}
 .mode .save{font-size:11.5px;color:inherit;opacity:.85;min-height:0;font-weight:700}
+.plink{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--txt);text-decoration:none;font-weight:700;font-size:14px}
+.newdot{font:700 10.5px var(--f-num);letter-spacing:.1em;padding:2px 7px;border-radius:999px;background:#ff4d6d;color:#fff}
 .modeinfo{color:var(--muted);font-size:12.5px;margin-top:-4px}.modeinfo b{color:var(--txt)}
 .card{display:grid;gap:10px;padding:18px 16px;border-radius:20px;text-decoration:none;color:inherit;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);position:relative;overflow:hidden;min-height:150px}
 .card::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;opacity:.18}
@@ -94,8 +96,9 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
     <a class="mode m" href="manager.html"><small>MANAGER</small><b>감독판 플레이</b><span class="save" id="saveM"></span><i>→</i></a>
     <a class="mode p" href="player.html"><small>PLAYER</small><b>선수판 플레이</b><span class="save" id="saveP"></span><i>→</i></a>
   </div>
+  <a class="plink" href="patch-notes.html">📰 패치노트 <span class="newdot" id="pnNew" hidden>NEW</span></a>
   <p class="modeinfo"><b>감독판</b> 역대 레전드 카드로 베스트 11을 짜서 K리그1·FA컵·AFC 챔스 38경기에 도전 · <b>선수판</b> 중학교 유소년부터 은퇴까지, 발롱도르와 영구결번에 도전</p>
-  <div class="soon"><b>업데이트 예정</b><br>· 선수판: 결혼·자녀 이야기 확대, 광고 계약 동시 다중 슬롯<br>· 선수판: 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 감독판(다음 주): 시즌 전 예상 순위와 시즌 후 비교, 시즌 도중 이벤트·인터뷰, 겨울 이적 이벤트<br>· 감독판(다음 주): 커리어 성장 요소, K리그 기록 업적, 달력 개편, 모바일 화면</div>
+  <div class="soon"><b>업데이트 예정</b><br>· 선수판: 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 선수판: 자녀 대회·유소년 시절 이야기 확대, 더비 전용 대사 보강<br>· 감독판(다음 주): 시즌 전 예상 순위와 시즌 후 비교, 시즌 도중 이벤트·인터뷰, 겨울 이적 이벤트<br>· 감독판(다음 주): 커리어 성장 요소, K리그 기록 업적, 달력 개편, 모바일 화면</div>
   <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
 </main>
 <aside class="col" id="jerCol">
@@ -111,8 +114,10 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
 </aside>
 </div>
 <script src="js/config.js"></script>
+<script src="js/patchnotes.js"></script>
 <script src="js/hofview.js"></script>
 <script>
+(function(){ try{ var s=localStorage.getItem("kl-patch-seen"); if(window.KL_PATCH_LATEST&&s!==window.KL_PATCH_LATEST) document.getElementById("pnNew").hidden=false; }catch(e){} })();
 (function(){
   function rd(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
   var m=rd("kl38-saves"), p=rd("klife-save");

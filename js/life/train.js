@@ -94,8 +94,9 @@ L.seasonPost=function(S,R,sim){
   S.rep=clamp(S.rep+(R.rating-6.4)*4+(R.awards.length*6)+(R.trophies.length*3),0,100);
   S.fame=Math.max(0,S.fame+L.fameStep(S,((R.goals*.5+R.assists*.3)/Math.max(1,(R.apps/20))+(R.awards.length*6)+R.trophies.length*4)*tf.fame)); S.fameMax=Math.max(S.fameMax||0,S.fame); S.rep=clamp(S.rep+(L.charOf(S)-50)*.04,0,100);
   /* 후원 정산 */
-  R.endorse=null; const e=S.endorse; if(e){ const ok=L.endorseCheck(e,R,S); const pay=ok?e.fee:r1(e.fee*.5); S.funds=r1(S.funds+pay); S.career.sponsor=r1((S.career.sponsor||0)+pay);
-    R.endorse={brand:e.brand,ok,pay}; if(!ok) S.fame=Math.max(0,S.fame-2); e.years--; if(e.years<=0) S.endorse=null; }
+  R.endorse=null; R.endorses=[]; L.endorsesOf(S).slice().forEach(e=>{ const ok=L.endorseCheck(e,R,S); const pay=ok?e.fee:r1(e.fee*.5); S.funds=r1(S.funds+pay); S.career.sponsor=r1((S.career.sponsor||0)+pay);
+    R.endorses.push({brand:e.brand,ok,pay}); if(!ok) S.fame=Math.max(0,S.fame-2); e.years--; if(e.years<=0) S.endorses=S.endorses.filter(x=>x!==e); });
+  R.endorse=R.endorses[0]||null;
   /* 차량 유지비 */
   const upkeep=r1((S.cars||[]).reduce((a,c)=>a+c.price*.05,0)); if(upkeep>0){ S.funds=r1(Math.max(0,S.funds-upkeep)); R.upkeep=upkeep; }
   if(L.moneyYear) L.moneyYear(S,R);
@@ -180,9 +181,13 @@ L.buyItem=function(S,kind,id){
   return {ok:true,text:it.name+" 구매 완료! "+lines.join(" · ")};
 };
 L.BRANDS=[{id:"nako",name:"나O키"},{id:"adios",name:"아O다스"},{id:"pumer",name:"퓨머"},{id:"nbal",name:"뉴발O스"},{id:"undr",name:"언더O머"},{id:"mizo",name:"미O노"}];
+/* 광고 슬롯: 인기에 따라 동시에 맺을 수 있는 계약 수가 늘어요 (30·70·150 인기에서 +1) */
+L.endorseSlots=S=>S.fame>=150?4:S.fame>=70?3:S.fame>=30?2:1;
+L.endorsesOf=S=>{ if(!S.endorses) S.endorses=[]; if(S.endorse){ S.endorses.push(S.endorse); S.endorse=null; } return S.endorses; };
+L.endorseFree=S=>L.endorseSlots(S)-L.endorsesOf(S).length;
 L.endorseOffers=function(S){
-  if(S.stage!=="pro"||S.fame<14||S.endorse) return [];
-  const n=S.fame>=70?4:S.fame>=40?3:S.fame>=25?2:1; const bs=shuffle(L.BRANDS).slice(0,n); const p=S.p;
+  if(S.stage!=="pro"||S.fame<14||L.endorseFree(S)<=0) return [];
+  const have=L.endorsesOf(S).map(e=>e.id); const n=Math.min(L.endorseFree(S),S.fame>=70?4:S.fame>=40?3:S.fame>=25?2:1); const bs=shuffle(L.BRANDS.filter(b=>!have.includes(b.id))).slice(0,n); const p=S.p;
   const lgF=S.club&&L.isForeign(S.club.lg)?(S.club.lg==='EPL'||S.club.lg==='LAL'||S.club.lg==='BUN'||S.club.lg==='SEA'?1:.6):.28;
   return bs.map((b,bi)=>{ const star=Math.pow(L.fameEff(S.fame)/100,3.2)*Math.pow(clamp((p.ovr-72)/25,0,1),1.4); const fee=r1(Math.max(.3,.3+(L.fameEff(S.fame)/100)*3+650*star*lgF)*(b.id==='nako'||b.id==='adios'?1.15:1)*rnd(.88,1.12)*L.traitFx(p).endorse*L.charEndorseMul(S)*((L.hasStaff&&L.hasStaff(S,"agent"))?1.1:1)); const yrs=ri(1,4);
     const opt=Math.random();
@@ -190,7 +195,7 @@ L.endorseOffers=function(S){
     return {brand:b.name,id:b.id,fee,years:yrs,clause}; });
 };
 L.endorseCheck=function(e,R,S){ const c=e.clause; if(c.type==="fame") return S.fame>=c.n; if(c.type==="apps") return R.apps>=c.n; return R.rating>=c.n; };
-L.signEndorse=function(S,o){ S.endorse={brand:o.brand,fee:o.fee,years:o.years,clause:o.clause}; S.fame=Math.max(0,S.fame+3); L.addMoment(S,"광고 계약","광고",o.brand+"와(과) 광고 계약을 맺었습니다. (연 "+o.fee+"억)"); };
+L.signEndorse=function(S,o){ L.endorsesOf(S).push({id:o.id,brand:o.brand,fee:o.fee,years:o.years,clause:o.clause}); S.fame=Math.max(0,S.fame+3); L.addMoment(S,"광고 계약","광고",o.brand+"와(과) 광고 계약을 맺었습니다. (연 "+o.fee+"억)"); };
 
 /* ================= 해외 유스 =================
  * 유소년 때 두각을 나타내거나 집이 부유하면 프리미어리그 구단의 유스로 갈 수 있어요. 환경이 좋아서 성장이 빠르지만 적응이 힘들어요. */

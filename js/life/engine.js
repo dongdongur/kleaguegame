@@ -204,9 +204,10 @@ L.childFamily=function(S){
   const sc=L.legacy(S).total; const id=sc>=2800?"rich":sc>=1900?"upper":sc>=1200?"mid":sc>=700?"tight":"poor"; return FAMILY.find(f=>f.id===id);
 };
 L.createChild=function(S,o){
-  const tal=L.childTalent(S,o.pos); const trait=Math.random()<.5?S.p.trait:o.trait; const hidden=S.p.hidden&&Math.random()<.3?S.p.hidden:L.rollHidden();
+  const tal=o.kid?{pot:o.kid.pot,grade:o.kid.grade,same:o.pos===S.p.pos,base:Math.round(58+(S.p.peak-58)*.5),spread:0,kid:true}:L.childTalent(S,o.pos); const trait=Math.random()<.5?S.p.trait:o.trait; const hidden=S.p.hidden&&Math.random()<.3?S.p.hidden:L.rollHidden();
   const C=L.create({name:o.name,pos:o.pos,sub:L.POSDEF[o.pos].subs[0][0],type:L.TYPES[o.pos][Math.floor(Math.random()*3)][0],route:"mid",talent:{pot:tal.pot,grade:tal.grade},trait,hidden,foot:S.p.foot});
   const f=L.childFamily(S); C.family={id:f.id,name:f.name,pts:f.pts,pts0:f.pts,note:f.note}; C.funds=r1(.1+f.funds*.1);
+  if(o.kid&&L.kidApply) L.kidApply(C,o.kid,o.pos);
   C.gen=(S.gen||1)+1; C.parent={name:S.p.name,pos:S.p.pos,peak:S.p.peak,grade:L.legacyGrade(L.legacy(S).total)};
   return {state:C,talent:tal};
 };
@@ -364,12 +365,13 @@ L.beginSeason=function(S,plan){
     const me=clubs.find(c=>c.id===myId)||clubs[0]; lvl=me.l; sim.st={}; clubs.forEach(c=>{ sim.st[c.id]={att:c.att,def:c.def}; });
     sim.rounds=L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0);
   }
-  if(stage==='pro'&&key!=='YOUTH'){ const bst=clamp((p.ovr-lvl)*.12,0,3); const w={FW:[.9,.1],MF:[.6,.3],DF:[.2,.8],GK:[.1,.9]}[p.pos]; const my=sim.st&&sim.st[myId]; if(my&&bst>0){ my.att+=bst*w[0]; my.def+=bst*w[1]; } const wn=L.traitFx(p).winner; if(my&&wn){ my.att+=wn; my.def+=wn; } }
+  if(stage==='pro'&&key!=='YOUTH'){ const bst=clamp((p.ovr-lvl)*.12,0,3); const w={FW:[.9,.1],MF:[.6,.3],DF:[.2,.8],GK:[.1,.9]}[p.pos]; const my=sim.st&&sim.st[myId]; if(my&&bst>0){ my.att+=bst*w[0]; my.def+=bst*w[1]; } const wn=L.traitFx(p).winner+(S.playcoach?.5:0); if(my&&wn){ my.att+=wn; my.def+=wn; } }
   sim.myId=myId; sim.lvl=lvl; sim.tab={}; sim.teams.forEach(t=>{ sim.tab[t.id]={id:t.id,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; });
   sim.segs=L.segsFor(S,key); sim.cal=L.calKey(S,key); const N=sim.rounds.length; let acc=0; sim.segEnd=sim.segs.map((s,i)=>{ acc+=s.frac; return i===sim.segs.length-1?N:Math.round(N*acc); });
   sim.sr=clamp(L.startRateAt(effOvr(S),lvl,S.trust,p),.02,.97); if(S.team==="2군"&&stage==="pro") sim.sr=Math.min(sim.sr,.1);
   if(stage==='youth') sim.sr=clamp(sim.sr+(ag<=15?.06:(p.ovr<lvl?-.04:0)),.02,.97);
   if(stage==='pro'&&L.coachAdjustSr) sim.sr=L.coachAdjustSr(S,sim.sr);
+  if(stage==='pro'&&S.playcoach) sim.sr=Math.min(sim.sr,.6);
   if(stage==='pro'){ const tfx0=L.traitFx(p); sim.sr=clamp(sim.sr+tfx0.sr+((L.hasStaff&&L.hasStaff(S,'analyst'))?.02:0),.02,.97); }
   sim.role0=L.roleLabel(sim.sr);
   /* 첫 프로 시즌: 구단 전력 상위 3팀은 AFC 챔피언스리그 출전권이 있어요 */
@@ -539,7 +541,7 @@ L.finishSeason=function(S){
   R.board=L.buildBoard(S,sim,R);
   L.awardsFor(S,R,sim);
   L.seasonPost(S,R,sim); { const sc=L.scoutCheck(S); if(sc) R.scoutFinal=sc; }
-  if(L.coachSeasonEnd) L.coachSeasonEnd(S);
+  if(L.coachSeasonEnd) L.coachSeasonEnd(S); if(L.pcSeasonEnd) L.pcSeasonEnd(S);
   R.nextAcl=!!S.nextAcl; R.nextUcl=!!S.nextUcl; R.nextUel=!!S.nextUel;
   L.commitSeason(S,R);
   S.lastR=R; S.sim=null; S.phase="result"; return R;
@@ -693,7 +695,7 @@ L.armyYear=function(S){
 };
 
 /* ================= 은퇴·다음 해 ================= */
-L.mustRetire=function(S){ const ag=age(S)+1; return ag>=41||(ag>=34&&S.p.ovr<56)||(ag>=37&&S.p.ovr<64); };
+L.mustRetire=function(S){ const ag=age(S)+1; if(S.playcoach) return ag>=42||S.p.ovr<45; return ag>=41||(ag>=34&&S.p.ovr<56)||(ag>=37&&S.p.ovr<64); };
 L.canRetire=function(S){ return age(S)+1>=30; };
 L.nextYear=function(S){
   S.year++; S.plan=null; S.sim=null;

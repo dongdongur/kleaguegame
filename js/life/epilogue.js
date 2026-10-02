@@ -33,8 +33,8 @@ L.afterDo=function(S,id){
   const tf=L.traitFx(S.p); const lead=(tf.winner>0?.25:0)+(S.p.hidden==="iq"?.25:0)+(S.p.hidden==="captain"?.2:0);
   const add=(y,t)=>lines.push({y,t});
   if(id==="coach"){
-    const skill=(S.p.peak-62)/32+(ch-50)/110+lg/6000+lead+rnd(-.35,.35);
-    add(a0+1,"지도자 자격증(Pro 라이선스)을 따기 위해 연수를 떠났어요.");
+    const pcB=Math.min(.6,(S.pcYears||0)*.12); const skill=(S.p.peak-62)/32+(ch-50)/110+lg/6000+lead+pcB+rnd(-.35,.35);
+    add(a0+1,pcB?"플레잉코치로 쌓은 "+(S.pcYears)+"년의 경험 덕분에 지도자 자격증 과정이 수월했어요.":"지도자 자격증(Pro 라이선스)을 따기 위해 연수를 떠났어요.");
     add(a0+2,club+"의 코치로 부임해 후배들을 가르쳤어요.");
     const big=skill>1.25, mid=skill>.75; const team=big?(S.foreignYears>2?"프리미어리그 명문":"K리그 명문"):mid?"K리그 중위권 구단":"2부 리그 구단";
     add(a0+6,team+"의 감독으로 데뷔했어요.");
