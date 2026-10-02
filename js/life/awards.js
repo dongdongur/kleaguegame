@@ -48,6 +48,12 @@ L.awardsFor=function(S,R,sim){
   /* 연말 시상 (국내 선수 대상) */
   if(!E&&(K1||K2)&&(A.includes("리그 MVP")||sc>=need+1.2)&&Math.random()<.5) A.push("KFA 올해의 선수");
   if(sc>=need+(E?.2:.8)&&Math.random()<.35) A.push("AFC 올해의 국제선수");
+  /* 어린 선수 최고 영예: 코파 트로피(21세 이하 최고 선수), 골든보이(유럽 무대 21세 이하 유망주) — 가상의 시상 */
+  if(ag<=21&&R.apps>=18&&R.rating>=6.3&&p.ovr>=74){
+    const eu=["EPL","EPL2","LAL","BUN","SEA","L1"].includes(lg), q=Math.min(.6,.15+(p.ovr-74)*.03+(R.rating-6.3)*.4+(eu?.15:0));
+    if(Math.random()<q) A.push("코파 트로피");
+    if(eu&&R.rating>=6.4&&Math.random()<q*.8) A.push("골든보이");
+  }
   L.ballonCheck(S,R,sc);
 };
 

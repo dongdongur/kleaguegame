@@ -619,7 +619,7 @@ L.commitSeason=function(S,R){
   S.funds=r1(S.funds+(R.youth?(L.familyPts(S)*.035+.04):S.salary*.7));
 };
 /* 수상이 어느 대회(리그)에서 나온 건지 */
-L.awardComp=function(name,R){ if(/^KFA/.test(name)) return "대한축구협회"; if(/^AFC/.test(name)) return "AFC"; if(/발롱도르/.test(name)) return "발롱도르"; if(/챔피언스리그|챔스/.test(name)) return "UEFA 챔피언스리그"; return R.leagueName||""; };
+L.awardComp=function(name,R){ if(/^KFA/.test(name)) return "대한축구협회"; if(/^AFC/.test(name)) return "AFC"; if(/발롱도르/.test(name)) return "발롱도르"; if(/코파 트로피/.test(name)) return "프랑스 풋볼"; if(/골든보이/.test(name)) return "투토스포르트"; if(/챔피언스리그|챔스/.test(name)) return "UEFA 챔피언스리그"; return R.leagueName||""; };
 /* 커리어 팀 흐름: 시간 순서대로 (복무 포함) */
 L.clubChain=function(S){ const out=[]; S.history.filter(h=>!h.youth).forEach(h=>{ const nm=h.military?"군 복무":h.club; if(!out.length||out[out.length-1].name!==nm) out.push({name:nm,from:h.year,to:h.year,mil:!!h.military||h.lg==="MIL"}); else out[out.length-1].to=h.year; }); return out; };
 L.slimRecord=function(R,S){ return {year:R.year,age:R.age,club:R.club.name,clubId:R.club.id,lg:R.club.lg,leagueName:R.leagueName,rank:R.rank,N:R.N,W:R.W,D:R.D,L:R.L,apps:R.apps,starts:R.starts,minutes:R.minutes,goals:R.goals,assists:R.assists,cs:R.cs||0,rating:R.rating,mom:R.mom||0,
