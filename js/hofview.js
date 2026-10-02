@@ -26,6 +26,7 @@ function style(){
 .hv .sb b{text-align:right;font-family:Oswald,sans-serif}
 .hv .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .hv .kv div{padding:8px;border-radius:12px;background:rgba(255,255,255,.05);text-align:center}.hv .kv small{display:block}.hv .kv b{font:600 18px Oswald,sans-serif;color:#ffcf4a}
+.hv .tribute{margin:10px 0 4px;padding:12px 14px 10px;border-radius:14px;background:linear-gradient(135deg,rgba(255,207,74,.14),rgba(255,207,74,.03));border:1px solid rgba(255,207,74,.4);font-size:14.5px;font-weight:600;line-height:1.5;position:relative}.hv .tribute span{font:700 28px serif;color:#ffcf4a;margin-right:4px;vertical-align:-8px}.hv .tribute small{display:block;margin-top:4px;font-weight:400;opacity:.7;text-align:right}
 .hv .tags{display:flex;flex-wrap:wrap;gap:6px}.hv .tag{padding:4px 10px;border-radius:999px;background:rgba(39,215,255,.12);border:1px solid rgba(39,215,255,.35);font-size:12.5px}
 .hv .tag.g{background:rgba(255,207,74,.12);border-color:rgba(255,207,74,.45)}
 .hv table{width:100%;border-collapse:collapse;font-size:12.5px}.hv th,.hv td{padding:5px 4px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}.hv th:nth-child(2),.hv td:nth-child(2){text-align:left}.hv th{color:#8d9bc4;font-weight:500}
@@ -48,9 +49,33 @@ function open(html){
 }
 const grp=(list)=>{ const m={}; (list||[]).forEach(a=>{ const k=a.name||a[0]; (m[k]=m[k]||[]).push(a.year||a[1]); }); return Object.entries(m).sort((a,b)=>b[1].length-a[1].length); };
 
+/* 명예의 전당 후일담: 기록에 맞춰 헌정 문구를 골라요 (전부 새로 쓴 가상의 말이에요) */
+function tribute(r){
+  const d=r.detail||{}, pos=r.pos||"", fw=/FW|ST|WG|CF|LW|RW/.test(pos), gk=/GK/.test(pos), df=/DF|CB|LB|RB|WB/.test(pos), mf=!fw&&!gk&&!df;
+  const noun=gk?"골키퍼":fw?"공격수":df?"수비수":"미드필더";
+  const Q=[];
+  if(r.ballon>=3) Q.push(["그보다 위대한 "+noun+"는 없었다.","축구 역사가"],["그의 이름 앞에서는 비교가 의미를 잃는다.","해설위원"],["한 세대의 "+noun+"가 아니라 한 시대의 "+noun+"였다.","원로 기자"]);
+  else if(r.ballon>=1) Q.push(["세계가 그를 한 번은 최고라고 불렀다.","해설위원"],["황금 공을 든 그날, 모두가 일어서서 박수를 쳤다.","현장 취재기자"]);
+  if(r.score>=1500||r.trophies>=18) Q.push(["트로피장이 좁아서 새로 지어야 했다.","구단 관계자"],["이긴 횟수를 세다가 그만뒀다.","오랜 서포터"]);
+  if(fw&&r.goals>=300) Q.push(["골대는 그를 보면 먼저 자리를 비켜 주었다.","수비수 동료"],["그가 박스 안에 서면 경기장이 숨을 죽였다.","중계 캐스터"]);
+  if(fw&&r.goals>=150) Q.push(["득점은 재능이고, 꾸준함은 존경이다.","감독"]);
+  if(mf&&r.assists>=120) Q.push(["그의 발끝에서 시작된 골은 셀 수 없다.","동료 공격수"],["경기는 그의 템포로 흘렀다.","상대 감독"]);
+  if(df) Q.push(["그가 뒤에 있으면 동료들은 앞만 보았다.","동료"],["공격수들이 가장 만나기 싫었던 이름.","상대 공격수"]);
+  if(gk) Q.push(["마지막 선은 늘 그가 지켰다.","수비수 동료"],["슛이 나가는 순간 그는 이미 알고 있었다.","골키퍼 코치"]);
+  if(d.charTier&&r.score>=900&&(d.char||0)>=75) Q.push(["실력은 기록으로, 사람됨은 기억으로 남았다.","후배 선수"],["그는 이기고도 상대 팬에게 먼저 인사했다.","원정 팬"]);
+  if(r.jersey) Q.push(["그의 번호는 이제 아무도 입을 수 없다. 그래야만 한다.","서포터즈 대표"]);
+  if(r.caps>=100) Q.push(["태극마크를 달고 뛴 모든 밤이 우리의 밤이었다.","국가대표 동료"]);
+  if(r.years>=15) Q.push(["오래 뛰었다는 것 자체가 하나의 재능이다.","트레이너"]);
+  const G=[["공은 둥글고 이야기는 길다. 그의 이야기는 아직 끝나지 않았다.","익명의 팬"],["이름은 잊혀도 장면은 남는다.","관중석의 어느 팬"],["우리는 같은 시대를 살았다. 그것만으로 충분하다.","오랜 팬"],["그가 달린 거리만큼 우리의 응원도 길어졌다.","서포터"],["유니폼은 낡아도 순간은 낡지 않는다.","팬 카페 회원"]];
+  const pool=Q.length?Q.concat(G.slice(0,1)):G;
+  let x=0; const s=String(r.id||"")+(r.name||""); for(let i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))>>>0;
+  const q=pool[x%pool.length];
+  return '<div class="tribute"><span>“</span>'+esc(q[0])+'<small>— '+esc(q[1])+' (가상)</small></div>';
+}
 function player(r){
   const d=r.detail;
   let h=`<div class="hd"><div><small>${esc(r.pos)} · ${esc(r.type_name||"")} · by ${esc(r.nickname)}</small><h2>${esc(r.name)}</h2><small>${esc(r.club)} · ${r.years}년${r.jersey?" · 🎽 영구결번":""}</small></div><div style="text-align:right"><span class="pill">${esc(r.grade)} ${r.score}</span><br><button class="x" data-hvx style="margin-top:6px">✕</button></div></div>`;
+  h+=tribute(r);
   h+=`<div class="kv"><div><small>전성기 OVR</small><b>${r.peak}</b></div><div><small>출전</small><b>${r.apps}</b></div><div><small>골 / 도움</small><b>${r.goals} / ${r.assists}</b></div><div><small>대표팀</small><b>${r.caps}</b></div><div><small>우승 / 수상</small><b>${r.trophies} / ${r.awards}</b></div><div><small>발롱도르</small><b>${r.ballon}회</b></div></div>`;
   if(!d){ h+=`<p class="note">이 선수는 상세 기록이 함께 올라오기 전에 등록됐어요. 위 요약만 볼 수 있어요. (새로 등록하는 선수부터 능력치·업적·시즌별 커리어를 모두 볼 수 있어요)</p>`; open(h); return; }
   const tags=[]; if(d.ver&&(d.ver.start||d.ver.end)) tags.push("플레이 버전 "+(d.ver.start&&d.ver.start!==d.ver.end?"v"+d.ver.start+" → v"+d.ver.end:"v"+(d.ver.end||d.ver.start))); if(d.sub) tags.push(d.sub); if(d.role) tags.push(d.role); if(d.foot) tags.push(d.foot); if(d.trait) tags.push(d.trait); if(d.hidden) tags.push("✨ "+d.hidden); if(d.height) tags.push(d.height+"cm "+d.weight+"kg");

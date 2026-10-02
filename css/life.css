@@ -217,3 +217,5 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .sns{display:grid;gap:2px;padding:9px 11px;margin:6px 0;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .sns b{font:700 12.5px var(--f-num);color:var(--acc2)}.sns span{font-size:14px;line-height:1.5}.sns small{color:var(--muted)}
 .sns.up{border-left:3px solid var(--acc)}.sns.dn{border-left:3px solid var(--red)}
+
+.srctag{font-style:normal;font:600 10px var(--f-body);padding:1px 7px;margin-left:4px;border-radius:999px;background:rgba(255,207,74,.15);border:1px solid rgba(255,207,74,.4);color:#ffe29a;vertical-align:1px}

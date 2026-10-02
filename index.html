@@ -45,13 +45,39 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .rk .sc small{display:block;font:500 11px var(--f-body);color:var(--muted)}
 .rk.r1 .who b{font-size:17px}
 .empty{color:var(--muted);font-size:13px;padding:6px 2px}
-.jersey{border-radius:20px;padding:14px;background:linear-gradient(160deg,rgba(255,90,90,.10),rgba(14,22,49,.9) 45%);border:1px solid rgba(255,120,120,.3);display:grid;gap:10px}
-.jersey .bt{display:flex;justify-content:space-between;align-items:baseline}.jersey .bt b{font-family:var(--f-head);font-weight:400;font-size:17px}.jersey .bt small{color:var(--muted);font-size:11.5px}
-.jwall{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.jw{color:inherit;font:inherit;cursor:pointer;display:grid;justify-items:center;gap:2px;padding:10px 6px 8px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--line);text-align:center}
-.jw svg{width:100%;max-width:150px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))}
-.jw b{font-size:14px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jw small{color:var(--muted);font-size:11.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+/* ===== 영구결번 전시관 ===== */
+.jersey{position:relative;overflow:hidden;border-radius:22px;padding:18px 14px 16px;display:grid;gap:12px;
+ background:radial-gradient(520px 300px at 50% -6%,rgba(255,214,120,.22),transparent 62%),linear-gradient(180deg,#1b1530 0%,#120f24 55%,#0a0816 100%);
+ border:1px solid rgba(255,207,74,.55);box-shadow:0 0 0 3px rgba(255,207,74,.10),0 0 38px rgba(255,190,60,.22),inset 0 0 40px rgba(255,200,90,.07)}
+.jersey::before{content:"";position:absolute;inset:0;pointer-events:none;background:conic-gradient(from 200deg at 50% -12%,transparent 0 62deg,rgba(255,225,150,.16) 70deg,transparent 80deg 100deg,rgba(255,225,150,.12) 108deg,transparent 118deg 360deg);animation:beam 7s ease-in-out infinite alternate}
+.jersey::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,rgba(255,236,170,.95) 1.3px,transparent 2px),radial-gradient(circle,rgba(255,255,255,.8) 1px,transparent 1.6px),radial-gradient(circle,rgba(255,200,90,.7) 1.6px,transparent 2.4px);background-size:57px 71px,39px 53px,83px 97px;background-position:0 0,13px 21px,31px 8px;opacity:.55;animation:tw 4.5s linear infinite}
+@keyframes beam{from{transform:rotate(-3deg);opacity:.75}to{transform:rotate(3deg);opacity:1}}
+@keyframes tw{0%{background-position:0 0,13px 21px,31px 8px;opacity:.35}50%{opacity:.75}100%{background-position:0 71px,13px 74px,31px 105px;opacity:.35}}
+.jersey>*{position:relative;z-index:1}
+.jersey .bt{display:grid;justify-items:center;text-align:center;gap:2px}
+.jersey .bt b{font:400 22px var(--f-head);letter-spacing:.04em;background:linear-gradient(90deg,#ffe9a8,#ffcf4a 40%,#fff3c4 55%,#ffcf4a 70%,#ffe9a8);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine2 3.2s linear infinite}
+.jersey .bt small{color:#e9d8a6;font-size:11.5px;letter-spacing:.2em}
+@keyframes shine2{to{background-position:-200% 0}}
+.jstat{display:flex;gap:16px;justify-content:center;color:var(--muted);font-size:12.5px}.jstat b{color:var(--gold);font:700 20px var(--f-num);text-shadow:0 0 12px rgba(255,200,60,.6)}
+.jwall{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 10px;padding-top:6px}
+.jw{position:relative;color:inherit;font:inherit;cursor:pointer;display:grid;justify-items:center;gap:3px;padding:26px 6px 10px;border-radius:16px;overflow:hidden;
+ background:radial-gradient(130px 130px at 50% 38%,rgba(255,214,120,.20),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+ border:1px solid rgba(255,207,74,.35);box-shadow:inset 0 0 22px rgba(255,200,90,.08),0 8px 18px rgba(0,0,0,.35);transition:transform .2s,box-shadow .2s}
+.jw::before{content:"";position:absolute;left:50%;top:0;width:2px;height:20px;background:linear-gradient(#ffe9a8,rgba(255,207,74,.2));transform:translateX(-50%)}
+.jw::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);transform:skewX(-18deg);animation:glint 5.5s ease-in-out infinite}
+.jw:nth-child(2n)::after{animation-delay:1.4s}.jw:nth-child(3n)::after{animation-delay:2.8s}
+@keyframes glint{0%,70%{left:-60%}100%{left:140%}}
+.jw:hover{transform:translateY(-3px);box-shadow:inset 0 0 26px rgba(255,200,90,.14),0 12px 24px rgba(0,0,0,.45),0 0 22px rgba(255,200,90,.3)}
+.jw svg{width:100%;max-width:150px;height:auto;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55)) drop-shadow(0 0 10px rgba(255,214,120,.25));transform-origin:50% 0;animation:sway 5s ease-in-out infinite}
+.jw:nth-child(2n) svg{animation-delay:-1.7s}.jw:nth-child(3n) svg{animation-delay:-3.1s}
+@keyframes sway{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg)}}
+.jw.big{grid-column:1/-1;padding-top:30px;border-color:rgba(255,207,74,.8);box-shadow:inset 0 0 30px rgba(255,200,90,.16),0 10px 24px rgba(0,0,0,.45),0 0 30px rgba(255,190,60,.32)}
+.jw.big svg{max-width:190px}
+.jw .new{position:absolute;right:8px;top:8px;font:700 10px var(--f-num);letter-spacing:.12em;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#ffcf4a,#ff9d2e);color:#3a2300;box-shadow:0 0 10px rgba(255,190,60,.6);z-index:2}
+.plaque{display:grid;justify-items:center;gap:1px;width:100%;margin-top:2px;padding:6px 8px;border-radius:10px;background:linear-gradient(180deg,#e9c46a,#b88a20);color:#2a1a00;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 6px rgba(0,0,0,.4)}
+.plaque b{font-size:14px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#2a1a00}
+.plaque small{font-size:11px;color:#4a3000;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(prefers-reduced-motion:reduce){.jersey::before,.jersey::after,.jw::after,.jw svg,.jersey .bt b{animation:none}}
 .jc{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .jc .n{grid-row:span 2;font:700 26px var(--f-num);color:#ffd1d1;min-width:34px;text-align:center;text-shadow:0 0 14px rgba(255,90,90,.55)}
 .jc b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jc small{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -83,7 +109,7 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .card.p .go{background:linear-gradient(90deg,var(--acc2),#2f9bff)}
 .save{font-size:12.5px;color:var(--gold);min-height:18px}
 .soon{padding:12px 14px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:12.5px}
-@media(max-width:560px){.jersey{padding:12px}.jwall{grid-template-columns:repeat(3,1fr);gap:8px}.jw svg{max-width:84px}.jw b{font-size:12.5px}.hof h2{font-size:19px}.board{padding:12px}.rk{padding:8px 10px}.rk .who small{white-space:normal}}
+@media(max-width:560px){.jersey{padding:14px 10px}.jwall{grid-template-columns:repeat(2,1fr);gap:12px 8px}.jw svg{max-width:112px}.jw.big svg{max-width:150px}.hof h2{font-size:19px}.board{padding:12px}.rk{padding:8px 10px}.rk .who small{white-space:normal}}
 footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margin-top:6px}
 </style>
 </head>
@@ -102,7 +128,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
 </main>
 <aside class="col" id="jerCol">
-  <section class="jersey"><div class="bt"><b>🎽 영구결번 현황</b><small>지금까지의 기록</small></div><div class="jstat" id="jStat"></div><div class="jwall" id="jGrid"><p class="empty">불러오는 중…</p></div></section>
+  <section class="jersey"><div class="bt"><b>영구결번 전시관</b><small>HALL OF RETIRED NUMBERS</small></div><div class="jstat" id="jStat"></div><div class="jwall" id="jGrid"><p class="empty">불러오는 중…</p></div></section>
 </aside>
 <aside class="col hof" id="hofCol" style="padding:22px 16px 0 16px">
   <h2>🏆 명예의 전당 <small>HALL OF FAME</small></h2>
@@ -140,7 +166,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
       if(!items.length){ jg.innerHTML='<p class="empty">아직 영구결번이 나오지 않았어요. 한 구단에서 오래, 압도적으로 활약해 보세요.</p>'; js.innerHTML=""; return; }
       var clubs={}; items.forEach(function(i){ clubs[i.club]=1; });
       js.innerHTML='<span><b>'+items.length+'</b> 개 영구결번</span><span><b>'+Object.keys(clubs).length+'</b> 개 구단</span>';
-      jg.innerHTML=items.slice(0,12).map(function(i){ return '<button type="button" class="jw" data-ri="'+i.ri+'">'+shirt(i.n,i.club)+'<b>'+esc(i.name)+'</b><small>'+esc(i.club)+' '+(i.n==="★"?'영구결번':'No.'+esc(i.n)+' 영구결번')+'</small></button>'; }).join("");
+      jg.innerHTML=items.slice(0,12).map(function(i,k){ return '<button type="button" class="jw'+(k===0?' big':'')+'" data-ri="'+i.ri+'">'+(k===0?'<span class="new">LATEST</span>':'')+shirt(i.n,i.club)+'<span class="plaque"><b>'+esc(i.name)+'</b><small>'+esc(i.club)+' · '+(i.n==="★"?'영구결번':'NO.'+esc(i.n)+' 영구결번')+'</small></span></button>'; }).join("");
     }).catch(function(){ jg.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
   }
   jersey();
