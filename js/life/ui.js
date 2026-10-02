@@ -85,7 +85,7 @@ function homeView(){
     <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button></section>
    <section class="card"><h3 class="sec">명예의 전당</h3>${hof.length?hof.slice().sort((a,b)=>b.score-a.score).slice(0,10).map((x,i)=>`<div class="hof"><b>${i+1}</b><div><b>${esc(x.name)}</b><br><small>${esc(x.pos)} · ${esc(x.club)} · ${x.years}년 · 통산 ${x.goals}골 ${x.assists}도움${x.retire?" · 영구결번":""}</small></div><span class="pill gold">${x.grade} ${x.score}</span></div>`).join(""):`<p class="muted">아직 은퇴한 선수가 없어요.</p>`}</section>
    <div class="grid2"><button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button><button class="wide" data-act="dex">📖 이벤트 도감</button></div>
-   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 라리가 · 분데스리가 · 리그 1 · 세리에 A · 챔피언십 실제 선수 명단 (하나씩 순서대로)<br>· J리그 · 사우디 프로리그 이적, AFC 챔피언스리그 확장<br>· 유로파리그, 각국 리그 승강<br>· 더 많은 이벤트와 스토리, 연출 다듬기</p></section>
+   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 라리가 · 분데스리가 · 리그 1 · 세리에 A · 챔피언십 실제 선수 명단 (하나씩 순서대로)<br>· J리그 · 사우디 프로리그 이적, AFC 챔피언스리그 확장<br>· 유로파리그, 각국 리그 승강<br>· 감독의 전술 색과 내 선호 역할이 맞을 때·안 맞을 때의 상황 (출전·성장·갈등)<br>· 더 많은 이벤트와 스토리, 연출 다듬기</p></section>
    <p class="muted c"><a class="lnk" href="index.html">게임 선택 메뉴로</a>${S?` · <button class="lnk" data-act="wipe">저장 삭제</button>`:""}</p></main>`;
 }
 
@@ -634,7 +634,7 @@ document.addEventListener("click",e=>{
       if(S.phase==="draft") S.dr=null; else modals.push({t:"msg",kick:"FAMILY",title:S.family.name,body:S.family.note+". 해마다 지원 포인트 "+S.family.pts+"점으로 성장 투자를 고를 수 있고, 구간마다 다시 나눌 수 있어요. 가정 형편은 살다 보면 바뀌기도 해요."});
       save(); render(); break; }
     case "draftgo": { const dr=ensureDr(); dr.rolled=true; dr.ok=Math.random()*100<dr.chance; if(dr.ok) S.offers=L.draftOffers(S); else S.offers=[]; save(); render(); break; }
-    case "sign": { const o=S.offers[+v]; askSign("프로 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","예상 역할 "+o.role],()=>{ L.signWith(S,o); S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
+    case "sign": { const o=S.offers[+v]; askSign("프로 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","계약금 "+money(Math.max(.05,Math.round(o.salary*8)/10))+" 지급","예상 역할 "+o.role],()=>{ L.signWith(S,o); S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
     case "signdirect": { const o=S.dr.direct[+v]; askSign("해외 직행 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","프리미어리그 2군(U21)에서 시작해요"],()=>{ L.signWith(S,o); S.abroadYouth=true; S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
     case "signclear": { const cv=$("signpad"); if(cv){ cv.getContext("2d").clearRect(0,0,cv.width,cv.height); signDirty=false; } break; }
     case "signprev": { const cv=$("signpad"), im=new Image(); im.onload=()=>{ const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height); c.drawImage(im,0,0,cv.width,cv.height); signDirty=true; }; im.src=S.sign; break; }

@@ -13,11 +13,11 @@ const age=S=>L.age(S);
  * table: [능력치 미만, 집중 훈련 성공 확률] — 앞에서부터 처음 맞는 칸. gate: 자연 성장이 줄어드는 구간(cap0 이하 100% → cap1 이상 floor) */
 const TIERS={
   basic:{id:"basic",name:"일반 코치",desc:"학교·구단 기본 코치. 비용은 없지만 능력치 60대 중반부터는 거의 못 가르쳐요.",cost:0,table:[[60,.60],[70,.25],[75,.08],[999,0]],cap0:58,cap1:74,floor:0},
-  mid:{id:"mid",name:"중급 전담 트레이너",desc:"70대 초반까지 확실하게, 80대 중반까지는 어느 정도 가르쳐요.",cost:.12,table:[[70,.70],[78,.45],[85,.20],[999,.04]],cap0:70,cap1:84,floor:.05},
-  top:{id:"top",name:"최상위 트레이너",desc:"세계적인 전문가. 80대 후반 이상은 이 등급이 아니면 능력치가 거의 오르지 않아요.",cost:.40,table:[[80,.75],[88,.55],[94,.30],[999,.12]],cap0:84,cap1:99,floor:.25},
+  mid:{id:"mid",name:"중급 전담 트레이너",desc:"70대 초반까지 확실하게, 80대 중반까지는 어느 정도 가르쳐요.",cost:.05,table:[[70,.70],[78,.45],[85,.20],[999,.04]],cap0:70,cap1:84,floor:.05},
+  top:{id:"top",name:"최상위 트레이너",desc:"세계적인 전문가. 80대 후반 이상은 이 등급이 아니면 능력치가 거의 오르지 않아요.",cost:.16,table:[[80,.75],[88,.55],[94,.30],[999,.12]],cap0:84,cap1:99,floor:.25},
 };
 L.TIERS=TIERS;
-L.priceScale=S=>1+(S.stage==="pro"?Math.max(0,S.salary||0)*.22:0);
+L.priceScale=S=>1+(S.stage==="pro"?Math.max(0,S.salary||0)*.12:0);
 L.trainCost=(S,tier)=>r1(Math.max(0,TIERS[tier].cost*L.priceScale(S)*100)/100);
 function gateOf(T,v){ if(v<=T.cap0) return 1; if(v>=T.cap1) return T.floor; return T.floor+(1-T.floor)*(T.cap1-v)/(T.cap1-T.cap0); }
 function chanceOf(T,v,tf,grit){ let c=0; for(const [lim,p] of T.table){ if(v<lim){ c=p; break; } } c*=(1+.06*(grit|0)); if(tf&&tf.focus>1) c*=1.2; return clamp(c,0,.95); }

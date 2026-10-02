@@ -262,7 +262,7 @@ L.draftOffers=function(S){
   return out.sort((a,b)=>b.c.l-a.c.l).map(x=>{ const sr=L.startRateAt(p.ovr,x.c.l,S.trust,p);
     return {club:L.clubRef(S,x.c,x.lg),lvl:r1(x.c.l),salary:L.salaryOf(p.ovr+2,age(S),x.lg),years:2,role:L.roleLabel(sr),sr}; });
 };
-L.signWith=function(S,offer){ if(S.family) S.family.pts=0; S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.phase="prep"; S.offers=[]; S.stage="pro"; S.team=offer.sr<.14?"2군":"1군"; S.plan=null;
+L.signWith=function(S,offer){ if(S.family) S.family.pts=0; offer.bonus=Math.max(.05,r1(offer.salary*.8)); S.funds=r1(S.funds+offer.bonus); S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.phase="prep"; S.offers=[]; S.stage="pro"; S.team=offer.sr<.14?"2군":"1군"; S.plan=null;
   S.cond=90; S.morale=72; if(!S.history.some(h=>!h.youth)) L.addMoment(S,"프로 입단","입단",S.club.name+"과 프로 계약을 맺었습니다. (연봉 "+offer.salary+"억)"); };
 
 /* ================= 일정 ================= */
