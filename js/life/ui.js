@@ -422,12 +422,14 @@ function dexView(){ const d=rd(DEX)||{}, all=L.dexAll(); const n=all.filter(x=>d
    <section class="card flat"><h3 class="sec">확률 도감 — 이벤트 규칙</h3>${L.EVENT_RULES.map(t=>`<p class="muted">· ${esc(t)}</p>`).join("")}</section>
    <p class="muted">지금까지 만난 이벤트 ${n}/${all.length}</p>${all.map(x=>d[x.id]?`<div class="card flat"><b>${esc(x.title)}</b><small class="muted">${x.story?esc(x.story)+" · ":""}만난 횟수 ${d[x.id]}회</small></div>`:`<div class="card flat" style="opacity:.55"><b>???</b><small class="muted">아직 만나지 못한 이벤트</small></div>`).join("")}</main>`; }
 function mainClub(){ const e=Object.entries(S.clubYears||{}).sort((a,b)=>b[1]-a[1])[0]; return e?e[0]:S.club.name; }
+/* 가장 많이 맞붙은 더비 한 개의 전적 */
+function derbySum(pro){ const m={}; pro.forEach(h=>(h.dv||[]).forEach(x=>{ const k=x[0]; const o=m[k]||(m[k]={name:x[0],opp:x[1],w:0,d:0,l:0,g:0}); o.opp=x[1]; if(x[2]==="W") o.w++; else if(x[2]==="L") o.l++; else o.d++; o.g+=x[3]||0; })); const a=Object.values(m).sort((p,q)=>(q.w+q.d+q.l)-(p.w+p.d+p.l)); return a[0]||null; }
 function hofDetail(){
   const p=S.p, d=L.POSDEF[p.pos], pro=S.history.filter(h=>!h.youth), hid=p.hidden?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null, tr=L.TRAIT_ALL.find(t=>t.id===p.trait);
   return {v:1,ovr:p.ovr,stats:d.stats.map(([k,n])=>[n,p.stats[k]]),sub:subName(),role:L.roleName(p),foot:p.foot,height:p.height,weight:p.weight,trait:tr?tr.icon+" "+tr.name:"",hidden:hid?hid.name:"",
     family:{married:!!S.married,kids:(S.kids||[]).map(k=>k.name+"("+(k.girl?"딸":"아들")+")")},after:S.after?{name:S.after.name,title:S.after.title,lines:S.after.lines.map(x=>[x.y,x.t])}:null,ver:{start:S.verStart||null,end:window.KL_VER?window.KL_VER("선수판"):null},fame:Math.round(S.fameMax||S.fame),fameTier:L.fameTier(S.fameMax||S.fame).name,char:Math.round(L.charOf(S)),charTier:L.charTier(L.charOf(S)).name,styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
     jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number})),chain:L.clubChain(S).map(c=>c.name+" ("+c.from+(c.to>c.from?"~"+c.to:"")+")"),ballon:S.ballon.map(b=>[b.year,b.rank]),
-    seasons:pro.map(h=>[h.age,h.club,h.leagueName||h.lg||"",h.apps,h.goals,h.assists,h.rating,h.ovr1])};
+    seasons:pro.map(h=>[h.age,h.club,h.leagueName||h.lg||"",h.apps,h.goals,h.assists,h.rating,h.ovr1]),derby:derbySum(pro)};
 }
 function hofEntry(nick){
   const c=S.career, lg=L.legacy(S), tr=S.trophies.filter(t=>!t.youth), aw=S.awards.filter(a=>!a.youth&&!/후보/.test(a.name));

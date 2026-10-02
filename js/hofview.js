@@ -26,7 +26,7 @@ function style(){
 .hv .sb b{text-align:right;font-family:Oswald,sans-serif}
 .hv .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .hv .kv div{padding:8px;border-radius:12px;background:rgba(255,255,255,.05);text-align:center}.hv .kv small{display:block}.hv .kv b{font:600 18px Oswald,sans-serif;color:#ffcf4a}
-.hv .tribute{margin:10px 0 4px;padding:12px 14px 10px;border-radius:14px;background:linear-gradient(135deg,rgba(255,207,74,.14),rgba(255,207,74,.03));border:1px solid rgba(255,207,74,.4);font-size:14.5px;font-weight:600;line-height:1.5;position:relative}.hv .tribute span{font:700 28px serif;color:#ffcf4a;margin-right:4px;vertical-align:-8px}.hv .tribute small{display:block;margin-top:4px;font-weight:400;opacity:.7;text-align:right}
+.hv .tribute{margin:10px 0 4px;padding:12px 14px 10px;border-radius:14px;background:linear-gradient(135deg,rgba(255,207,74,.14),rgba(255,207,74,.03));border:1px solid rgba(255,207,74,.4);font-size:14.5px;font-weight:600;line-height:1.5;position:relative}.hv .tribute .cq{margin:0 0 0 4px}.hv .tribute span{font:700 28px serif;color:#ffcf4a;margin-right:4px;vertical-align:-8px}.hv .tribute small{display:block;margin-top:4px;font-weight:400;opacity:.7;text-align:right}
 .hv .tags{display:flex;flex-wrap:wrap;gap:6px}.hv .tag{padding:4px 10px;border-radius:999px;background:rgba(39,215,255,.12);border:1px solid rgba(39,215,255,.35);font-size:12.5px}
 .hv .tag.g{background:rgba(255,207,74,.12);border-color:rgba(255,207,74,.45)}
 .hv table{width:100%;border-collapse:collapse;font-size:12.5px}.hv th,.hv td{padding:5px 4px;text-align:right;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}.hv th:nth-child(2),.hv td:nth-child(2){text-align:left}.hv th{color:#8d9bc4;font-weight:500}
@@ -139,14 +139,39 @@ function tributeQ(r){
   add(d.hidden,"그에게는 설명하기 어려운 무언가가 있었다.","스카우트");
   add(d.after,"은퇴 뒤에도 그는 축구 곁을 떠나지 않았다.","방송 해설자");
   add(d.family&&d.family.kids&&d.family.kids.length,"그는 이제 아버지로서 새 이야기를 쓰고 있다.","오랜 팬");
+  /* 라이벌·더비 */
+  const dv=d.derby; const RV=[]; if(dv){ const add=(ok,t,w)=>{ if(ok){ X.push([t,w]); RV.push([t,w]); } }; const n=dv.w+dv.d+dv.l, nm=dv.name, op=dv.opp||"라이벌";
+    add(n>=6&&dv.w>dv.l,nm+"만 되면 그의 눈빛이 달라졌다. "+op+" 팬들은 그 눈빛을 기억한다.","더비 해설자");
+    add(n>=6&&dv.w>dv.l,op+" 팬들에게 그의 이름은 아직도 악몽이다.",op+" 팬");
+    add(n>=6&&dv.w>dv.l,nm+" 승리의 날, 그의 이름은 온 동네에 울려 퍼졌다.","지역 서포터");
+    add(n>=6&&dv.l>dv.w,nm+"에서만큼은 번번이 웃지 못했다. 그래서 더 잊을 수 없는 상대.","기자");
+    add(n>=6&&dv.l>dv.w,op+"는 그에게 끝내 넘지 못한 벽이었다.","동료");
+    add(dv.g>=4,nm+"에서만 "+dv.g+"골. 라이벌은 그의 발끝을 외웠다.","축구 기록원");
+    add(dv.g>=4,nm+"의 골 장면은 지금도 팬 커뮤니티에서 돌고 돈다.","팬 카페 회원");
+    add(n>=3&&dv.w===n,nm+" 전승. 그 사실 하나로 평생 먹고살 이야기가 됐다.","구단 서포터");
+    add(n>=3,nm+"의 열기를 알면 그를 반쯤 안 것이다.","동료");
+    add(n>=1&&r.jersey,"라이벌도 인정했다. "+nm+"에서 만난 가장 까다로운 이름이라고.",op+" 선수");
+  }
   /* 일반 */
   const G=[["공은 둥글고 이야기는 길다. 그의 이야기는 아직 끝나지 않았다.","익명의 팬"],["이름은 잊혀도 장면은 남는다.","관중석의 어느 팬"],["우리는 같은 시대를 살았다. 그것만으로 충분하다.","오랜 팬"],["그가 달린 거리만큼 우리의 응원도 길어졌다.","서포터"],["유니폼은 낡아도 순간은 낡지 않는다.","팬 카페 회원"],["축구는 결국 사람 이야기다. 그는 좋은 이야기였다.","칼럼니스트"],["그 시절 토요일이 즐거웠던 이유 중 하나.","퇴근길 팬"],["그가 뛰던 경기는 끝나도 장면은 계속 재생된다.","하이라이트 편집자"]];
   const pool=X.length>=3?X:X.concat(G);
   let x=0; const s=String(r.id||"")+(r.name||""); for(let i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))>>>0;
+  if(RV.length&&x%5<3) return RV[(x>>3)%RV.length];
   return pool[x%pool.length];
 }
-function tribute(r){ const q=tributeQ(r); return '<div class="tribute"><span>“</span>'+esc(q[0])+'<small>— '+esc(q[1])+' (가상)</small></div>'; }
-function player(r){
+function tribute(r){ const q=tributeQ(r); return '<div class="tribute"><span>“</span>'+esc(q[0])+'<span class="cq">”</span><small>— '+esc(q[1])+' (가상)</small></div>'; }
+/* 후일담 연출: 까만 화면에서 문장이 한 줄씩 나타난 뒤 상세로 넘어가요 (터치하면 건너뛰기) */
+function reel(r,done){
+  const q=tributeQ(r); const lines=[r.name+"  ·  "+(r.club||""),"“"+q[0]+"”","— "+q[1]+" (가상)"]; const dv=(r.detail||{}).derby;
+  if(dv&&dv.w+dv.d+dv.l>=3) lines.splice(2,0,dv.name+" 통산 "+dv.w+"승 "+dv.d+"무 "+dv.l+"패");
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){ done(); return; }
+  const o=document.createElement("div"); o.className="reel";
+  o.innerHTML='<style>.reel{position:fixed;inset:0;z-index:9999;background:#000;display:grid;place-content:center;gap:22px;padding:30px;text-align:center;cursor:pointer;animation:rIn .5s both}.reel p{margin:0;color:#f4efe0;font:600 19px/1.6 var(--f-body,sans-serif);opacity:0;transform:translateY(8px);animation:rLine 1.3s ease forwards}.reel p:first-child{font-size:13px;letter-spacing:.2em;color:#d9b45a}.reel p.q{font-size:22px;color:#fff;text-shadow:0 0 18px rgba(255,207,74,.5)}.reel p.w{font-size:13px;color:#9a968a}.reel small{position:fixed;bottom:26px;left:0;right:0;color:#666;font-size:12px}@keyframes rIn{from{opacity:0}}@keyframes rLine{to{opacity:1;transform:none}}@keyframes rOut{to{opacity:0}}</style>'+lines.map(function(t,i){ return '<p class="'+(i===1?"q":i>=2?"w":"")+'" style="animation-delay:'+(.5+i*1.5)+'s">'+esc(t)+'</p>'; }).join("")+'<small>화면을 누르면 넘어가요</small>';
+  let fin=false; const go=function(){ if(fin) return; fin=true; o.style.animation="rOut .35s forwards"; setTimeout(function(){ o.remove(); done(); },320); };
+  o.addEventListener("click",go); document.body.appendChild(o); setTimeout(go,.5*1000+lines.length*1500+1400);
+}
+function player(r){ if(r.detail){ reel(r,function(){ playerView(r); }); } else playerView(r); }
+function playerView(r){
   const d=r.detail;
   let h=`<div class="hd"><div><small>${esc(r.pos)} · ${esc(r.type_name||"")} · by ${esc(r.nickname)}</small><h2>${esc(r.name)}</h2><small>${esc(r.club)} · ${r.years}년${r.jersey?" · 🎽 영구결번":""}</small></div><div style="text-align:right"><span class="pill">${esc(r.grade)} ${r.score}</span><br><button class="x" data-hvx style="margin-top:6px">✕</button></div></div>`;
   h+=tribute(r);
