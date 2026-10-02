@@ -136,7 +136,7 @@ L.bestXI=function(S,R){
   const GRP={GK:"GK",LB:"DF",CB:"DF",RB:"DF",DM:"MF",CM:"MF",AM:"MF",LW:"FW",ST:"FW",RW:"FW"};
   const pool=[];
   if(key==="K1"||key==="K2") L.leagueClubs(S,key).forEach(c=>{ if(c.def_) c.def_.players.forEach(p=>pool.push({name:p.name,det:p.det||null,pos:p.pos,ovr:p.ovr,club:c.short})); });
-  else if(key==="EPL") L.leagueClubs(S,"EPL").forEach(c=>{ (c.players||[]).forEach(p=>pool.push({name:p[0],det:null,pos:p[1],ovr:p[2],club:c.short})); });
+  else if(L.isForeign(key)) L.leagueClubs(S,key).forEach(c=>{ (c.players||[]).forEach(p=>pool.push({name:p[0],det:null,pos:p[1],ovr:p[2],club:c.short})); });
   const used=new Set(), me=S.p, out=[]; let meIdx=slots.indexOf(me.sub); if(meIdx<0) meIdx=slots.findIndex(s=>GRP[s]===me.pos);
   slots.forEach((slot,i)=>{
     if(i===meIdx){ out.push({slot,name:me.name,club:R.club.short||R.club.name,ovr:me.ovr,me:true}); return; }

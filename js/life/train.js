@@ -123,7 +123,7 @@ L.buildBoard=function(S,sim,R){
   const rosters={}; const key=sim.key;
   const rosterOf=t=>{ if(rosters[t.id]) return rosters[t.id];
     let ps=null; const def=L.defById&&L.defById(t.id); if(def&&def.players) ps=def.players.map(p=>({name:p.name,pos:p.pos,ovr:p.ovr}));
-    else { const ec=L.EPL().find(c=>c.id===t.id); if(ec&&ec.players) ps=ec.players.map(p=>({name:p[0],pos:p[1],ovr:p[2]})); }
+    else { const ec=L.flFind(t.id); if(ec&&ec.players) ps=ec.players.map(p=>({name:p[0],pos:p[1],ovr:p[2]})); }
     if(!ps||ps.length<12){ ps=[]; const mix=["GK","DF","DF","DF","DF","MF","MF","MF","FW","FW","FW","MF","DF","FW"]; mix.forEach(pos=>ps.push({name:pick(FNAMES)+pick(GNAMES),pos,ovr:(t.l||60)+rnd(-8,6)})); }
     ps=ps.slice().sort((a,b)=>b.ovr-a.ovr).slice(0,16); rosters[t.id]=ps; return ps; };
   const gW={GK:0,DF:.5,MF:2.4,FW:5}, aW={GK:.05,DF:.9,MF:3,FW:2.2};

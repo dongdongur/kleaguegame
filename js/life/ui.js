@@ -383,17 +383,24 @@ function dexView(){ const d=rd(DEX)||{}, all=L.dexAll(); const n=all.filter(x=>d
    <section class="card flat"><h3 class="sec">확률 도감 — 이벤트 규칙</h3>${L.EVENT_RULES.map(t=>`<p class="muted">· ${esc(t)}</p>`).join("")}</section>
    <p class="muted">지금까지 만난 이벤트 ${n}/${all.length}</p>${all.map(x=>d[x.id]?`<div class="card flat"><b>${esc(x.title)}</b><small class="muted">${x.story?esc(x.story)+" · ":""}만난 횟수 ${d[x.id]}회</small></div>`:`<div class="card flat" style="opacity:.55"><b>???</b><small class="muted">아직 만나지 못한 이벤트</small></div>`).join("")}</main>`; }
 function mainClub(){ const e=Object.entries(S.clubYears||{}).sort((a,b)=>b[1]-a[1])[0]; return e?e[0]:S.club.name; }
+function hofDetail(){
+  const p=S.p, d=L.POSDEF[p.pos], pro=S.history.filter(h=>!h.youth), hid=p.hidden?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null, tr=L.TRAIT_LIST.find(t=>t.id===p.trait);
+  return {v:1,ovr:p.ovr,stats:d.stats.map(([k,n])=>[n,p.stats[k]]),sub:subName(),role:L.roleName(p),foot:p.foot,height:p.height,weight:p.weight,trait:tr?tr.icon+" "+tr.name:"",hidden:hid?hid.name:"",
+    titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
+    jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number})),chain:L.clubChain(S).map(c=>c.name+" ("+c.from+(c.to>c.from?"~"+c.to:"")+")"),ballon:S.ballon.map(b=>[b.year,b.rank]),
+    seasons:pro.map(h=>[h.age,h.club,h.leagueName||h.lg||"",h.apps,h.goals,h.assists,h.rating,h.ovr1])};
+}
 function hofEntry(nick){
   const c=S.career, lg=L.legacy(S), tr=S.trophies.filter(t=>!t.youth), aw=S.awards.filter(a=>!a.youth&&!/후보/.test(a.name));
   return {nickname:nick,name:S.p.name,pos:POSK[S.p.pos],type_name:S.p.typeName,club:mainClub(),years:S.history.filter(h=>!h.youth).length,apps:c.apps,goals:c.goals,assists:c.assists,caps:c.caps,
     trophies:tr.length,awards:aw.length,ballon:S.ballon.filter(b=>b.rank===1).length,ballon_cand:S.ballon.length,wc:tr.filter(t=>/FIFA 월드컵 우승/.test(t.name)).length,peak:S.p.peak,
-    score:lg.total,grade:L.legacyGrade(lg.total),jersey:(S.jersey||[]).length,cs:c.cs||0,jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number}))};
+    score:lg.total,grade:L.legacyGrade(lg.total),jersey:(S.jersey||[]).length,cs:c.cs||0,jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number})),detail:hofDetail()};
 }
 async function hofPost(row){
   if(!hofOn) throw new Error("서버 설정이 없어요");
   const send=b=>fetch(CFG.SUPABASE_URL+"/rest/v1/life_hof",{method:"POST",headers:Object.assign({Prefer:"return=minimal"},HH),body:JSON.stringify(b)});
   let r=await send(row);
-  if(!r.ok&&r.status===400){ const slim=Object.assign({},row); delete slim.jerseys; r=await send(slim); }   // jerseys 컬럼이 아직 없는 서버면 옛 형식으로 저장
+  if(!r.ok&&r.status===400){ const s1=Object.assign({},row); delete s1.detail; r=await send(s1); if(!r.ok&&r.status===400){ const s2=Object.assign({},s1); delete s2.jerseys; r=await send(s2); } }   // jerseys 컬럼이 아직 없는 서버면 옛 형식으로 저장
   if(!r.ok) throw new Error(r.status===404?"서버에 life_hof 표가 아직 없어요":"등록 실패 ("+r.status+")");
 }
 async function hofLoad(){
@@ -507,7 +514,7 @@ function shopHtml(){
 function modalHtml(){
   const m=modals[0];
   if(m.t==="shop") return shopHtml();
-  if(m.t==="hofcmp") return cmpHtml(m.a);
+  if(m.t==="hofcmp") return cmpHtml(m.a).replace("<button class=\"wide\" data-act=\"mok\">닫기</button>","<button class=\"wide\" data-act=\"hofprof\">🔎 이 선수의 능력치·업적·커리어 전체 보기</button><button class=\"wide\" data-act=\"mok\">닫기</button>");
   if(m.t==="grow"){ const g=m.g; return `<div class="ov center"><div class="sheet"><small class="kick">${esc(m.label)} · TRAINING RESULT</small><h3>능력치가 변했어요</h3>
     <div class="row"><div class="stat grow"><small>OVR</small><b>${g.ovr0} → ${g.ovr1}</b></div></div>
     ${g.changes.map(c=>`<div class="row"><b class="grow">${esc(c.name)}</b><b style="color:${c.d>0?"var(--acc)":"var(--red)"};font-family:var(--f-num);font-size:20px">${c.d>0?"▲ +":"▼ "}${c.d}</b></div>`).join("")}
@@ -673,6 +680,7 @@ document.addEventListener("click",e=>{
     case "dex": view="dex"; render(); break;
     case "hoflist": view="hof"; render(); hofLoad(); break;
     case "hofcmp": modals.push({t:"hofcmp",a:hofRows[+v]}); render(); break;
+    case "hofprof": if(window.KLHofView) KLHofView.player(modals[0].a); break;
     case "hofup": { const nk=(document.getElementById("nick")||{}).value||""; if(!nk.trim()){ say("닉네임을 적어 주세요"); break; } try{ localStorage.setItem("klife-nick",nk.trim()); }catch(_){} hofPost(hofEntry(nk.trim())).then(()=>{ S.hofUp=true; save(); keep(render); say("명예의 전당에 등록했어요"); }).catch(e=>say(e.message)); break; }
     case "mok": modals.shift(); finishPopup(); save(); keep(render); if(!modals.length&&!window.__keepScrollOnClose) {} break;
     case "evopt": { const m=modals[0]; m.res=L.resolveEvent(S,m.ev,+v); dexAdd(m.ev.id); save(); keep(render); break; }

@@ -31,7 +31,7 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .board .bt{display:flex;justify-content:space-between;align-items:baseline}
 .board .bt b{font-family:var(--f-head);font-weight:400;font-size:17px}
 .board .bt small{color:var(--muted);font-size:11.5px}
-.rk{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.rk{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .rk .no{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:700 19px var(--f-num);color:#1a1300}
 .rk.r1{background:linear-gradient(90deg,rgba(255,207,74,.22),rgba(255,255,255,.03));border-color:rgba(255,207,74,.6);box-shadow:0 0 22px rgba(255,207,74,.18)}
 .rk.r1 .no{background:linear-gradient(135deg,#ffe38a,#e0a82a)}
@@ -97,6 +97,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
 </aside>
 </div>
 <script src="js/config.js"></script>
+<script src="js/hofview.js"></script>
 <script>
 (function(){
   function rd(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
@@ -107,8 +108,9 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
 (function(){
   var C=window.KL_CONFIG||{}; var esc=function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
   function get(path){ return fetch(C.SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:C.SUPABASE_ANON_KEY,Authorization:"Bearer "+C.SUPABASE_ANON_KEY}}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
-  function rows(list,fn,emptyMsg){ if(!list.length) return '<p class="empty">'+emptyMsg+'</p>'; return list.map(function(x,i){ var o=fn(x); return '<div class="rk r'+(i+1)+'"><span class="no">'+(i+1)+'</span><div class="who"><b>'+esc(o.t)+'</b><small>'+esc(o.s)+'</small></div><div class="sc">'+esc(o.v)+'<small>'+esc(o.u)+'</small></div></div>'; }).join(""); }
+  function rows(list,fn,emptyMsg){ if(!list.length) return '<p class="empty">'+emptyMsg+'</p>'; return list.map(function(x,i){ var o=fn(x); return '<button type="button" class="rk r'+(i+1)+'" data-i="'+i+'"><span class="no">'+(i+1)+'</span><div class="who"><b>'+esc(o.t)+'</b><small>'+esc(o.s)+'</small></div><div class="sc">'+esc(o.v)+'<small>'+esc(o.u)+'</small></div></button>'; }).join(""); }
   var jg=document.getElementById("jGrid"), js=document.getElementById("jStat");
+  document.addEventListener("click",function(e){ var b=e.target.closest(".rk"); if(!b||!window.KLHofView) return; var box=b.parentNode.id; var i=+b.getAttribute("data-i"); if(box==="hofM"&&mRows[i]) KLHofView.manager(mRows[i]); else if(box==="hofP"&&pRows[i]) KLHofView.player(pRows[i]); });
   function jersey(){
     get("life_hof?select=name,nickname,club,jerseys,jersey,created_at&jersey=gt.0&order=created_at.desc&limit=60").then(function(l){
       var items=[]; l.forEach(function(x){ if(x.jerseys&&x.jerseys.length) x.jerseys.forEach(function(j){ items.push({n:j.number,club:j.club,name:x.name,by:x.nickname}); }); else items.push({n:"★",club:x.club,name:x.name,by:x.nickname}); });
@@ -121,10 +123,12 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   jersey();
   var m=document.getElementById("hofM"), p=document.getElementById("hofP");
   if(!C.SUPABASE_URL){ m.innerHTML=p.innerHTML='<p class="empty">서버 설정이 없어요.</p>'; return; }
-  get("results?select=nickname,team_name,manager,w,d,l,pts,rank,form&order=pts.desc,gf.desc&limit=3").then(function(l){
-    m.innerHTML=rows(l,function(x){ return {t:x.nickname+" · "+x.team_name,s:x.w+"승 "+x.d+"무 "+x.l+"패 · "+x.rank+"위 · "+x.form+(x.manager?" · 감독 "+x.manager:""),v:x.pts,u:"승점"}; },"아직 등록된 감독 기록이 없어요. 시즌을 마치고 첫 기록을 올려 보세요!"); }).catch(function(){ m.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
-  get("life_hof?select=nickname,name,pos,club,years,goals,assists,ballon,wc,jersey,score,grade&order=score.desc&limit=3").then(function(l){
-    p.innerHTML=rows(l,function(x){ return {t:x.name+" · "+x.nickname,s:x.pos+" · "+x.club+" · "+x.years+"년 · "+x.goals+"골 "+x.assists+"도움"+(x.ballon?" · 발롱도르 "+x.ballon+"회":"")+(x.wc?" · 월드컵 우승":"")+(x.jersey?" · 영구결번":""),v:x.score,u:x.grade+" 등급"}; },"아직 은퇴한 선수가 없어요. 첫 레전드가 되어 보세요!"); }).catch(function(){ p.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
+  var mRows=[], pRows=[];
+  get("results?select=nickname,team_name,manager,w,d,l,pts,gf,ga,rank,form,xi&order=pts.desc,gf.desc&limit=3").then(function(l){
+    mRows=l; m.innerHTML=rows(l,function(x){ return {t:x.nickname+" · "+x.team_name,s:x.w+"승 "+x.d+"무 "+x.l+"패 · "+x.rank+"위 · "+x.form+(x.manager?" · 감독 "+x.manager:""),v:x.pts,u:"승점"}; },"아직 등록된 감독 기록이 없어요. 시즌을 마치고 첫 기록을 올려 보세요!"); }).catch(function(){ m.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
+  function loadP(sel){ return get("life_hof?select="+sel+"&order=score.desc&limit=3"); }
+  loadP("*").then(function(l){
+    pRows=l; p.innerHTML=rows(l,function(x){ return {t:x.name+" · "+x.nickname,s:x.pos+" · "+x.club+" · "+x.years+"년 · "+x.goals+"골 "+x.assists+"도움"+(x.ballon?" · 발롱도르 "+x.ballon+"회":"")+(x.wc?" · 월드컵 우승":"")+(x.jersey?" · 영구결번":""),v:x.score,u:x.grade+" 등급"}; },"아직 은퇴한 선수가 없어요. 첫 레전드가 되어 보세요!"); }).catch(function(){ p.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
 })();
 </script>
 </body>

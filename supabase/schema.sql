@@ -98,3 +98,6 @@ grant select, insert on public.life_hof to anon;
 
 -- 6) 영구결번 현황(메인 화면 왼쪽 표시용): 어느 구단의 몇 번이 영구결번이 되었는지
 alter table public.life_hof add column if not exists jerseys jsonb;
+
+-- 7) 명예의 전당 상세 보기용: 능력치·업적·시즌별 커리어를 통째로 저장해요
+alter table public.life_hof add column if not exists detail jsonb;
