@@ -194,16 +194,23 @@ L.EPL=EPL;
  * 상위 리그일수록 전력이 높아서 같은 능력치로는 골을 넣기 어렵고, 능력치가 높은 선수가 K리그로 돌아오면 득점왕을 노릴 수 있어요.
  * sal = 연봉 배수 · mv = 몸값 배수 · ucl = 챔피언스리그 출전 순위(이내) */
 const FL={
- EPL:{name:"프리미어리그",sal:5.6,mv:1.6,ucl:4,uel:[5,6]},EPL2:{name:"챔피언십",sal:1.1,mv:.7,ucl:0},
+ EPL:{name:"프리미어리그",sal:5.6,mv:1.6,ucl:4,uel:[5,6]},EPL2:{name:"챔피언십",sal:1.1,mv:.7,ucl:0},LAL2:{name:"세군다 디비시온",sal:1,mv:.6,ucl:0},BUN2:{name:"2. 분데스리가",sal:1.2,mv:.7,ucl:0},SEA2:{name:"세리에 B",sal:1,mv:.6,ucl:0},FR2:{name:"리그 2",sal:.9,mv:.55,ucl:0},
  J1:{name:"J1리그",sal:1.9,mv:.9,ucl:0,acl:3,cal:"K"},SPL:{name:"사우디 프로리그",sal:4.4,mv:1.1,ucl:0,acl:3,cal:"E"},
  BUN:{name:"분데스리가",sal:3.6,mv:1.3,ucl:4,uel:[5,6]},LAL:{name:"라리가",sal:4.2,mv:1.35,ucl:4,uel:[5,6]},SEA:{name:"세리에 A",sal:3.6,mv:1.25,ucl:4,uel:[5,6]},L1:{name:"리그 1",sal:2.6,mv:1.0,ucl:3,uel:[4,5]}
 };
 L.FL=FL; L.isForeign=lg=>!!FL[lg]; Object.keys(FL).forEach(k=>{ LGNAME[k]=FL[k].name; });
 const KFL=()=>window.KL_FL||{};
 const ALLENG=()=>EPL().concat(KFL().EPL2||[]);
-L.allFL=()=>{ const o=ALLENG().slice(); ["BUN","LAL","SEA","L1","J1","SPL"].forEach(k=>{ (KFL()[k]||[]).forEach(c=>o.push(c)); }); return o; };
+/* 1부 → [2부 키, 해마다 승강하는 팀 수] */
+const PAIRS={EPL:["EPL2",3],LAL:["LAL2",3],BUN:["BUN2",2],SEA:["SEA2",3],L1:["FR2",3]};
+L.PAIRS=PAIRS;
+const topOf=k=>Object.keys(PAIRS).find(t=>t===k||PAIRS[t][0]===k);
+const topList=top=>top==="EPL"?EPL():(KFL()[top]||[]);
+const idsOf=(S,top)=>(top==="EPL"?S.eplIds:(S.divIds&&S.divIds[top]))||topList(top).map(c=>c.id);
+const setIds=(S,top,ids)=>{ if(top==="EPL") S.eplIds=ids; else (S.divIds=S.divIds||{})[top]=ids; };
+L.allFL=()=>{ const o=ALLENG().slice(); ["BUN","LAL","SEA","L1","J1","SPL","BUN2","LAL2","SEA2","FR2"].forEach(k=>{ (KFL()[k]||[]).forEach(c=>o.push(c)); }); return o; };
 L.flFind=id=>L.allFL().find(c=>c.id===id);
-const flClubs=(S,key)=>{ if(key==="EPL"||key==="EPL2"){ const ids=S.eplIds||EPL().map(c=>c.id), all=ALLENG(); return key==="EPL"?all.filter(c=>ids.includes(c.id)):all.filter(c=>!ids.includes(c.id)); } return KFL()[key]||[]; };
+const flClubs=(S,key)=>{ const top=topOf(key); if(top){ const sec=PAIRS[top][0], ids=idsOf(S,top), all=topList(top).concat(KFL()[sec]||[]); return key===top?all.filter(c=>ids.includes(c.id)):all.filter(c=>!ids.includes(c.id)); } return KFL()[key]||[]; };
 L.leagueClubs=function(S,key){
   if(FL[key]) return flClubs(S,key).map(c=>{ const d=S.drift["epl_"+c.id]||0; return {id:c.id,name:c.name,short:c.short,l:c.l+d,att:c.l+d,def:c.l+d,code:null,col:c.col,players:c.players||null}; });
   const ids=key==="K1"?S.league.k1:S.league.k2;
@@ -317,6 +324,7 @@ L.beginSeason=function(S,plan){
   sim.segs=L.segsFor(S,key); sim.cal=L.calKey(S,key); const N=sim.rounds.length; let acc=0; sim.segEnd=sim.segs.map((s,i)=>{ acc+=s.frac; return i===sim.segs.length-1?N:Math.round(N*acc); });
   sim.sr=clamp(L.startRateAt(effOvr(S),lvl,S.trust,p),.02,.97); if(S.team==="2군"&&stage==="pro") sim.sr=Math.min(sim.sr,.1);
   if(stage==='youth') sim.sr=clamp(sim.sr+(ag<=15?.06:(p.ovr<lvl?-.04:0)),.02,.97);
+  if(stage==='pro'&&L.coachAdjustSr) sim.sr=L.coachAdjustSr(S,sim.sr);
   sim.role0=L.roleLabel(sim.sr);
   /* 첫 프로 시즌: 구단 전력 상위 3팀은 AFC 챔피언스리그 출전권이 있어요 */
   if(key==='K1'&&!S.history.some(h=>!h.youth)){ const cl=L.leagueClubs(S,'K1').sort((a,b)=>b.l-a.l).slice(0,3).map(c=>c.id); S.acl=cl.includes(myId); }
@@ -413,7 +421,8 @@ const CUPS={
   YOUTH:[{id:"nat",name:"전국대회",rounds:R3("nat",[["h1","예선"],["h2","16강"],["h3","8강"],["h4","4강"],["h4","결승"]])}]
 };
 const GENCUP=n=>[{id:"fa",name:n,rounds:R3("fa",[["h1","1라운드"],["h2","2라운드"],["h3","8강"],["h3","4강"],["h4","결승"]])}];
-CUPS.J1=null; CUPS.SPL=null; CUPS.EPL2=CUPS.EPL; CUPS.BUN=GENCUP("DFB-포칼"); CUPS.LAL=GENCUP("코파 델 레이"); CUPS.SEA=GENCUP("코파 이탈리아"); CUPS.L1=GENCUP("쿠프 드 프랑스"); CUPS.J1=GENCUP("일왕배"); CUPS.SPL=GENCUP("킹스컵");
+CUPS.J1=null; CUPS.SPL=null; CUPS.EPL2=CUPS.EPL; CUPS.BUN=GENCUP("DFB-포칼"); CUPS.LAL=GENCUP("코파 델 레이"); CUPS.SEA=GENCUP("코파 이탈리아"); CUPS.L1=GENCUP("쿠프 드 프랑스"); CUPS.J1=GENCUP("일왕배");
+CUPS.LAL2=CUPS.LAL; CUPS.BUN2=CUPS.BUN; CUPS.SEA2=CUPS.SEA; CUPS.FR2=CUPS.L1; CUPS.SPL=GENCUP("킹스컵");
 L.cupNames=k=>(CUPS[k]||[]).map(c=>c.name);
 L.planCups=function(S,sim){
   const list=(CUPS[sim.key]||[]).map(c=>({id:c.id,name:c.name,rounds:c.rounds.slice(),alive:true,round:0,res:null}));
@@ -463,13 +472,14 @@ L.finishSeason=function(S){
   S.nextUel=!!(FL[sim.key]&&FL[sim.key].uel&&!S.nextUcl&&R.rank>=FL[sim.key].uel[0]&&R.rank<=FL[sim.key].uel[1]); S.uel=S.nextUel;
   /* 다음 해 승강을 위해 두 리그 순위를 저장 */
   if(sim.key==="K1"||sim.key==="K2"){ S.lastTables={K1:null,K2:null}; S.lastTables[sim.key]=tab.map(t=>t.id); const other=sim.key==="K1"?"K2":"K1"; S.lastTables[other]=L.otherTable(S,other); }
-  if(sim.key==="EPL"||sim.key==="EPL2"){ S.lastFT={}; S.lastFT[sim.key]=tab.map(t=>t.id); const o=sim.key==="EPL"?"EPL2":"EPL"; S.lastFT[o]=L.otherTable(S,o); }
+  { const tp=topOf(sim.key); if(tp){ S.lastFT={}; S.lastFT[sim.key]=tab.map(t=>t.id); const o=sim.key===tp?PAIRS[tp][0]:tp; S.lastFT[o]=L.otherTable(S,o); } }
   R.natEvents=sim.natRecs.slice(); R.caps=sim.capsAuto||0; R.intGoals=sim.intGoalsAuto||0;
   /* 연봉 옵션(인센티브) 정산 */
   R.bonus=L.settleIncentives(S,R);
   R.board=L.buildBoard(S,sim,R);
   L.awardsFor(S,R,sim);
   L.seasonPost(S,R,sim); { const sc=L.scoutCheck(S); if(sc) R.scoutFinal=sc; }
+  if(L.coachSeasonEnd) L.coachSeasonEnd(S);
   R.nextAcl=!!S.nextAcl; R.nextUcl=!!S.nextUcl; R.nextUel=!!S.nextUel;
   L.commitSeason(S,R);
   S.lastR=R; S.sim=null; S.phase="result"; return R;
@@ -628,7 +638,7 @@ L.nextYear=function(S){
   if(S.stage==="pro") L.applyPromotion(S);
   KDEFS().forEach(d=>{ S.drift[d.club]=clamp((S.drift[d.club]||0)*.7+rnd(-1.2,1.2),-5,5); });
   L.allFL().forEach(c=>{ S.drift["epl_"+c.id]=clamp((S.drift["epl_"+c.id]||0)*.8+rnd(-1,1),-4,4); });
-  afterMil(S); L.syncClubLeague(S); S.contractYears=Math.max(0,S.contractYears-1);
+  afterMil(S); L.syncClubLeague(S); if(L.coachNextYear) L.coachNextYear(S); S.contractYears=Math.max(0,S.contractYears-1);
   S.cond=clamp(S.cond+25,0,100); S.morale=clamp(S.morale*.9+7,0,100);
   if(S.stage==="youth"){ const ag=age(S); if(ag>YOUTH_END){ S.stage="pro"; S.phase="draft"; S.offers=L.draftOffers(S); return; } if(S.club&&S.club.lg==="YOUTH") S.club.name=L.youthTeamName(S.club.short,ag); }
   if(S.stage==="univ"&&age(S)>=UNIV_DRAFT){ S.stage="pro"; S.phase="draft"; S.offers=L.draftOffers(S); return; }
@@ -636,10 +646,11 @@ L.nextYear=function(S){
 };
 L.applyPromotion=function(S){
   S.promoNote=null; const ft=S.lastFT;
-  if(ft&&ft.EPL&&ft.EPL2){ const ids=(S.eplIds||EPL().map(c=>c.id)).slice(); const down=ft.EPL.slice(-3), up=ft.EPL2.slice(0,3);
-    S.eplIds=ids.filter(i=>!down.includes(i)).concat(up); S.lastFT=null;
-    if(S.club.lg==="EPL"&&down.includes(S.club.id)){ S.club.lg="EPL2"; S.promoNote="강등: "+S.club.name+"이(가) 챔피언십으로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) 챔피언십으로 강등되었습니다."); }
-    else if(S.club.lg==="EPL2"&&up.includes(S.club.id)){ S.club.lg="EPL"; S.promoNote="승격: "+S.club.name+"이(가) 프리미어리그로 승격했습니다."; L.addMoment(S,"승격","승격",S.club.name+"이(가) 프리미어리그로 승격했습니다."); } }
+  if(ft){ Object.keys(PAIRS).forEach(top=>{ const sec=PAIRS[top][0], n=PAIRS[top][1]; if(!(ft[top]&&ft[sec])) return;
+      const down=ft[top].slice(-n), up=ft[sec].slice(0,n); setIds(S,top,idsOf(S,top).filter(i=>!down.includes(i)).concat(up));
+      if(S.club.lg===top&&down.includes(S.club.id)){ S.club.lg=sec; S.promoNote="강등: "+S.club.name+"이(가) "+L.lgLabel(sec)+"로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) "+L.lgLabel(sec)+"로 강등되었습니다."); }
+      else if(S.club.lg===sec&&up.includes(S.club.id)){ S.club.lg=top; S.promoNote="승격: "+S.club.name+"이(가) "+L.lgLabel(top)+"로 승격했습니다."; L.addMoment(S,"승격","승격",S.club.name+"이(가) "+L.lgLabel(top)+"로 승격했습니다."); } });
+    S.lastFT=null; }
   const t=S.lastTables; if(!t||!t.K1||!t.K2){ L.syncClubLeague(S); return; } const mil=K.GIMCHEON.club;
   const down=t.K1.filter(c=>c!==mil).slice(-2), up=t.K2.slice(0,2);
   S.league.k1=S.league.k1.filter(c=>!down.includes(c)).concat(up); S.league.k2=S.league.k2.filter(c=>!up.includes(c)).concat(down); S.lastTables=null;
@@ -648,7 +659,7 @@ L.applyPromotion=function(S){
   L.syncClubLeague(S);
 };
 /* 이적 직후 승강이 일어나도 소속 리그 표시가 어긋나지 않게 맞춰 줘요 */
-L.syncClubLeague=function(S){ if(S.club&&(S.club.lg==="EPL"||S.club.lg==="EPL2")){ const ids=S.eplIds||EPL().map(c=>c.id); S.club.lg=ids.includes(S.club.id)?"EPL":"EPL2"; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
+L.syncClubLeague=function(S){ if(S.club&&topOf(S.club.lg)){ const top=topOf(S.club.lg); S.club.lg=idsOf(S,top).includes(S.club.id)?top:PAIRS[top][0]; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
 L.otherTable=function(S,key){
   const clubs=L.leagueClubs(S,key); const st={}, tab={}; clubs.forEach(c=>{ st[c.id]=c; tab[c.id]={id:c.id,pts:0,gf:0,ga:0}; });
   L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0).forEach(rd=>rd.forEach(([h,a])=>{ const [gh,ga]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a]; H.gf+=gh;H.ga+=ga;A.gf+=ga;A.ga+=gh; if(gh>ga) H.pts+=3; else if(gh<ga) A.pts+=3; else {H.pts++;A.pts++;} }));

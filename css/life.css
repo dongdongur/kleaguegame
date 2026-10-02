@@ -170,3 +170,9 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .umatch .rd{font-size:11px;color:#9db8ff;font-family:var(--f-num)}.umatch em{font-style:normal;font-family:var(--f-num);font-size:20px}.umatch em.w{color:var(--acc)}.umatch em.l{color:var(--red)}.umatch em.d{color:var(--gold)}
 .umatch small{grid-column:1/-1;color:var(--muted)}
 @keyframes twinkle{50%{opacity:.45}}
+
+/* ===== 리그 입성 소개 ===== */
+.ov.lgw{background:radial-gradient(600px 420px at 50% 20%,color-mix(in srgb,var(--c) 38%,transparent),rgba(2,4,12,.95)) #02040c}
+.lgsheet{text-align:center;border:1px solid var(--c);box-shadow:0 0 34px color-mix(in srgb,var(--c) 40%,transparent);animation:pop .45s cubic-bezier(.2,1.3,.4,1)}
+.lgflag{font-size:54px;line-height:1;filter:drop-shadow(0 0 14px var(--c))}
+.lgsheet h3{color:#fff}.lgl{text-align:left;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.05);border-left:3px solid var(--c);font-size:13.5px}

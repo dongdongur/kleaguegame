@@ -66,6 +66,20 @@ function bindSign(){
   cv.addEventListener("touchstart",st,{passive:false}); cv.addEventListener("touchmove",mv,{passive:false}); cv.addEventListener("touchend",en);
 }
 function askSign(title,lines,fn){ modals.unshift({t:"sign",title,lines,fn}); keep(render); }
+/* 새 리그에 처음 입성할 때 나오는 소개 화면 */
+const LEAGUE_INFO={
+ EPL:{ic:"🏴",tag:"PREMIER LEAGUE",c:"#9b5cff",title:"프리미어리그 입성",lines:["8월 개막 · 5월 폐막","세계에서 가장 치열한 리그 — 구단 전력이 높아 골 넣기가 어려워요","FA컵 · EFL컵, 상위 4팀은 챔피언스리그 · 5~6위는 유로파리그","하위 3팀은 챔피언십으로 강등돼요"]},
+ EPL2:{ic:"🏴",tag:"CHAMPIONSHIP",c:"#5aa0ff",title:"챔피언십(잉글랜드 2부)",lines:["승격 플레이오프의 치열한 46경기","상위 3팀은 프리미어리그로 승격해요","몸값과 연봉은 1부보다 많이 낮아요"]},
+ LAL:{ic:"🇪🇸",tag:"LA LIGA",c:"#ff5a5a",title:"라리가 입성",lines:["8월 개막 · 5월 폐막","기술과 패스 중심의 리그 — 상위 2팀의 벽이 높아요","코파 델 레이, 상위 4팀 챔스 · 5~6위 유로파"]},
+ BUN:{ic:"🇩🇪",tag:"BUNDESLIGA",c:"#ff4d4d",title:"분데스리가 입성",lines:["8월 개막 · 5월 폐막","빠른 전환과 높은 득점 — 골이 많이 나는 리그예요","DFB-포칼, 상위 4팀 챔스 · 5~6위 유로파"]},
+ SEA:{ic:"🇮🇹",tag:"SERIE A",c:"#3fa7ff",title:"세리에 A 입성",lines:["8월 개막 · 5월 폐막","수비 조직력의 리그 — 클린시트 싸움이 치열해요","코파 이탈리아, 상위 4팀 챔스 · 5~6위 유로파"]},
+ L1:{ic:"🇫🇷",tag:"LIGUE 1",c:"#4d7cff",title:"리그 1 입성",lines:["8월 개막 · 5월 폐막","스피드 있는 젊은 선수들의 리그","쿠프 드 프랑스, 상위 3팀 챔스 · 4~5위 유로파"]},
+ J1:{ic:"🇯🇵",tag:"J1 LEAGUE",c:"#ff6b81",title:"J1리그 입성",lines:["2월 개막 · 12월 폐막 (K리그와 비슷한 달력)","조직력과 체력 중심 — 응원 문화가 인상적이에요","일왕배, 상위 3팀 AFC 챔피언스리그"]},
+ SPL:{ic:"🇸🇦",tag:"SAUDI PRO LEAGUE",c:"#2fd18b",title:"사우디 프로리그 입성",lines:["8월 개막 · 5월 폐막","세계적인 스타들이 모이고 연봉이 최고 수준이에요","킹스컵, 상위 3팀 AFC 챔피언스리그"]}
+};
+function leagueWelcome(){ const lg=S&&S.club&&S.club.lg; const info=LEAGUE_INFO[lg]; if(!info) return; S.seenLg=S.seenLg||[]; if(S.seenLg.includes(lg)) return; S.seenLg.push(lg);
+  const cl=L.leagueClubs(S,lg); const top=cl.slice().sort((a,b)=>b.l-a.l).slice(0,3).map(c=>c.short||c.name);
+  modals.unshift({t:"league",info,club:S.club.name,top,n:cl.length,lg}); }
 function say(m){ toast=m; keep(render); setTimeout(()=>{ toast=null; keep(render); },2200); }
 function header(){
   const p=S.p;
@@ -215,13 +229,19 @@ function compCard(){
   if((key==="K1"||(L.FL[key]&&L.FL[key].acl))&&S.acl) names.push("AFC 챔피언스리그 🌏"); if(L.isForeign(key)&&S.uel&&!S.ucl) names.push("UEFA 유로파리그 🟠"); if(L.isForeign(key)&&S.ucl) names.push("UEFA 챔피언스리그 ⭐");
   return `<p class="note">🏟 올해 출전 대회: ${names.map(esc).join(" · ")}${(key==="K1"&&S.acl)?"<br><small>지난 시즌 성적(또는 구단 전력)으로 AFC 챔피언스리그 출전권을 얻었어요.</small>":""}</p>`;
 }
+function coachCard(){
+  if(S.stage!=="pro"||!L.styleFit) return ""; const f=L.styleFit(S); if(f.fit==="none") return "";
+  const cls=f.fit==="good"?"good":f.fit==="bad"?"warn":""; const ic=f.fit==="good"?"🤝":f.fit==="bad"?"⚠️":"🧭";
+  const nw=S.coachNew?`<p class="note ${S.coachFrom?"warn":""}">${S.coachFrom?"새 감독이 부임했어요. 이전 "+esc(S.coachFrom.name)+" 감독과 전술 색이 달라질 수 있어요.":"새 구단의 감독을 만났어요."}</p>`:"";
+  return `${nw}<section class="card flat"><small class="kick">COACH</small><h3 class="sec">${esc(f.coach.name)} 감독 · ${esc(f.style.name)}</h3><p class="muted">${esc(f.style.desc)}</p><p class="note ${cls}">${ic} ${esc(f.text)}</p></section>`;
+}
 function prepView(){
   const p=S.p;
   const youthTip=S.stage==="youth"?`<p class="note">${esc(L.youthTeamName(S.club.short,age()))} · ${L.gradeLabel(age())}. ${age()<=15?"U15는 성장기라 성장이 8% 빠르고 출전 기회가 넉넉해요.":"U18는 리그 수준이 높아 어린 학년은 출전이 어려워요."} 유소년 리그에서 두각을 나타내면 연령별 대표팀과 해외 유스의 눈에 띄어요.</p>`:"";
   const mil=S.military==="sangmu"?`<p class="note">🎖 김천 상무 복무 중 (${S.mildone+1}/2년차)</p>`:"";
   return `<small class="kick">${L.seasonLabel(S)} 프리시즌 (${L.preMonths(S)})</small><h2>${yearLabel()} · ${L.seasonLabel(S)} 시즌 준비</h2>
    <section class="card prow"><div class="row">${emblem(S.club,56)}<div class="grow"><small class="muted">${esc(S.club.name)}</small><br><b>${esc(S.p.typeName)} · ${esc(subName())}</b><br><small class="muted">${esc(scoutLabel())}</small></div></div></section>
-   ${youthTip}${mil}${compCard()}${meters()}
+   ${youthTip}${mil}${coachCard()}${compCard()}${meters()}
    ${planEditor()}
    <h3 class="sec">올해 일정</h3>${timeline()}
    <div class="cta"><button class="big ${plan.focus?"":"needs"}" data-act="begin"><span>${plan.focus?"훈련 후 시즌 시작":"훈련 방향을 골라 주세요 ↑"}</span><b>→</b></button></div>`;
@@ -531,6 +551,7 @@ function modalHtml(){
     <button class="big" data-act="callgo"><span>대회에 합류</span><b>→</b></button><button class="wide red" data-act="calldecl">불참한다 (인기·평판 하락)</button></div></div>`; }
   if(m.t==="ballon"){ const R=S.lastR; const lst=L.ballonList(S,R.ballon.rank); return `<div class="ov"><div class="sheet"><div class="grab"></div><small class="kick">BALLON D'OR ${R.year}</small><h3>후보 30인 · 내 순위 ${R.ballon.rank}위</h3><div class="tab">${lst.map(x=>`<div class="tr ${x.me?"me":""}" style="grid-template-columns:30px 1fr"><span>${x.rank}</span><span>${esc(x.name)}${x.me?" ◀":""}</span></div>`).join("")}</div><button class="wide" data-act="mok">닫기</button></div></div>`; }
   if(m.t==="sign") return `<div class="ov center"><div class="sheet"><small class="kick">CONTRACT</small><h3>${esc(m.title)}</h3>${m.lines.map(x=>`<p class="muted">${esc(x)}</p>`).join("")}<canvas id="signpad" width="640" height="240" class="signpad"></canvas><p class="muted c">아래 칸에 손가락(또는 마우스)으로 사인해 주세요</p><div class="grid2"><button class="ghost" data-act="signclear">지우기</button>${S.sign?`<button class="ghost" data-act="signprev">이전 사인 쓰기</button>`:`<span></span>`}</div><button class="big" data-act="signdone"><span>서명하고 계약 확정</span><b>✍</b></button><button class="wide" data-act="signcancel">다시 생각해 볼게요</button></div></div>`;
+  if(m.t==="league"){ const i=m.info; return `<div class="ov center lgw" style="--c:${i.c}"><div class="sheet lgsheet"><div class="lgflag">${i.ic}</div><small class="kick" style="color:${i.c}">${esc(i.tag)}</small><h3>${esc(i.title)}</h3><p class="muted c">${esc(m.club)}에서 새 도전이 시작돼요</p>${i.lines.map(x=>`<p class="lgl">${esc(x)}</p>`).join("")}<p class="muted c">${m.n}개 구단 · 상위권: ${m.top.map(esc).join(" · ")}</p><button class="big" data-act="mok"><span>도전 시작</span><b>→</b></button></div></div>`; }
   if(m.t==="ucl") return `<div class="ov center ucl"><div class="sheet uclsheet"><div class="stars">★ ★ ★ ★ ★ ★ ★ ★</div><small class="kick">CHAMPIONS NIGHT</small><h3>챔피언스리그 · ${esc(m.label)}</h3>${m.recs.map(r=>`<div class="umatch"><span class="rd">${esc(r.cupRound||"")}</span><b>${esc(r.opp)}</b><em class="${r.res==="W"?"w":r.res==="L"?"l":"d"}">${r.f}:${r.a}${r.pk?" (PK "+r.pk[0]+"-"+r.pk[1]+")":""}</em><small>${r.min>0?(r.g?r.g+"골 ":"")+(r.as?r.as+"도움 ":"")+"평점 "+r.rt:"결장"}</small></div>`).join("")}<button class="big" data-act="mok"><span>계속</span><b>→</b></button></div></div>`;
   if(m.t==="xi") return `<div class="ov center"><div class="sheet"><small class="kick">BEST ELEVEN ${S.lastR.year}</small><h3>${esc(S.lastR.leagueName)} 베스트 11</h3><div class="xi">${m.list.map(x=>`<div class="${x.me?"me":""}"><b>${esc(x.slot)}</b><span>${esc(x.name)}${x.me?" ◀":""}</span><small>${esc(x.club)} · ${x.ovr}</small></div>`).join("")}</div><button class="big" data-act="mok"><span>닫기</span><b>→</b></button></div></div>`;
   if(m.t==="gold") return `<div class="ov center gold"><div class="sheet goldsheet"><div class="rays"></div><small class="kick">${esc(m.kick)}</small><div class="ball">⚽</div><h3>${esc(m.title)}</h3><p class="gsub">${esc(m.sub)}</p><p class="muted c">${esc(m.club)}</p>${m.lines.map(x=>`<p class="muted c">${esc(x)}</p>`).join("")}<button class="big" data-act="mok"><span>트로피 받기</span><b>🏆</b></button></div></div>`;
@@ -644,7 +665,7 @@ document.addEventListener("click",e=>{
       save(); render(); break; }
     case "draftgo": { const dr=ensureDr(); dr.rolled=true; dr.ok=Math.random()*100<dr.chance; if(dr.ok) S.offers=L.draftOffers(S); else S.offers=[]; save(); render(); break; }
     case "sign": { const o=S.offers[+v]; askSign("프로 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","계약금 "+money(Math.max(.05,Math.round(o.salary*8)/10))+" 지급","예상 역할 "+o.role],()=>{ L.signWith(S,o); S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
-    case "signdirect": { const o=S.dr.direct[+v]; askSign("해외 직행 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","프리미어리그 2군(U21)에서 시작해요"],()=>{ L.signWith(S,o); S.abroadYouth=true; S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
+    case "signdirect": { const o=S.dr.direct[+v]; askSign("해외 직행 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","프리미어리그 2군(U21)에서 시작해요"],()=>{ L.signWith(S,o); S.abroadYouth=true; S.dr=null; view="game"; tab="season"; leagueWelcome(); save(); render(); }); break; }
     case "signclear": { const cv=$("signpad"); if(cv){ cv.getContext("2d").clearRect(0,0,cv.width,cv.height); signDirty=false; } break; }
     case "signprev": { const cv=$("signpad"), im=new Image(); im.onload=()=>{ const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height); c.drawImage(im,0,0,cv.width,cv.height); signDirty=true; }; im.src=S.sign; break; }
     case "signcancel": modals.shift(); keep(render); break;
@@ -671,7 +692,7 @@ document.addEventListener("click",e=>{
     case "inc": chosenInc=chosenInc.includes(v)?chosenInc.filter(x=>x!==v):chosenInc.concat(v); keep(render); break;
     case "renego": { if(off.renego) break; const n=L.negotiate(S,off.contract); off.renego=true; const o=Object.assign({},off.contract,{offer:n.offer,rate:n.rate}); off.contract=o; say(n.mult>1?"협상 성공! 연봉이 올랐어요":n.mult<1?"역효과… 구단이 제시액을 낮췄어요":"구단이 기존 제안을 유지했어요"); break; }
     case "accept": { const o=L.applyIncentives(S,off.contract,chosenInc); askSign("재계약서 · "+S.club.name,["연봉 "+money(o.offer)+" · "+o.years+"년"],()=>{ L.acceptContract(S,o); off.accepted=true; save(); keep(render); }); break; }
-    case "transfer": { const o=off.transfers[+v]; askSign("이적 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약"],()=>{ if(L.doTransfer(S,o)===false){ say("군 복무 중에는 이적할 수 없어요"); return; } off.accepted=true; off.transfers=[]; off.contract={last:o.salary,offer:o.salary,rate:0,years:o.years}; S.contractYears=o.years; save(); say(o.club.name+"(으)로 이적했어요"); }); break; }
+    case "transfer": { const o=off.transfers[+v]; askSign("이적 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약"],()=>{ if(L.doTransfer(S,o)===false){ say("군 복무 중에는 이적할 수 없어요"); return; } off.accepted=true; leagueWelcome(); off.transfers=[]; off.contract={last:o.salary,offer:o.salary,rate:0,years:o.years}; S.contractYears=o.years; save(); say(o.club.name+"(으)로 이적했어요"); }); break; }
     case "mil": { if(v==="skip"){ off.milDone=true; } else { L.enlist(S,v); off.milDone=true; off.transfers=[]; off.endorse=[]; off.contract=L.contractOffer(S); } save(); keep(render); break; }
     case "retire": doRetire(); break;
     case "kidpos": { const k=(document.getElementById("kid")||{}).value; draft.kidName=k; draft.kidPos=v; keep(render); break; }
