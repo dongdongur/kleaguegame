@@ -150,7 +150,7 @@ const POOL=[
   opts:[A("바로 의무팀에 알린다",{safe:true,win:{cond:8},ok:"큰일을 막았어요."}),
         A("참고 훈련한다",{p:45,win:{stat:1},lose:{inj:ri(2,5),morale:-4,cond:-8},ok:"통증이 가라앉았어요.",no:"결국 근육이 올라와 쉬게 됐어요."})]},
  /* ---- 가정 형편 (미성년·대학) ---- */
- {id:"famcrash",w:.9,when:S=>S.family&&(minor(S)||univ(S))&&S.family.pts>=4&&!S.famEv&&S.history.length>=2&&(["rich","upper"].includes(S.family.id)?Math.random()<.2:true),title:"집안에 먹구름이 몰려왔어요",body:"부모님 사업이 크게 흔들렸어요. 훈련비와 용돈이 눈에 띄게 줄어듭니다.",
+ {id:"famcrash",w:.9,when:S=>S.family&&(minor(S)||univ(S))&&S.family.pts>=4&&!S.famEv&&S.history.length>=2&&!(S.gen>1&&["rich","upper"].includes(S.family.id))&&(["rich","upper"].includes(S.family.id)?Math.random()<.2:true),title:"집안에 먹구름이 몰려왔어요",body:"부모님 사업이 크게 흔들렸어요. 훈련비와 용돈이 눈에 띄게 줄어듭니다.",
   opts:[A("장학금에 도전한다",{p:"schol",win:{fam:-1,morale:3,trust:2},lose:{fam:-3,morale:-6},ok:"장학 선발에 통과했어요! 학비 걱정을 덜었어요.",no:"장학 선발에서 떨어졌어요. 부모님께 죄송한 마음뿐이에요.",act:"quitRisk"}),
         A("아르바이트와 합숙으로 버틴다",{p:55,win:{fam:-1,morale:-2,trust:2},lose:{fam:-3,morale:-6,cond:-6},ok:"힘들지만 길을 찾았어요.",no:"버거운 한 해가 됐어요.",act:"quitRisk"}),
         A("운동을 접고 학업에 전념한다",{safe:true,win:{},ok:"눈물을 삼키며 축구화를 벗었어요.",act:"quitNow"})]},

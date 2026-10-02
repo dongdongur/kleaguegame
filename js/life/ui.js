@@ -277,6 +277,8 @@ function resultView(){
    ${R.rank?`<section class="card flat"><div class="three"><div class="stat"><small>전적</small><b>${R.W}-${R.D}-${R.L}</b></div><div class="stat"><small>득실</small><b>${R.gf}:${R.ga}</b></div><div class="stat"><small>OVR</small><b>${R.ovr0}→${R.ovr1}</b></div></div></section>`:""}
    ${R.trophies.length?`<div class="pills">${R.trophies.map(t=>`<span class="pill gold">🏆 ${esc(t)}</span>`).join("")}</div>`:""}
    ${R.awards.length?`<div class="pills">${R.awards.map(a=>`<span class="pill gold">⭐ ${esc(a)} · ${esc(L.awardComp(a,R))}</span>`).join("")}</div>`:""}
+   ${(R.records||[]).map(t=>`<p class="note good">🏅 ${esc(t)}</p>`).join("")}
+   ${R.awards.some(a=>/베스트 11|올해의 팀/.test(a))&&!R.youth?`<button class="wide" data-act="xi">⭐ 이번 시즌 베스트 11 보기</button>`:""}
    ${R.ballon?`<button class="wide" data-act="ballon">🏅 발롱도르 후보 ${R.ballon.rank}위 — 30인 명단 보기</button>`:""}
    ${comps}${R.nextAcl?`<p class="note good">🌏 다음 시즌 AFC 챔피언스리그 출전권을 얻었어요!</p>`:""}${R.nextUcl?`<p class="note good">⭐ 다음 시즌 UEFA 챔피언스리그에 진출해요!</p>`:""}
    ${(R.natEvents||[]).map(e=>e.skipped?`<p class="note warn">🇰🇷 ${esc(e.name)} — ${esc(e.text)}</p>`:e.declined?`<p class="note warn">🇰🇷 ${esc(e.name)} — 소집 불참</p>`:`<p class="note ${e.title?"good":""}">🇰🇷 ${esc(e.name)} · ${esc(e.stage)} (팀 ${e.games||e.caps}경기 중 ${e.caps}경기 출전 · ${e.goals}골)${e.exempt?" · 병역 특례!":""}</p>`).join("")}
@@ -519,6 +521,7 @@ function modalHtml(){
     <button class="big" data-act="callgo"><span>대회에 합류</span><b>→</b></button><button class="wide red" data-act="calldecl">불참한다 (인기·평판 하락)</button></div></div>`; }
   if(m.t==="ballon"){ const R=S.lastR; const lst=L.ballonList(S,R.ballon.rank); return `<div class="ov"><div class="sheet"><div class="grab"></div><small class="kick">BALLON D'OR ${R.year}</small><h3>후보 30인 · 내 순위 ${R.ballon.rank}위</h3><div class="tab">${lst.map(x=>`<div class="tr ${x.me?"me":""}" style="grid-template-columns:30px 1fr"><span>${x.rank}</span><span>${esc(x.name)}${x.me?" ◀":""}</span></div>`).join("")}</div><button class="wide" data-act="mok">닫기</button></div></div>`; }
   if(m.t==="sign") return `<div class="ov center"><div class="sheet"><small class="kick">CONTRACT</small><h3>${esc(m.title)}</h3>${m.lines.map(x=>`<p class="muted">${esc(x)}</p>`).join("")}<canvas id="signpad" width="640" height="240" class="signpad"></canvas><p class="muted c">아래 칸에 손가락(또는 마우스)으로 사인해 주세요</p><div class="grid2"><button class="ghost" data-act="signclear">지우기</button>${S.sign?`<button class="ghost" data-act="signprev">이전 사인 쓰기</button>`:`<span></span>`}</div><button class="big" data-act="signdone"><span>서명하고 계약 확정</span><b>✍</b></button><button class="wide" data-act="signcancel">다시 생각해 볼게요</button></div></div>`;
+  if(m.t==="xi") return `<div class="ov center"><div class="sheet"><small class="kick">BEST ELEVEN ${S.lastR.year}</small><h3>${esc(S.lastR.leagueName)} 베스트 11</h3><div class="xi">${m.list.map(x=>`<div class="${x.me?"me":""}"><b>${esc(x.slot)}</b><span>${esc(x.name)}${x.me?" ◀":""}</span><small>${esc(x.club)} · ${x.ovr}</small></div>`).join("")}</div><button class="big" data-act="mok"><span>닫기</span><b>→</b></button></div></div>`;
   if(m.t==="gold") return `<div class="ov center gold"><div class="sheet goldsheet"><div class="rays"></div><small class="kick">${esc(m.kick)}</small><div class="ball">⚽</div><h3>${esc(m.title)}</h3><p class="gsub">${esc(m.sub)}</p><p class="muted c">${esc(m.club)}</p>${m.lines.map(x=>`<p class="muted c">${esc(x)}</p>`).join("")}<button class="big" data-act="mok"><span>트로피 받기</span><b>🏆</b></button></div></div>`;
   if(m.t==="msg") return`<div class="ov center"><div class="sheet"><small class="kick">${esc(m.kick||"알림")}</small><h3>${esc(m.title)}</h3><p>${esc(m.body)}</p>${m.banner?`<div class="banner"><div class="no">${esc(m.banner)}</div></div>`:""}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`;
   return "";
@@ -646,6 +649,7 @@ document.addEventListener("click",e=>{
     case "det": openDet=!openDet; keep(render); break;
     case "btab": boardTab=v; keep(render); break;
     case "ballon": modals.push({t:"ballon"}); render(); break;
+    case "xi": modals.push({t:"xi",list:L.bestXI(S,S.lastR)}); render(); break;
     case "shop": modals.push({t:"shop"}); keep(render); break;
     case "buy": { const [kind,id]=v.split(":"); const r=L.buyItem(S,kind,id); const m=modals[0]; if(m&&m.t==="shop"){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
     case "endorse": { const o=off.endorse[+v]; L.signEndorse(S,o); off.endorse=[]; save(); say(o.brand+"와 광고 계약을 맺었어요"); break; }

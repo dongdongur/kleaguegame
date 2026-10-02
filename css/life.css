@@ -158,3 +158,5 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 @keyframes float{50%{transform:translateY(-6px) scale(1.06)}}
 @keyframes pop{from{transform:scale(.85);opacity:0}}
 .signpad{width:100%;height:140px;border-radius:12px;background:#0a1030;border:1px dashed rgba(255,207,74,.5);touch-action:none}
+.xi{display:grid;gap:6px}.xi>div{display:grid;grid-template-columns:38px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.xi>div.me{border-color:var(--gold);background:rgba(255,207,74,.12)}.xi b{font-family:var(--f-num);color:var(--acc)}.xi small{color:var(--muted)}
