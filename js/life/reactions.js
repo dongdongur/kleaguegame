@@ -147,7 +147,8 @@ function youthReact(S,R){
   if(!notable||Math.random()<.2) return null;
   const k=R.injury&&R.injury.severe?"bad":S.stage==="univ"?"univ":age<=15?"mid":"high"; const b=YB[k];
   const c={n:S.p.name}; const used=new Set(); const posts=shuffle(b.posts.slice()).slice(0,ri(2,3)).map(p=>{ const tone=+p[2]; return {h:pick(SRCNAME[p[0]]||HANDLE),src:p[0],t:fill(p[1],c),tone,likes:ri(2,48)}; });
-  return {headline:fill(pick(b.heads),c),posts:posts.sort((a,b)=>b.tone-a.tone)};
+  const cha=(R.awards||[]).find(x=>/차범근/.test(x)); if(cha) b.posts.unshift(["지역 기사","{n}, "+cha+" 수상… 한국 축구의 미래라는 평가",1]);
+  return {headline:cha?fill("축구 천재 {n}, "+cha+" 수상",c):fill(pick(b.heads),c),posts:posts.sort((a,b)=>b.tone-a.tone)};
 }
 L.reactions=function(S,R){
   if(S.stage!=="pro"||R.youth) return youthReact(S,R);

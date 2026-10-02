@@ -20,6 +20,9 @@ L.awardsFor=function(S,R,sim){
   if(R.youth){
     if(R.rank===1&&R.rating>=7.2&&Math.random()<.6) A.push(S.stage==="univ"?"대학 리그 MVP":"유소년 리그 MVP");
     const topG=ri(10,17); if(R.goals>=topG&&p.pos!=="GK") A.push("유소년 득점왕");
+    /* 천재 소리 듣는 유망주에게 주는 상 (가상의 시상) */
+    if(S.stage!=="univ"&&(R.rating>=7.2||(R.dOvr||0)>=4)&&Math.random()<.5) A.push(R.age<=15?"차범근 축구상 유망주 부문":"차범근 축구상");
+    else if(S.stage!=="univ"&&R.age>=16&&R.rating>=7.3&&Math.random()<.3) A.push("전국 고교 최우수선수상");
     return;
   }
   if(R.apps<10) { L.ballonCheck(S,R); return; }
