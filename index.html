@@ -43,6 +43,13 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .rk .sc small{display:block;font:500 11px var(--f-body);color:var(--muted)}
 .rk.r1 .who b{font-size:17px}
 .empty{color:var(--muted);font-size:13px;padding:6px 2px}
+.jersey{border-radius:20px;padding:14px;background:linear-gradient(160deg,rgba(255,90,90,.10),rgba(14,22,49,.9) 45%);border:1px solid rgba(255,120,120,.3);display:grid;gap:10px}
+.jersey .bt{display:flex;justify-content:space-between;align-items:baseline}.jersey .bt b{font-family:var(--f-head);font-weight:400;font-size:17px}.jersey .bt small{color:var(--muted);font-size:11.5px}
+.jgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.jc{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.jc .n{grid-row:span 2;font:700 26px var(--f-num);color:#ffd1d1;min-width:34px;text-align:center;text-shadow:0 0 14px rgba(255,90,90,.55)}
+.jc b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jc small{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jstat{display:flex;gap:14px;color:var(--muted);font-size:12.5px}.jstat b{color:var(--gold);font:700 18px var(--f-num)}
 
 .brand{display:flex;align-items:baseline;gap:6px;font-family:var(--f-head);font-size:30px;line-height:1}
 .brand .k{color:var(--acc);font-size:38px}.brand b{font-weight:400;color:var(--gold);font-size:38px}
@@ -77,6 +84,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
     <span class="save" id="saveP"></span>
     <span class="go"><span>선수로 시작</span><span>→</span></span>
   </a>
+  <section class="jersey"><div class="bt"><b>🎽 영구결번 현황</b><small>지금까지의 기록</small></div><div class="jstat" id="jStat"></div><div class="jgrid" id="jGrid"><p class="empty">불러오는 중…</p></div></section>
   <div class="soon"><b>업데이트 예정</b><br>· 선수판: 라리가 · 분데스리가 · 리그 1 · 세리에 A · 챔피언십 실제 선수 명단 (리그 하나씩 순서대로)<br>· 선수판: J리그 · 사우디 프로리그 이적과 AFC 챔피언스리그 확장<br>· 선수판: 유로파리그, 각국 리그 승강<br>· 선수판: 감독의 전술 색(공격·수비·점유 등)과 내가 선호하는 포지션·역할이 맞는지에 따라 달라지는 출전·성장
 <br>· 감독판: 시즌 도중 이벤트·인터뷰, 커리어 성장 요소, K리그 기록 업적, 달력 개편<br>· 감독판: 모바일 화면 다듬기</div>
   <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
@@ -100,6 +108,17 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   var C=window.KL_CONFIG||{}; var esc=function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
   function get(path){ return fetch(C.SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:C.SUPABASE_ANON_KEY,Authorization:"Bearer "+C.SUPABASE_ANON_KEY}}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
   function rows(list,fn,emptyMsg){ if(!list.length) return '<p class="empty">'+emptyMsg+'</p>'; return list.map(function(x,i){ var o=fn(x); return '<div class="rk r'+(i+1)+'"><span class="no">'+(i+1)+'</span><div class="who"><b>'+esc(o.t)+'</b><small>'+esc(o.s)+'</small></div><div class="sc">'+esc(o.v)+'<small>'+esc(o.u)+'</small></div></div>'; }).join(""); }
+  var jg=document.getElementById("jGrid"), js=document.getElementById("jStat");
+  function jersey(){
+    get("life_hof?select=name,nickname,club,jerseys,jersey,created_at&jersey=gt.0&order=created_at.desc&limit=60").then(function(l){
+      var items=[]; l.forEach(function(x){ if(x.jerseys&&x.jerseys.length) x.jerseys.forEach(function(j){ items.push({n:j.number,club:j.club,name:x.name,by:x.nickname}); }); else items.push({n:"★",club:x.club,name:x.name,by:x.nickname}); });
+      if(!items.length){ jg.innerHTML='<p class="empty">아직 영구결번이 나오지 않았어요. 한 구단에서 오래, 압도적으로 활약해 보세요.</p>'; js.innerHTML=""; return; }
+      var clubs={}; items.forEach(function(i){ clubs[i.club]=1; });
+      js.innerHTML='<span><b>'+items.length+'</b> 개 영구결번</span><span><b>'+Object.keys(clubs).length+'</b> 개 구단</span>';
+      jg.innerHTML=items.slice(0,10).map(function(i){ return '<div class="jc"><span class="n">'+esc(i.n)+'</span><b>'+esc(i.name)+'</b><small>'+esc(i.club)+' · by '+esc(i.by)+'</small></div>'; }).join("");
+    }).catch(function(){ jg.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
+  }
+  jersey();
   var m=document.getElementById("hofM"), p=document.getElementById("hofP");
   if(!C.SUPABASE_URL){ m.innerHTML=p.innerHTML='<p class="empty">서버 설정이 없어요.</p>'; return; }
   get("results?select=nickname,team_name,manager,w,d,l,pts,rank,form&order=pts.desc,gf.desc&limit=3").then(function(l){

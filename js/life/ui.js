@@ -387,11 +387,13 @@ function hofEntry(nick){
   const c=S.career, lg=L.legacy(S), tr=S.trophies.filter(t=>!t.youth), aw=S.awards.filter(a=>!a.youth&&!/후보/.test(a.name));
   return {nickname:nick,name:S.p.name,pos:POSK[S.p.pos],type_name:S.p.typeName,club:mainClub(),years:S.history.filter(h=>!h.youth).length,apps:c.apps,goals:c.goals,assists:c.assists,caps:c.caps,
     trophies:tr.length,awards:aw.length,ballon:S.ballon.filter(b=>b.rank===1).length,ballon_cand:S.ballon.length,wc:tr.filter(t=>/FIFA 월드컵 우승/.test(t.name)).length,peak:S.p.peak,
-    score:lg.total,grade:L.legacyGrade(lg.total),jersey:(S.jersey||[]).length,cs:c.cs||0};
+    score:lg.total,grade:L.legacyGrade(lg.total),jersey:(S.jersey||[]).length,cs:c.cs||0,jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number}))};
 }
 async function hofPost(row){
   if(!hofOn) throw new Error("서버 설정이 없어요");
-  const r=await fetch(CFG.SUPABASE_URL+"/rest/v1/life_hof",{method:"POST",headers:Object.assign({Prefer:"return=minimal"},HH),body:JSON.stringify(row)});
+  const send=b=>fetch(CFG.SUPABASE_URL+"/rest/v1/life_hof",{method:"POST",headers:Object.assign({Prefer:"return=minimal"},HH),body:JSON.stringify(b)});
+  let r=await send(row);
+  if(!r.ok&&r.status===400){ const slim=Object.assign({},row); delete slim.jerseys; r=await send(slim); }   // jerseys 컬럼이 아직 없는 서버면 옛 형식으로 저장
   if(!r.ok) throw new Error(r.status===404?"서버에 life_hof 표가 아직 없어요":"등록 실패 ("+r.status+")");
 }
 async function hofLoad(){

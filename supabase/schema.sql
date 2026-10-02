@@ -94,3 +94,7 @@ drop policy if exists "life_hof insert" on public.life_hof;
 create policy "life_hof read"   on public.life_hof for select to anon using (true);
 create policy "life_hof insert" on public.life_hof for insert to anon with check (true);
 grant select, insert on public.life_hof to anon;
+
+
+-- 6) 영구결번 현황(메인 화면 왼쪽 표시용): 어느 구단의 몇 번이 영구결번이 되었는지
+alter table public.life_hof add column if not exists jerseys jsonb;
