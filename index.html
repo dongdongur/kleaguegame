@@ -55,6 +55,10 @@ main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;ali
 .jc{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .jc .n{grid-row:span 2;font:700 26px var(--f-num);color:#ffd1d1;min-width:34px;text-align:center;text-shadow:0 0 14px rgba(255,90,90,.55)}
 .jc b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jc small{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rec{color:inherit;font:inherit;text-align:left;cursor:pointer;display:grid;gap:1px;padding:9px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.rec small{color:var(--muted);font-size:11.5px}.rec b{font:700 20px var(--f-num);color:var(--gold)}.rec span{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:560px){.recgrid{grid-template-columns:1fr 1fr}}
 .jstat{display:flex;gap:14px;color:var(--muted);font-size:12.5px}.jstat b{color:var(--gold);font:700 18px var(--f-num)}
 
 .brand{display:flex;align-items:baseline;gap:6px;font-family:var(--f-head);font-size:30px;line-height:1}
@@ -91,7 +95,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
     <a class="mode p" href="player.html"><small>PLAYER</small><b>선수판 플레이</b><span class="save" id="saveP"></span><i>→</i></a>
   </div>
   <p class="modeinfo"><b>감독판</b> 역대 레전드 카드로 베스트 11을 짜서 K리그1·FA컵·AFC 챔스 38경기에 도전 · <b>선수판</b> 중학교 유소년부터 은퇴까지, 발롱도르와 영구결번에 도전</p>
-  <div class="soon"><b>업데이트 예정</b><br>· 선수판: 2부 리그 승강(라리가·분데스리가·리그 1·세리에 A), 리그별 컵대회 보강<br>· 선수판: 감독의 전술 색과 내 선호 역할이 맞을 때·안 맞을 때의 상황<br>· 선수판: 더 많은 이벤트와 스토리, 연출 다듬기<br>· 감독판(다음 주): 시즌 도중 이벤트·인터뷰, 커리어 성장 요소, K리그 기록 업적, 달력 개편, 모바일 화면</div>
+  <div class="soon"><b>업데이트 예정</b><br>· 선수판: J2·하부 리그와 승강(J1·사우디 포함), 컵대회 방식 보강(조별·토너먼트)<br>· 선수판: 월드컵 조 편성·상대국 보기, 라이벌 더비 이벤트<br>· 선수판: 은퇴 후 지도자·감독 엔딩, 결혼·자녀 이야기 확대<br>· 감독판(다음 주): 시즌 전 예상 순위와 시즌 후 비교, 시즌 도중 이벤트·인터뷰, 겨울 이적 이벤트<br>· 감독판(다음 주): 커리어 성장 요소, K리그 기록 업적, 달력 개편, 모바일 화면</div>
   <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
 </main>
 <aside class="col" id="jerCol">
@@ -102,6 +106,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   <section class="board"><div class="bt"><b>감독판 TOP 3</b><small>어려움 난이도 · 시즌 승점 기준</small></div><div id="hofM"><p class="empty">불러오는 중…</p></div></section>
   <section class="board p"><div class="bt"><b>선수판 TOP 3</b><small>커리어 점수 기준</small></div><div id="hofP"><p class="empty">불러오는 중…</p></div></section>
   <section class="board"><div class="bt"><b>📊 서버 기록실</b><small>친구들 전체 합계</small></div><div class="jstat" id="srvStat" style="flex-wrap:wrap"><span class="empty">불러오는 중…</span></div></section>
+  <section class="board p"><div class="bt"><b>👑 서버 최고 기록</b><small>누가 1위인지 눌러서 보기</small></div><div class="recgrid" id="srvRec"><p class="empty">불러오는 중…</p></div></section>
   <p class="empty">친구들의 기록이 서버에서 바로 올라와요. 은퇴한 선수나 끝낸 시즌을 등록하면 여기에 이름을 올릴 수 있어요.</p>
 </aside>
 </div>
@@ -119,7 +124,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   function get(path){ return fetch(C.SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:C.SUPABASE_ANON_KEY,Authorization:"Bearer "+C.SUPABASE_ANON_KEY}}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
   function rows(list,fn,emptyMsg){ if(!list.length) return '<p class="empty">'+emptyMsg+'</p>'; return list.map(function(x,i){ var o=fn(x); return '<button type="button" class="rk r'+(i+1)+'" data-i="'+i+'"><span class="no">'+(i+1)+'</span><div class="who"><b>'+esc(o.t)+'</b><small>'+esc(o.s)+'</small></div><div class="sc">'+esc(o.v)+'<small>'+esc(o.u)+'</small></div></button>'; }).join(""); }
   var jg=document.getElementById("jGrid"), js=document.getElementById("jStat");
-  document.addEventListener("click",function(e){ var jb=e.target.closest(".jw"); if(jb&&window.KLHofView){ var jr=jRows[+jb.getAttribute("data-ri")]; if(jr) KLHofView.player(jr); return; } var b=e.target.closest(".rk"); if(!b||!window.KLHofView) return; var box=b.parentNode.id; var i=+b.getAttribute("data-i"); if(box==="hofM"&&mRows[i]) KLHofView.manager(mRows[i]); else if(box==="hofP"&&pRows[i]) KLHofView.player(pRows[i]); });
+  document.addEventListener("click",function(e){ var rb=e.target.closest(".rec"); if(rb&&window.KLHofView){ get("life_hof?id=eq."+rb.getAttribute("data-rid")+"&select=*").then(function(r){ if(r[0]) KLHofView.player(r[0]); }); return; } var jb=e.target.closest(".jw"); if(jb&&window.KLHofView){ var jr=jRows[+jb.getAttribute("data-ri")]; if(jr) KLHofView.player(jr); return; } var b=e.target.closest(".rk"); if(!b||!window.KLHofView) return; var box=b.parentNode.id; var i=+b.getAttribute("data-i"); if(box==="hofM"&&mRows[i]) KLHofView.manager(mRows[i]); else if(box==="hofP"&&pRows[i]) KLHofView.player(pRows[i]); });
   function hue(s){ var x=0; for(var i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))%360; return x; }
   function shirt(n,club){
     var hh=hue(club||"x"), c1="hsl("+hh+",62%,42%)", c2="hsl("+hh+",62%,30%)", t=String(n); var fs=t.length>2?34:46;
@@ -139,6 +144,11 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
     }).catch(function(){ jg.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
   }
   jersey();
+  var CATS=[["goals","최다 득점","골"],["assists","최다 도움","도움"],["apps","최다 출전","경기"],["caps","최다 대표팀 출전","경기"],["trophies","최다 우승","회"],["awards","최다 개인 수상","회"],["ballon","최다 발롱도르","회"],["wc","최다 월드컵 우승","회"],["peak","최고 능력치","OVR"],["score","최고 커리어 점수","점"],["cs","최다 무실점","경기"],["jersey","최다 영구결번","개"],["years","최장 커리어","시즌"]];
+  var recRows=[];
+  get("life_hof?select=id,name,nickname,pos,club,years,apps,goals,assists,caps,trophies,awards,ballon,wc,peak,score,cs,jersey&limit=1000").then(function(l){
+    recRows=l; document.getElementById("srvRec").innerHTML=CATS.map(function(c,i){ var best=null; l.forEach(function(x){ if((x[c[0]]||0)>(best?best[c[0]]||0:0)) best=x; }); if(!best) return ""; return '<button type="button" class="rec" data-rid="'+best.id+'"><small>'+c[1]+'</small><b>'+(best[c[0]]||0)+' <small>'+c[2]+'</small></b><span>'+esc(best.name)+' · '+esc(best.nickname)+'</span></button>'; }).join("")||'<p class="empty">아직 기록이 없어요.</p>';
+  }).catch(function(){ document.getElementById("srvRec").innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
   get("life_hof?select=goals,assists,ballon,wc,caps,jersey&limit=1000").then(function(l){
     var s={n:l.length,g:0,a:0,b:0,w:0,j:0}; l.forEach(function(x){ s.g+=x.goals||0; s.a+=x.assists||0; s.b+=x.ballon||0; s.w+=x.wc||0; s.j+=x.jersey||0; });
     document.getElementById("srvStat").innerHTML='<span><b>'+s.n+'</b> 명 은퇴</span><span><b>'+s.g+'</b> 골</span><span><b>'+s.a+'</b> 도움</span><span><b>'+s.b+'</b> 발롱도르</span><span><b>'+s.w+'</b> 월드컵 우승</span>';

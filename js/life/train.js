@@ -18,11 +18,12 @@ const TIERS={
 };
 L.TIERS=TIERS;
 L.priceScale=S=>1+(S.stage==="pro"?Math.max(0,S.salary||0)*.12:0);
-L.trainCost=(S,tier)=>r1(Math.max(0,TIERS[tier].cost*L.priceScale(S)*100)/100);
+L.trainCost=(S,tier)=>r1(Math.max(0,TIERS[tier].cost*L.priceScale(S)*L.traitFx(S.p).learn*100)/100);
+L.gritOf=S=>((S.points||{}).grit|0)+((L.hasStaff&&L.hasStaff(S,"coach"))?1:0)+(L.traitFx(S.p).grit|0);
 function gateOf(T,v){ if(v<=T.cap0) return 1; if(v>=T.cap1) return T.floor; return T.floor+(1-T.floor)*(T.cap1-v)/(T.cap1-T.cap0); }
 function chanceOf(T,v,tf,grit){ let c=0; for(const [lim,p] of T.table){ if(v<lim){ c=p; break; } } c*=(1+.06*(grit|0)); if(tf&&tf.focus>1) c*=1.2; return clamp(c,0,.95); }
 /* 화면에서 보여줄 정보: 이 능력치를 이 등급으로 훈련했을 때 */
-L.trainInfo=function(S,k,tier){ const T=TIERS[tier||"basic"], tf=L.traitFx(S.p), v=S.p.stats[k]; const chance=chanceOf(T,v,tf,(S.points||{}).grit);
+L.trainInfo=function(S,k,tier){ const T=TIERS[tier||"basic"], tf=L.traitFx(S.p), v=S.p.stats[k]; const chance=chanceOf(T,v,tf,L.gritOf(S));
   return {chance:Math.round(chance*100),gate:Math.round(gateOf(T,v)*100),value:v,tier:T.id}; };
 L.weakStrong=function(S){ const d=L.POSDEF[S.p.pos]; const ks=d.stats.map(([k])=>k).sort((a,b)=>S.p.stats[a]-S.p.stats[b]); return {weak:ks[0],strong:ks[ks.length-1],names:Object.fromEntries(d.stats)}; };
 
@@ -53,7 +54,7 @@ L.applySegPlan=function(S,seg){
  * 능력치는 구간마다 조금씩 변해요. 소수점 변화는 모았다가 1이 넘으면 반영해요. */
 L.growSegment=function(S,sim,seg){
   const p=S.p, plan=S.plan||{}, ag=age(S), d=L.POSDEF[p.pos], al=plan.alloc||{}, tf=L.traitFx(p), T=TIERS[plan.tierUsed||plan.tier||"basic"], pts=S.points||{};
-  const frac=seg.frac, mentor=pts.mentor|0, grit=pts.grit|0;
+  const frac=seg.frac, mentor=pts.mentor|0, grit=L.gritOf(S);
   const rate=L.ageRate(ag+tf.shift,p.pos), gap=clamp((p.pot-p.ovr)/10,.04,ag<19?1.0:1.7);
   const srG=S.team==="2군"?Math.max(sim.sr,.5):sim.sr, ptBonus=(srG-.4)*.8*(ag<26?1:.3);
   const ty=L.TYPES[p.pos].find(x=>x[0]===p.type), ws=L.weakStrong(S);
@@ -97,6 +98,7 @@ L.seasonPost=function(S,R,sim){
     R.endorse={brand:e.brand,ok,pay}; if(!ok) S.fame=clamp(S.fame-2,0,100); e.years--; if(e.years<=0) S.endorse=null; }
   /* 차량 유지비 */
   const upkeep=r1((S.cars||[]).reduce((a,c)=>a+c.price*.05,0)); if(upkeep>0){ S.funds=r1(Math.max(0,S.funds-upkeep)); R.upkeep=upkeep; }
+  if(L.moneyYear) L.moneyYear(S,R);
 };
 
 /* ================= 재능 평가 (스카우터) =================
@@ -181,7 +183,7 @@ L.endorseOffers=function(S){
   if(S.stage!=="pro"||S.fame<14||S.endorse) return [];
   const n=S.fame>=70?4:S.fame>=40?3:S.fame>=25?2:1; const bs=shuffle(L.BRANDS).slice(0,n); const p=S.p;
   const lgF=S.club&&L.isForeign(S.club.lg)?(S.club.lg==='EPL'||S.club.lg==='LAL'||S.club.lg==='BUN'||S.club.lg==='SEA'?1:.6):.28;
-  return bs.map((b,bi)=>{ const star=Math.pow(S.fame/100,3.2)*Math.pow(clamp((p.ovr-72)/25,0,1),1.4); const fee=r1(Math.max(.3,.3+(S.fame/100)*3+650*star*lgF)*(b.id==='nako'||b.id==='adios'?1.15:1)*rnd(.88,1.12)); const yrs=ri(1,4);
+  return bs.map((b,bi)=>{ const star=Math.pow(S.fame/100,3.2)*Math.pow(clamp((p.ovr-72)/25,0,1),1.4); const fee=r1(Math.max(.3,.3+(S.fame/100)*3+650*star*lgF)*(b.id==='nako'||b.id==='adios'?1.15:1)*rnd(.88,1.12)*L.traitFx(p).endorse*((L.hasStaff&&L.hasStaff(S,"agent"))?1.1:1)); const yrs=ri(1,4);
     const opt=Math.random();
     const clause=opt<.4?{type:"fame",n:Math.min(95,Math.round(S.fame+6)),label:"시즌 말 인기 "+Math.min(95,Math.round(S.fame+6))+" 이상"}:opt<.75?{type:"apps",n:25,label:"리그 25경기 이상 출전"}:{type:"rating",n:6.9,label:"시즌 평점 6.9 이상"};
     return {brand:b.name,id:b.id,fee,years:yrs,clause}; });

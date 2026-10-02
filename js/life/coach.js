@@ -45,6 +45,7 @@ L.styleFit=function(S){
   let fit="mid";
   if(tags.includes(c.style)) fit="good";
   else if(tags.length&&tags.some(t=>L.COACH_STYLES[t].anti===c.style||L.COACH_STYLES[c.style].anti===t)) fit="bad";
+  if(fit==="bad"&&L.traitFx(S.p).util) fit="mid";
   const rn=L.roleName(S.p);
   const text=fit==="good"?`${c.name} 감독의 ${st.name}와(과) ${rn} 역할이 잘 맞아요. 출전 기회와 신뢰가 늘어요.`
     :fit==="bad"?`${c.name} 감독의 ${st.name}와(과) ${rn} 역할이 어긋나요. 출전 기회와 신뢰가 줄어요. 역할을 바꾸거나 이적을 고민해 볼 수 있어요.`

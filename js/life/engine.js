@@ -52,15 +52,31 @@ Object.assign(L,{POSDEF,TYPES,STATE_VER,BORN,YOUTH_END,PRO_START,UNIV_END,UNIV_D
  * grow: 성장폭 배수(양수일 때) · shift: 나이 곡선 이동(+면 일찍 크고 일찍 꺾임) · focus: 집중훈련 효과 배수 · inj: 부상 배수
  * fame: 인기 배수 · vari: 해마다 성장 들쭉날쭉 정도 · big: 큰 경기(대표팀·컵) 보정 · trust: 감독 신뢰 증가 배수 · decl: 노화 속도 배수 */
 const TRAIT_LIST=[
- {id:"effort",name:"노력의 천재",icon:"🔥",desc:"집중 훈련한 능력치가 70% 더 크게 올라요. 시작은 평범하고 성장 기복이 작아요.",eff:"훈련 능력치 ▲▲ · 기복 ▼",fx:{focus:1.7,grow:1.0,vari:.8}},
- {id:"genius",name:"천재",icon:"✨",desc:"어릴 때 기술 능력치가 폭발적으로 올라요. 대신 일찍 정점에 닿고, 체력 능력치는 일찍 꺾여요.",eff:"기술 ▲▲ · 체력 ▼ · 일찍 정점",fx:{grow:1.2,shift:1.5,decl:1.1,tech:.5,phys:-.2}},
- {id:"late",name:"대기만성",icon:"🌱",desc:"어릴 땐 느리지만 20대 중반부터 진가가 나와요. 체력 능력치가 오래 유지돼요.",eff:"후반 성장 ▲ · 체력 유지 ▲ · 초반 ▼",fx:{shift:-2,decl:.8,tech:.15,phys:.25}},
- {id:"iron",name:"강철 체력",icon:"🛡️",desc:"피지컬·스피드·활동량이 잘 늘고 늦게까지 유지돼요. 부상이 절반으로 줄어요.",eff:"체력 ▲▲ · 부상 ▼",fx:{inj:.5,decl:.8,phys:.35}},
- {id:"clutch",name:"큰 경기 체질",icon:"🎯",desc:"대표팀·컵 대회·중요한 경기에서 더 강해요. 능력치 자체는 변하지 않아요.",eff:"큰 경기 ▲",fx:{big:1.25}},
- {id:"star",name:"스타 기질",icon:"⭐",desc:"인기와 평판이 빠르게 올라요. 능력치에는 영향이 없어요.",eff:"인기·평판 ▲",fx:{fame:1.5}},
- {id:"leader",name:"리더형",icon:"🧭",desc:"감독의 신뢰가 빨리 쌓이고 팀 분위기를 끌어요. 능력치에는 영향이 없어요.",eff:"감독 신뢰 ▲",fx:{trust:1.7}},
- {id:"steady",name:"꾸준한 성실파",icon:"📈",desc:"성장은 평범해도 해마다 기복이 거의 없어요.",eff:"기복 ▼▼",fx:{vari:.4,grow:1.05}},
- {id:"streaky",name:"기복형 승부사",icon:"🎲",desc:"잘 풀리면 크게 크고, 안 풀리면 정체돼요. 해마다 결과가 들쭉날쭉해요.",eff:"기복 ▲▲",fx:{vari:1.9,grow:1.05}},
+ /* ---- 성장 ---- */
+ {id:"effort",cat:"성장",name:"노력의 천재",icon:"🔥",desc:"집중 훈련한 능력치가 70% 더 크게 올라요. 시작은 평범하고 성장 기복이 작아요.",eff:"훈련 능력치 ▲▲ · 기복 ▼",fx:{focus:1.7,grow:1.0,vari:.8}},
+ {id:"genius",cat:"성장",name:"천재",icon:"✨",desc:"어릴 때 기술 능력치가 폭발적으로 올라요. 대신 일찍 정점에 닿고, 체력 능력치는 일찍 꺾여요.",eff:"기술 ▲▲ · 체력 ▼ · 일찍 정점",fx:{grow:1.2,shift:1.5,decl:1.1,tech:.5,phys:-.2}},
+ {id:"late",cat:"성장",name:"대기만성",icon:"🌱",desc:"어릴 땐 느리지만 20대 중반부터 진가가 나와요. 체력 능력치가 오래 유지돼요.",eff:"후반 성장 ▲ · 체력 유지 ▲ · 초반 ▼",fx:{shift:-2,decl:.8,tech:.15,phys:.25}},
+ {id:"grinder",cat:"성장",name:"훈련 벌레",icon:"⛏️",desc:"훈련 효율이 좋아요. 트레이너 비용이 25% 줄고, 집중 훈련 성공 확률이 +12%p(끈기 2포인트 효과) 올라요. 돈이 모자란 초반에 큰 힘이 돼요.",eff:"훈련 비용 ▼ · 성공 확률 ▲",fx:{learn:.75,grit:2}},
+ {id:"steady",cat:"성장",name:"꾸준한 성실파",icon:"📈",desc:"성장은 평범해도 해마다 기복이 거의 없어요.",eff:"기복 ▼▼",fx:{vari:.4,grow:1.05}},
+ {id:"streaky",cat:"성장",name:"기복형 승부사",icon:"🎲",desc:"잘 풀리면 크게 크고, 안 풀리면 정체돼요. 해마다 결과가 들쭉날쭉해요.",eff:"기복 ▲▲",fx:{vari:1.9,grow:1.05}},
+ /* ---- 경기 ---- */
+ {id:"joker",cat:"경기",name:"조커",icon:"🃏",desc:"교체로 나와도 흐름을 바꿔요. 벤치에서 투입될 때 골 확률이 60% 올라가고 평점도 좋아요. 주전 경쟁이 치열한 팀에서 빛나요.",eff:"교체 투입 골 ▲▲ · 벤치에서도 활약",fx:{joker:1.6,sr:.03}},
+ {id:"setpiece",cat:"경기",name:"세트피스 장인",icon:"🎯",desc:"프리킥·코너킥·페널티가 날카로워요. 포지션과 상관없이 골 +12%, 도움 +8%. 수비수는 골이 25% 더 늘어요.",eff:"골·도움 ▲ (포지션 불문)",fx:{setp:1.12}},
+ {id:"iq",cat:"경기",name:"경기 지능",icon:"🧠",desc:"움직임이 영리해요. 출전 비중 +5%p, 도움 +12%, 나이가 들어도 천천히 쇠퇴해요.",eff:"출전 ▲ · 도움 ▲ · 노화 ▼",fx:{sr:.05,assist:1.12,decl:.85}},
+ {id:"clutch",cat:"경기",name:"큰 경기 체질",icon:"🎯",desc:"대표팀·컵·결승·챔스 같은 큰 무대에서 훨씬 강해요(+40%). 월드컵·챔스 우승에 도전하기 좋아요.",eff:"큰 경기 ▲▲",fx:{big:1.4}},
+ {id:"allround",cat:"경기",name:"만능 일꾼",icon:"🧩",desc:"어떤 전술에도 녹아들어요. 감독 전술과 역할이 어긋나도 불이익이 없고, 포지션·역할 변경 성공 확률이 +15%p예요.",eff:"전술 궁합 걱정 없음 · 변신 성공 ▲",fx:{util:1}},
+ /* ---- 몸·마음 ---- */
+ {id:"iron",cat:"몸·마음",name:"강철 체력",icon:"🛡️",desc:"피지컬·스피드·활동량이 잘 늘고 늦게까지 유지돼요. 부상이 절반으로 줄어요.",eff:"체력 ▲▲ · 부상 ▼",fx:{inj:.5,decl:.8,phys:.35}},
+ {id:"healer",cat:"몸·마음",name:"회복 체질",icon:"🩹",desc:"다쳐도 빨리 돌아와요. 결장 기간이 40% 줄어요.",eff:"부상 결장 ▼▼",fx:{heal:.6}},
+ {id:"ironmind",cat:"몸·마음",name:"강철 멘탈",icon:"🧱",desc:"슬럼프가 없어요. 사기가 45 아래로 안 내려가고, 이벤트 모험 성공 확률이 +5%p예요.",eff:"사기 하한 · 이벤트 성공 ▲",fx:{mind:1}},
+ {id:"longevity",cat:"몸·마음",name:"장수 DNA",icon:"🧬",desc:"30대 중반까지 전성기가 이어져요. 노화 속도가 40% 줄고 부상도 조금 줄어요.",eff:"노화 ▼▼ · 롱런",fx:{decl:.6,inj:.9}},
+ /* ---- 커리어 ---- */
+ {id:"moneyking",cat:"커리어",name:"재테크 천재",icon:"💰",desc:"투자 수익률이 40% 높고 실패 위험이 줄어요. 광고 계약금도 +25%. 돈을 굴리는 재미가 커요.",eff:"투자 ▲▲ · 광고 ▲",fx:{invest:1.4,endorse:1.25}},
+ {id:"adapt",cat:"커리어",name:"적응왕",icon:"🌍",desc:"어느 리그, 어느 나라에 가도 금방 자리잡아요. 이적 직후 신뢰가 높고(0.50), 해외 연봉 제안이 +8%예요. 향수병·언어 이벤트는 안 나와요.",eff:"해외 이적 ▲ · 이적 적응 ▲",fx:{adapt:1}},
+ {id:"star",cat:"커리어",name:"스타 기질",icon:"⭐",desc:"인기와 평판이 빠르게 올라요(+50%). 광고 계약금도 +40%예요. 능력치에는 영향이 없어요.",eff:"인기·평판 ▲ · 광고 ▲▲",fx:{fame:1.5,endorse:1.4}},
+ /* ---- 팀 ---- */
+ {id:"winner",cat:"팀",name:"우승 청부사",icon:"🏆",desc:"이 선수가 있으면 팀이 더 잘 이겨요. 팀 전력이 +1.2 올라서 리그·컵·챔스 성적이 좋아지고, 큰 경기도 조금 강해요.",eff:"팀 전력 ▲ · 우승 확률 ▲",fx:{winner:1.2,big:1.1}},
+ {id:"leader",cat:"팀",name:"리더형",icon:"🧭",desc:"감독의 신뢰가 빨리 쌓이고(+70%) 팀 분위기를 끌어 팀 전력이 +0.5 올라요.",eff:"감독 신뢰 ▲ · 팀 전력 ▲",fx:{trust:1.7,winner:.5}},
 ];
 const HIDDEN_LIST=[
  {id:"mega",name:"대천재",icon:"👑",desc:"백 년에 한 번 나올 재능. 잠재력이 크게 올라가고 모든 능력치가 빨리 커요.",fx:{grow:1.35,potAdd:7,tech:.3,phys:.3},p:.02},
@@ -70,9 +86,9 @@ const HIDDEN_LIST=[
 ];
 L.TRAIT_LIST=TRAIT_LIST; L.HIDDEN_LIST=HIDDEN_LIST;
 L.traitFx=function(p){
-  const out={grow:1,shift:0,focus:1,inj:1,fame:1,vari:1,big:1,trust:1,decl:1,potAdd:0,tech:0,phys:0};
-  [TRAIT_LIST.find(t=>t.id===p.trait),HIDDEN_LIST.find(t=>t.id===p.hidden)].forEach(t=>{ if(!t) return; const f=t.fx;
-    ["grow","focus","inj","fame","vari","big","trust","decl"].forEach(k=>{ if(f[k]!=null) out[k]*=f[k]; }); if(f.shift) out.shift+=f.shift; if(f.potAdd) out.potAdd+=f.potAdd; if(f.tech) out.tech+=f.tech; if(f.phys) out.phys+=f.phys; });
+  const out={grow:1,shift:0,focus:1,inj:1,fame:1,vari:1,big:1,trust:1,decl:1,potAdd:0,tech:0,phys:0,joker:1,setp:1,heal:1,learn:1,invest:1,endorse:1,assist:1,winner:0,grit:0,mind:0,util:0,adapt:0,sr:0};
+  const mul=["grow","focus","inj","fame","vari","big","trust","decl","joker","setp","heal","learn","invest","endorse","assist"], add=["shift","potAdd","tech","phys","winner","grit","mind","util","adapt","sr"];
+  [TRAIT_LIST.find(t=>t.id===p.trait),HIDDEN_LIST.find(t=>t.id===p.hidden)].forEach(t=>{ if(!t) return; const f=t.fx; mul.forEach(k=>{ if(f[k]!=null) out[k]*=f[k]; }); add.forEach(k=>{ if(f[k]) out[k]+=f[k]; }); });
   return out;
 };
 L.traitName=function(id,hidden){ const t=(hidden?HIDDEN_LIST:TRAIT_LIST).find(x=>x.id===id); return t?t.icon+" "+t.name:""; };
@@ -321,12 +337,13 @@ L.beginSeason=function(S,plan){
     const me=clubs.find(c=>c.id===myId)||clubs[0]; lvl=me.l; sim.st={}; clubs.forEach(c=>{ sim.st[c.id]={att:c.att,def:c.def}; });
     sim.rounds=L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0);
   }
-  if(stage==='pro'&&key!=='YOUTH'){ const bst=clamp((p.ovr-lvl)*.12,0,3); const w={FW:[.9,.1],MF:[.6,.3],DF:[.2,.8],GK:[.1,.9]}[p.pos]; const my=sim.st&&sim.st[myId]; if(my&&bst>0){ my.att+=bst*w[0]; my.def+=bst*w[1]; } }
+  if(stage==='pro'&&key!=='YOUTH'){ const bst=clamp((p.ovr-lvl)*.12,0,3); const w={FW:[.9,.1],MF:[.6,.3],DF:[.2,.8],GK:[.1,.9]}[p.pos]; const my=sim.st&&sim.st[myId]; if(my&&bst>0){ my.att+=bst*w[0]; my.def+=bst*w[1]; } const wn=L.traitFx(p).winner; if(my&&wn){ my.att+=wn; my.def+=wn; } }
   sim.myId=myId; sim.lvl=lvl; sim.tab={}; sim.teams.forEach(t=>{ sim.tab[t.id]={id:t.id,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; });
   sim.segs=L.segsFor(S,key); sim.cal=L.calKey(S,key); const N=sim.rounds.length; let acc=0; sim.segEnd=sim.segs.map((s,i)=>{ acc+=s.frac; return i===sim.segs.length-1?N:Math.round(N*acc); });
   sim.sr=clamp(L.startRateAt(effOvr(S),lvl,S.trust,p),.02,.97); if(S.team==="2군"&&stage==="pro") sim.sr=Math.min(sim.sr,.1);
   if(stage==='youth') sim.sr=clamp(sim.sr+(ag<=15?.06:(p.ovr<lvl?-.04:0)),.02,.97);
   if(stage==='pro'&&L.coachAdjustSr) sim.sr=L.coachAdjustSr(S,sim.sr);
+  if(stage==='pro'){ const tfx0=L.traitFx(p); sim.sr=clamp(sim.sr+tfx0.sr+((L.hasStaff&&L.hasStaff(S,'analyst'))?.02:0),.02,.97); }
   sim.role0=L.roleLabel(sim.sr);
   /* 첫 프로 시즌: 구단 전력 상위 3팀은 AFC 챔피언스리그 출전권이 있어요 */
   if(key==='K1'&&!S.history.some(h=>!h.youth)){ const cl=L.leagueClubs(S,'K1').sort((a,b)=>b.l-a.l).slice(0,3).map(c=>c.id); S.acl=cl.includes(myId); }
@@ -364,10 +381,10 @@ function myRec(S,sim,m,comp){
   else if(r<sr+(1-sr)*.55&&sr<.9) rec.min=ri(8,32);
   if(rec.min>0){
     const mf=rec.min/90;
-    const sfx=L.styleFx?L.styleFx(p):{g:1,a:1};
-    rec.g=binom(m.f,clamp(L.shareG(sub)*sfx.g*sim.form*Math.exp((ovr-lvl)/18)*mf,0,.6));
-    rec.as=binom(Math.max(0,m.f-rec.g),clamp(L.shareA(sub)*sfx.a*sim.formA*Math.exp((ovr-lvl)/22)*mf,0,.5));
-    let rt=6.05+(ovr-lvl)/20*(.5+mf*.5)+(rec.res==="W"?.35:rec.res==="L"?-.3:0)+rec.g*.95+rec.as*.55+rnd(-.5,.5);
+    const sfx=L.styleFx?L.styleFx(p):{g:1,a:1}; const tfx=L.traitFx(p); const gm=(!rec.st?tfx.joker:1)*tfx.setp*(p.pos==="DF"&&tfx.setp>1?1.25:1), am=tfx.assist*(tfx.setp>1?1.08:1);
+    rec.g=binom(m.f,clamp(L.shareG(sub)*sfx.g*gm*sim.form*Math.exp((ovr-lvl)/18)*mf,0,.6));
+    rec.as=binom(Math.max(0,m.f-rec.g),clamp(L.shareA(sub)*sfx.a*am*sim.formA*Math.exp((ovr-lvl)/22)*mf,0,.5));
+    let rt=6.05+(ovr-lvl)/20*(.5+mf*.5)+(rec.res==="W"?.35:rec.res==="L"?-.3:0)+rec.g*.95+rec.as*.55+(!rec.st&&tfx.joker>1?.25:0)+rnd(-.5,.5);
     if(p.pos==="GK"||p.pos==="DF"){ if(m.a===0) rt+=.5; else rt-=Math.min(m.a,4)*.12; }
     rec.rt=r1(clamp(rt,3.5,10)); rec.cs=(rec.st&&m.a===0&&(p.pos==="GK"||p.pos==="DF"))?1:0;
     const my=sim.my; my.apps++; if(rec.st) my.starts++; my.min+=rec.min; my.g+=rec.g; my.a+=rec.as; my.cs+=rec.cs; my.rtSum+=rec.rt*mf; my.rtW+=mf; if(rec.rt>=8.3&&rec.st) my.mom++;
@@ -381,7 +398,7 @@ L.myRec=myRec;
 /* 한 구간을 진행: 모든 팀의 라운드를 치르고 내 경기를 기록해요 */
 L.playSegment=function(S){
   const sim=S.sim, seg=sim.segs[sim.seg], end=sim.segEnd[sim.seg]; const recs=[];
-  const pn=L.applySegPlan(S,seg); sim.campLv.push((pn.alloc&&pn.alloc.camp)|0);
+  const pn=L.applySegPlan(S,seg); if(L.moneySegment) L.moneySegment(S); sim.campLv.push((pn.alloc&&pn.alloc.camp)|0);
   const inj=L.rollInjury(S,sim,seg); if(inj){ sim.injuries.push(inj); sim.out=inj.matches; if(inj.severe) L.injuryHit(S); L.feedAdd(S,S.year+" "+seg.label,"["+inj.part+" 부상] "+inj.matches+"경기 결장 예상",-1); }
   while(sim.r<end){
     const rd=sim.rounds[sim.r]; const rno=sim.r+1;
@@ -391,7 +408,7 @@ L.playSegment=function(S){
     sim.r++;
   }
   L.playCupsAt(S,sim,seg.id).forEach(r=>{ recs.push(r); sim.recs.push(r); });
-  S.cond=clamp(S.cond+6,20,100);
+  S.cond=clamp(S.cond+6,20,100); if(L.traitFx(S.p).mind) S.morale=Math.max(45,S.morale);
   const tab=Object.values(sim.tab).sort((x,y)=>y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)||y.gf-x.gf); const me=sim.tab[sim.myId];
   const sumRecs=recs.filter(x=>x.min>0), lg=recs.filter(x=>x.comp==="리그");
   const out={seg:seg.id,label:seg.label,months:seg.months,idx:sim.seg,last:sim.seg===sim.segs.length-1,recs,
@@ -407,8 +424,8 @@ L.playSegment=function(S){
 };
 L.teamName=function(sim,id){ const t=sim.teams.find(x=>x.id===id); return t?(t.short||t.name):id; };
 L.rollInjury=function(S,sim,seg){
-  const pl=S.plan||{}, base=.075*(pl.focus==="rest"?.6:1)*(pl.invest==="medical"&&pl.investOk?.65:1)*L.traitFx(S.p).inj*(1-.07*((S.points&&S.points.health)|0))*(1-.1*((S.plan&&S.plan.alloc&&S.plan.alloc.care)|0))*(age(S)>=31?1.3:1)*(S.cond<60?1+(60-S.cond)/50:1);
-  if(Math.random()>base) return null; const x=Math.random(), matches=x<.6?ri(1,3):x<.9?ri(4,8):ri(9,16);
+  const pl=S.plan||{}, base=.075*(pl.focus==="rest"?.6:1)*(pl.invest==="medical"&&pl.investOk?.65:1)*L.traitFx(S.p).inj*(1-.07*((S.points&&S.points.health)|0))*(1-.1*((S.plan&&S.plan.alloc&&S.plan.alloc.care)|0))*(age(S)>=31?1.3:1)*(S.cond<60?1+(60-S.cond)/50:1)*(L.hasStaff&&L.hasStaff(S,'chef')?.95:1)*(L.hasStaff&&L.hasStaff(S,'physio')?.85:1);
+  if(Math.random()>base) return null; const x=Math.random(); let matches=x<.6?ri(1,3):x<.9?ri(4,8):ri(9,16); matches=Math.max(1,Math.round(matches*L.traitFx(S.p).heal*(L.hasStaff&&L.hasStaff(S,'physio')?.8:1)));
   return {part:pick(["햄스트링","발목","무릎 인대","종아리","허벅지","어깨","갈비뼈","발등"]),matches,severe:matches>=9,seg:seg.id};
 };
 
@@ -586,7 +603,7 @@ L.contractOffer=function(S){
   const lg=S.club.lg==="MIL"?"K1":S.club.lg; const market=L.salaryOf(S.p.ovr,ag,lg);
   const perf=clamp((last.rating||6.2)-6.4,-1,2)*.07, trustF=clamp(S.trust-.4,-.3,.4)*.25;
   /* 연봉은 해마다 시장가에 서서히 수렴해요 (갑자기 폭등·폭락하지 않게 현재 연봉의 70%~160% 안) */
-  let offer=market*(1+perf+trustF)*(S.rep>70?1.06:1); offer=clamp(offer,Math.min(S.salary*.7,market*1.2),Math.min(Math.max(S.salary*1.6,market),market*1.35)); offer=r1(Math.max(.3,offer)); { const cap=L.capOf(lg,S.p.ovr); if(cap) offer=Math.min(offer,cap); }
+  let offer=market*(1+perf+trustF)*(S.rep>70?1.06:1)*((L.hasStaff&&L.hasStaff(S,"agent"))?1.04:1); offer=clamp(offer,Math.min(S.salary*.7,market*1.2),Math.min(Math.max(S.salary*1.6,market),market*1.35)); offer=r1(Math.max(.3,offer)); { const cap=L.capOf(lg,S.p.ovr); if(cap) offer=Math.min(offer,cap); }
   return {last:S.salary,offer,rate:Math.round((offer/Math.max(.1,S.salary)-1)*100),years:ag<=23?3:ag<=30?2:1,market};
 };
 L.negotiate=function(S,offer){ const x=Math.random(), mult=x<.45?1.12:x<.8?1.0:.93; return {offer:r1(offer.offer*mult),mult,rate:Math.round((offer.offer*mult/Math.max(.1,S.salary)-1)*100),years:offer.years}; };
@@ -600,8 +617,8 @@ L.transferOffers=function(S,opts){
   const myLvl=(()=>{ const c=L.leagueClubs(S,cur).find(x=>x.id===S.club.id); return c?c.l:70; })();
   const add=(c,lg,tag)=>{ const sr=L.startRateAt(p.ovr,c.l,S.trust*.8,p); const mkt=L.salaryOf(clamp(Math.max(p.ovr,c.l-2)+1,p.ovr,99),ag,lg);
     if(foreign&&!L.isForeign(lg)&&ag<33&&S.salary>=10&&mkt<S.salary*.35) return;
-    const rawSal=L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt, capL=(lg==="K1"||lg==="K2")?L.capOf(lg,p.ovr):null;
-    out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:capL?Math.min(capL,rawSal):rawSal,years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:L.isForeign(lg),sr}); };
+    const rawSal=L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt, capL=(lg==="K1"||lg==="K2")?L.capOf(lg,p.ovr):null; const rs2=rawSal*(L.isForeign(lg)&&L.traitFx(p).adapt?1.08:1);
+    out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:capL?Math.min(capL,rs2):r1(rs2),years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:L.isForeign(lg),sr}); };
   const domesticOk=!foreign||ag>=30||S.foreignYears>=6||(foreignBench(S)&&ag>=26);
   if(domesticOk){
     const cands=L.leagueClubs(S,"K1").map(c=>Object.assign({},c,{_lg:"K1"})).concat(L.leagueClubs(S,"K2").map(c=>Object.assign({},c,{_lg:"K2"}))).filter(c=>c.id!==S.club.id);
@@ -618,7 +635,7 @@ L.transferOffers=function(S,opts){
 };
 L.doTransfer=function(S,offer){
   if(S.military==="serving"||S.military==="sangmu"||(S.club&&S.club.lg==="MIL")) return false;
-  const prevLg=S.club&&S.club.lg; S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.trust=.35; S.team="1군";
+  const prevLg=S.club&&S.club.lg; S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.trust=L.traitFx(S.p).adapt?.5:.35; S.team="1군";
   if(L.isForeign(offer.club.lg)&&!L.isForeign(prevLg)) L.addMoment(S,"해외 진출","해외 진출",offer.club.name+"(으)로 이적해 "+L.lgLabel(offer.club.lg)+"에 도전합니다. (연봉 "+offer.salary+"억)");
   else if(!L.isForeign(offer.club.lg)&&L.isForeign(prevLg)) L.addMoment(S,"K리그 복귀","복귀",offer.club.name+"(으)로 돌아왔습니다. (연봉 "+offer.salary+"억)");
 };
@@ -681,7 +698,7 @@ L.legacy=function(S){
   const aw=a.reduce((s,x)=>s+(W[x.name]||(/최다 골 신기록/.test(x.name)?150:/최다 도움 신기록/.test(x.name)?120:8)),0);
   const tr=t.reduce((s,x)=>s+(/월드컵|챔피언스리그|유로파/.test(x.name)?110:/아시안게임|올림픽/.test(x.name)?55:/아시안컵/.test(x.name)?75:/우승/.test(x.name)?45:20),0);
   const nat=c.caps*3+c.intGoals*10;
-  return {total:value+rec+aw+tr+nat,value,rec,aw,tr,nat};
+  const ext=L.honorLegacy?L.honorLegacy(S):0; return {total:value+rec+aw+tr+nat+ext,value,rec,aw,tr,nat,ext};
 };
 L.grade=v=>v>=88?"S":v>=80?"A":v>=70?"B":v>=60?"C":"D";
 L.legacyGrade=t=>t>=2600?"S":t>=1800?"A":t>=1200?"B":t>=800?"C":"D";

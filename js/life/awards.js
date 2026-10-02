@@ -98,6 +98,9 @@ L.jerseyHint=function(S){
 L.titlesOf=function(S){
   const c=S.career, tr=S.trophies.filter(t=>!t.youth), pos=S.p.pos, out=[]; const clubs=Object.keys(S.clubYears||{}).length, yrs=S.history.filter(h=>!h.youth).length, sc=L.legacy(S).total;
   if(S.ballon.some(b=>b.rank===1)||tr.some(t=>/FIFA 월드컵 우승/.test(t.name))) out.push("월드 아이콘");
+  if(L.hasHonor&&L.hasHonor(S,"owner")) out.push("구단주 출신 레전드");
+  if(L.hasHonor&&L.hasHonor(S,"found")) out.push("기부왕");
+  if((S.assetProfit||0)>=150) out.push("투자의 귀재");
   if(sc>=3600) out.push("역대 최고의 전설");
   if(clubs===1&&yrs>=12) out.push("원클럽맨");
   if(pos!=="GK"&&c.goals>=200) out.push("골 머신");

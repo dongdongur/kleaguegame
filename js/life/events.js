@@ -200,7 +200,7 @@ L.rollEvent=function(S,out){
   S.segCount=(S.segCount||0)+1; L.startStory(S);
   const rv=rivalEvent(S); if(rv) return mark(S,rv);
   const prob=SEG_P[out&&out.seg]||.6; if(Math.random()>prob) return null;
-  const hist=S.evHist||(S.evHist=[]); const seen=S.evSeen||(S.evSeen=[]); const pool=POOL.concat(L.EVPOOL).filter(e=>(!e.when||e.when(S))&&!seen.includes(e.id)&&!hist.some(h=>h.id===e.id&&S.segCount-h.t<9));
+  const hist=S.evHist||(S.evHist=[]); const seen=S.evSeen||(S.evSeen=[]); const adaptSkip=L.traitFx(S.p).adapt?/^(e_language|e_weather|p_homesick|fo_food|fo_visa|fo_roommate|fo_coachfrench|z7_homesick|y_homesick|t_homesick)$/:null; const pool=POOL.concat(L.EVPOOL).filter(e=>(!e.when||e.when(S))&&!(adaptSkip&&adaptSkip.test(e.id))&&!seen.includes(e.id)&&!hist.some(h=>h.id===e.id&&S.segCount-h.t<9));
   if(!pool.length) return null; const tot=pool.reduce((a,e)=>a+e.w,0); let r=Math.random()*tot, e=pool[0];
   for(const c of pool){ r-=c.w; if(r<=0){ e=c; break; } }
   if(e.id==="famcrash") S.famEv=true; if(e.id==="famboom") S.famEv2=true; if(e.id==="studypress") S.famEv3=true;
@@ -217,7 +217,7 @@ L.resolveEvent=function(S,ev,idx){
   const o=ev.opts[idx]; let hit=true, roll=null, need=null, text, lines=[], cost=null;
   const f=0.7+Math.random()*0.6;
   if(o.safe){ lines=eff(S,o.win,f*.6); text=o.ok; if(Math.random()<.3){ const c=pick([{morale:-3},{trust:-1},{fame:-2}]); lines=lines.concat(eff(S,c,1)); cost=true; text+=" (작은 대가가 따라왔어요)"; } }
-  else { need=o.p!=null?o.p:100; roll=ri(1,100); hit=roll<=need; lines=eff(S,hit?o.win:(o.lose||o.win),f); text=hit?o.ok:(o.no||o.ok); }
+  else { need=o.p!=null?o.p:100; if(o.p!=null&&o.p<100){ const tfx=L.traitFx(S.p); need=Math.min(95,need+(tfx.mind?5:0)+((tfx.util&&/^(sub|role):/.test(String(o.act||"")))?15:0)); } roll=ri(1,100); hit=roll<=need; lines=eff(S,hit?o.win:(o.lose||o.win),f); text=hit?o.ok:(o.no||o.ok); }
   /* 특수 결과 */
   let ending=null;
   if(o.act){ const a=String(o.act);
