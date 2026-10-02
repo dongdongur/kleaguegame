@@ -53,6 +53,7 @@ function render(){
   app.className="phone"+(nav?"":" nonav");
   app.innerHTML=h+(modals.length?modalHtml():"")+(toast?`<div class="toast">${esc(toast)}</div>`:"");
   if(modals[0]&&modals[0].t==="sign") bindSign();
+  { const key=view+"|"+tab+"|"+(S&&S.phase); if(key!==lastKey){ lastKey=key; const b=document.querySelector(".body"); if(b){ b.classList.add("fresh"); setTimeout(()=>b.classList.remove("fresh"),900); } animateCounts(); } }
   if(!window.__keepScroll) window.scrollTo(0,0);
 }
 let signDirty=false;
@@ -80,6 +81,12 @@ const LEAGUE_INFO={
 function leagueWelcome(){ const lg=S&&S.club&&S.club.lg; const info=LEAGUE_INFO[lg]; if(!info) return; S.seenLg=S.seenLg||[]; if(S.seenLg.includes(lg)) return; S.seenLg.push(lg);
   const cl=L.leagueClubs(S,lg); const top=cl.slice().sort((a,b)=>b.l-a.l).slice(0,3).map(c=>c.short||c.name);
   modals.unshift({t:"league",info,club:S.club.name,top,n:cl.length,lg}); }
+let lastKey="";
+function animateCounts(){
+  document.querySelectorAll(".cnt").forEach(el=>{ const to=parseFloat(el.dataset.to); if(isNaN(to)) return; const dec=String(el.dataset.to).includes(".")?1:0, t0=performance.now(), dur=650;
+    const step=t=>{ const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3); el.textContent=(to*e).toFixed(dec); if(k<1) requestAnimationFrame(step); else el.textContent=el.dataset.to; };
+    el.textContent=dec?"0.0":"0"; requestAnimationFrame(step); });
+}
 function say(m){ toast=m; keep(render); setTimeout(()=>{ toast=null; keep(render); },2200); }
 function header(){
   const p=S.p;
@@ -293,7 +300,7 @@ function resultView(){
   const comps=(R.cups||[]).map(c=>`<p class="note ${c.res==="우승"?"good":""}">🏟 ${esc(c.name)} — ${esc(c.res)}</p>`).join("");
   return `<small class="kick">${R.age}세 시즌</small><h2>${R.year} 시즌 결과</h2>
    <div class="pills"><span class="pill acc">${esc(R.leagueName)}</span><span class="pill">${esc(R.role||"")}</span>${R.rank?`<span class="pill gold">${R.rank}위 / ${R.N}팀</span>`:""}</div>
-   ${stats.length?`<section class="four">${stats.map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join("")}</section>`:`<section class="card"><p class="muted">군 복무로 한 해를 보냈어요.</p></section>`}
+   ${stats.length?`<section class="four">${stats.map(([k,v])=>`<div class="stat"><small>${k}</small><b class="cnt" data-to="${v}">${v}</b></div>`).join("")}</section>`:`<section class="card"><p class="muted">군 복무로 한 해를 보냈어요.</p></section>`}
    ${R.rank?`<section class="card flat"><div class="three"><div class="stat"><small>전적</small><b>${R.W}-${R.D}-${R.L}</b></div><div class="stat"><small>득실</small><b>${R.gf}:${R.ga}</b></div><div class="stat"><small>OVR</small><b>${R.ovr0}→${R.ovr1}</b></div></div></section>`:""}
    ${R.trophies.length?`<div class="pills">${R.trophies.map(t=>`<span class="pill gold">🏆 ${esc(t)}</span>`).join("")}</div>`:""}
    ${R.awards.length?`<div class="pills">${R.awards.map(a=>`<span class="pill gold">⭐ ${esc(a)} · ${esc(L.awardComp(a,R))}</span>`).join("")}</div>`:""}

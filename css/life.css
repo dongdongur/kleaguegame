@@ -176,3 +176,13 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .lgsheet{text-align:center;border:1px solid var(--c);box-shadow:0 0 34px color-mix(in srgb,var(--c) 40%,transparent);animation:pop .45s cubic-bezier(.2,1.3,.4,1)}
 .lgflag{font-size:54px;line-height:1;filter:drop-shadow(0 0 14px var(--c))}
 .lgsheet h3{color:#fff}.lgl{text-align:left;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.05);border-left:3px solid var(--c);font-size:13.5px}
+
+/* ===== 화면 전환 연출 ===== */
+.body.fresh>*{animation:rise .38s ease both}
+.body.fresh>*:nth-child(2){animation-delay:.04s}.body.fresh>*:nth-child(3){animation-delay:.08s}.body.fresh>*:nth-child(4){animation-delay:.12s}.body.fresh>*:nth-child(5){animation-delay:.16s}.body.fresh>*:nth-child(6){animation-delay:.2s}.body.fresh>*:nth-child(n+7){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+.pill.gold{position:relative;overflow:hidden}
+.body.fresh .pill.gold::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.4) 50%,transparent 70%);transform:translateX(-130%);animation:shine 1.6s ease .5s 1}
+@keyframes shine{to{transform:translateX(130%)}}
+.stat b.cnt{font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){.body.fresh>*,.body.fresh .pill.gold::after{animation:none}}
