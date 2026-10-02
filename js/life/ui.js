@@ -53,6 +53,7 @@ function render(){
   app.className="phone"+(nav?"":" nonav");
   app.innerHTML=h+(modals.length?modalHtml():"")+(toast?`<div class="toast">${esc(toast)}</div>`:"");
   if(modals[0]&&modals[0].t==="sign") bindSign();
+  if(modals[0]&&["shop","ballon","xi","hofcmp","league"].includes(modals[0].t)){ const sh=app.querySelector(".ov .sheet"); if(sh&&!sh.querySelector(".xclose")) sh.insertAdjacentHTML("afterbegin",'<button type="button" class="xclose" data-act="mok" aria-label="닫기">✕</button>'); }
   { const key=view+"|"+tab+"|"+(S&&S.phase); if(key!==lastKey){ lastKey=key; const b=document.querySelector(".body"); if(b){ b.classList.add("fresh"); setTimeout(()=>b.classList.remove("fresh"),900); } animateCounts(); } }
   if(!window.__keepScroll) window.scrollTo(0,0);
 }

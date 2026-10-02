@@ -659,7 +659,7 @@ L.applyPromotion=function(S){
   L.syncClubLeague(S);
 };
 /* 이적 직후 승강이 일어나도 소속 리그 표시가 어긋나지 않게 맞춰 줘요 */
-L.syncClubLeague=function(S){ if(S.club&&topOf(S.club.lg)){ const top=topOf(S.club.lg); S.club.lg=idsOf(S,top).includes(S.club.id)?top:PAIRS[top][0]; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
+L.syncClubLeague=function(S){ if(S.club&&S.stage==="pro"){ if(S.club.lg==="K2"&&S.salary>8) S.salary=8; else if(S.club.lg==="K1"&&S.salary>22) S.salary=22; } if(S.club&&topOf(S.club.lg)){ const top=topOf(S.club.lg); S.club.lg=idsOf(S,top).includes(S.club.id)?top:PAIRS[top][0]; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
 L.otherTable=function(S,key){
   const clubs=L.leagueClubs(S,key); const st={}, tab={}; clubs.forEach(c=>{ st[c.id]=c; tab[c.id]={id:c.id,pts:0,gf:0,ga:0}; });
   L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0).forEach(rd=>rd.forEach(([h,a])=>{ const [gh,ga]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a]; H.gf+=gh;H.ga+=ga;A.gf+=ga;A.ga+=gh; if(gh>ga) H.pts+=3; else if(gh<ga) A.pts+=3; else {H.pts++;A.pts++;} }));
