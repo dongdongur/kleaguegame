@@ -7,7 +7,9 @@
 ## 폴더 구조
 
 ```
-index.html          화면 뼈대
+index.html          메인 메뉴 (감독판/선수판 선택)
+manager.html        감독판 화면 뼈대
+player.html         선수판 화면 뼈대
 css/style.css       FIFA 스타일 디자인 (색은 맨 위 :root 변수)
 js/data.js          레전드 팀·선수 데이터, 감독 데이터   ← 제일 자주 고치는 파일
 js/born.js          선수 출생 연도 (시즌별 능력치의 나이 곡선용)

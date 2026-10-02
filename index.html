@@ -4,151 +4,64 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#05070f">
-<title>K-레전드 38</title>
-<meta name="description" content="시대별 K리그 레전드 카드를 뽑아 베스트 11을 만들고 2026 K리그1·FA컵·AFC챔스에 도전하는 팬 제작 축구 게임">
-<meta property="og:title" content="K-레전드 38">
-<meta property="og:description" content="K리그 레전드 카드 드래프트. 38전 전승에 도전해 보세요.">
+<title>K-레전드 · K리그 게임 모음</title>
+<meta name="description" content="K리그 레전드 카드로 베스트 11을 만드는 감독판, 유소년부터 은퇴까지 키우는 선수판. 팬이 만든 비영리 게임.">
+<meta property="og:title" content="K-레전드 · K리그 게임 모음">
+<meta property="og:description" content="감독판 K-레전드 38 · 선수판 K-라이프">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Oswald:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/style.css">
+<style>
+:root{--bg0:#05070f;--panel:#0e1631;--panel2:#142046;--line:rgba(120,150,255,.18);--txt:#eaf0ff;--muted:#8d9bc4;--acc:#19f2a3;--acc-ink:#04281b;--acc2:#27d7ff;--gold:#ffcf4a;
+ --f-head:"Black Han Sans","Noto Sans KR",system-ui,sans-serif;--f-num:"Oswald","Noto Sans KR",system-ui,sans-serif;--f-body:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg0)}
+body{min-height:100dvh;color:var(--txt);font:15px/1.55 var(--f-body);display:flex;justify-content:center;
+ background:radial-gradient(900px 520px at 85% -8%,rgba(60,90,255,.28),transparent 60%),radial-gradient(700px 420px at -8% 12%,rgba(25,242,163,.14),transparent 60%),linear-gradient(180deg,#070c1c,#05070f 40%);background-attachment:fixed;
+ padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;align-content:start}
+.brand{display:flex;align-items:baseline;gap:6px;font-family:var(--f-head);font-size:30px;line-height:1}
+.brand .k{color:var(--acc);font-size:38px}.brand b{font-weight:400;color:var(--gold);font-size:38px}
+.sub{color:var(--muted);font-size:13.5px;margin-top:-6px}
+.card{display:grid;gap:10px;padding:18px 16px;border-radius:20px;text-decoration:none;color:inherit;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);position:relative;overflow:hidden;min-height:150px}
+.card::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;opacity:.18}
+.card.m::after{background:var(--acc)}.card.p::after{background:var(--acc2)}
+.card small{color:var(--acc);font-family:var(--f-num);letter-spacing:.14em;font-weight:600}
+.card h2{font-family:var(--f-head);font-weight:400;font-size:26px;line-height:1.2}
+.card p{color:var(--muted);font-size:13.5px}
+.card .go{margin-top:4px;display:flex;justify-content:space-between;align-items:center;min-height:50px;padding:0 18px;border-radius:14px;background:linear-gradient(90deg,var(--acc),#12c987);color:var(--acc-ink);font-weight:900}
+.card.p .go{background:linear-gradient(90deg,var(--acc2),#2f9bff)}
+.save{font-size:12.5px;color:var(--gold);min-height:18px}
+.soon{padding:12px 14px;border-radius:14px;border:1px dashed var(--line);color:var(--muted);font-size:13px}
+footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margin-top:6px}
+</style>
 </head>
 <body>
-<div class="bgfx" aria-hidden="true"></div>
-<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-label="선수 상세"></div>
-
-<header class="top">
-  <div class="top-in">
-    <div class="logo" aria-label="K-레전드 38"><span class="k">K</span><span class="l">LEGEND</span><b>38</b></div>
-    <div class="season-badge" id="seasonBadge"></div>
-    <div class="best" id="best"></div>
-    <a class="btn small ghost" href="player.html" id="lifeLink" style="text-decoration:none">선수 키우기</a>
-    <button type="button" class="btn small ghost" id="saveBtn" title="저장 · 불러오기">저장/불러오기</button>
-  </div>
-</header>
-
-<div class="wrap">
-  <section class="panel clubbar">
-    <div class="field"><label class="label" for="teamName">클럽</label>
-      <input class="inp" id="teamName" maxlength="14" value="레전드 FC"></div>
-    <div class="field"><label class="label" for="nick">닉네임</label>
-      <input class="inp" id="nick" maxlength="12" placeholder="친구들에게 보일 이름"></div>
-    <div class="field"><span class="label">드래프트</span><div class="seg" id="modeSeg" role="group" aria-label="드래프트 방식"></div></div>
-    <div class="field"><span class="label">내 선수 능력치</span><div class="seg" id="ratingSeg" role="group" aria-label="능력치 기준"></div></div>
-    <div class="field"><span class="label">상대 난이도</span><div class="seg" id="diffSeg" role="group" aria-label="상대팀 난이도"></div></div>
-    <label class="toggle"><input type="checkbox" id="hard"> 블라인드 (능력치 숨김)</label>
-  </section>
-
-  <div class="grid">
-    <!-- 스쿼드 -->
-    <section class="panel squad">
-      <div class="panel-h"><h2>내 스쿼드</h2><div class="seg" id="formSeg" role="group" aria-label="포메이션"></div></div>
-      <div class="pitch" id="pitch">
-        <svg class="lines" viewBox="0 0 68 88" preserveAspectRatio="none" aria-hidden="true">
-          <g fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".35">
-            <rect x="2" y="2" width="64" height="84"/>
-            <line x1="2" y1="44" x2="66" y2="44"/>
-            <circle cx="34" cy="44" r="7.5"/><circle cx="34" cy="44" r=".5" fill="rgba(255,255,255,.7)"/>
-            <rect x="15" y="2" width="38" height="14"/><rect x="25" y="2" width="18" height="5"/>
-            <rect x="15" y="72" width="38" height="14"/><rect x="25" y="81" width="18" height="5"/>
-            <path d="M26 16 A8 8 0 0 0 42 16"/><path d="M26 72 A8 8 0 0 1 42 72"/>
-          </g>
-        </svg>
-      </div>
-      <div class="statbar">
-        <div class="ovrbadge"><span class="n" id="ovrV">–</span><span class="k">OVR</span></div>
-        <div class="stats">
-          <div class="st"><span class="k">공격</span><b id="attV">–</b></div>
-          <div class="st"><span class="k">수비</span><b id="defV">–</b></div>
-          <div class="st"><span class="k">케미</span><b id="chemV">+0.0</b></div>
-          <div class="st"><span class="k">선발·후보</span><b id="cntV">0/11</b></div>
-        </div>
-      </div>
-      <div class="bench" id="bench"></div>
-      <div class="mgr" id="mgrBox"></div>
-    </section>
-
-    <!-- 드래프트 / 이적시장 -->
-    <section class="panel desk" id="desk">
-      <div id="deskDraft">
-        <div class="panel-h"><h2>카드 드래프트</h2><span class="label" id="phaseLabel"></span></div>
-        <div class="reel" id="reel" aria-live="polite">
-          <div class="reel-crest" id="reelCrest"></div>
-          <div class="yearL" id="reelYear"></div>
-          <div class="club" id="reelClub">스핀을 눌러 시작</div>
-          <div class="eraL" id="reelEra"></div>
-        </div>
-        <div class="btnrow">
-          <button class="btn primary" id="spinBtn" type="button">스핀</button>
-          <button class="btn ghost" id="mgrBtn" type="button">감독 뽑기</button>
-          <button class="btn ghost" id="benchBtn" type="button" disabled>후보 뽑기</button>
-          <button class="btn ghost" id="respinBtn" type="button" disabled>다시 스핀 (2)</button>
-          <button class="btn go" id="simBtn" type="button" disabled>시즌 시작</button>
-        </div>
-        <p class="hint" id="hint"></p>
-        <ul class="offers" id="plist"></ul>
-        <div class="progress" id="progress" aria-hidden="true"></div>
-      </div>
-
-      <div id="deskWinter" hidden>
-        <div class="panel-h"><h2>겨울 이적시장</h2><span class="label" id="winterLabel"></span></div>
-        <div id="winterBody"></div>
-      </div>
-    </section>
-  </div>
-
-  <section class="panel" id="oppWrap" style="margin-top:20px">
-    <div class="panel-h"><h2>K리그 상대팀</h2><span class="label" id="oppDiffLabel"></span></div>
-    <div class="seg" id="oppTabs" role="group" aria-label="상대팀 선택"></div>
-    <div id="oppView"></div>
-  </section>
-
-  <div id="results" hidden></div>
-
-  <section class="panel" id="careerWrap" hidden style="margin-top:20px">
-    <div class="panel-h"><h2>커리어</h2><span class="label" id="careerLabel"></span></div>
-    <div id="career"></div>
-  </section>
-
-  <section class="panel" id="achWrap" style="margin-top:20px">
-    <div class="panel-h"><h2>업적 · 배지</h2><span class="label" id="achCount"></span></div>
-    <div class="ach-grid" id="achGrid"></div>
-  </section>
-
-  <section class="panel" id="sharedWrap" hidden style="margin-top:20px">
-    <div class="panel-h"><h2>친구들 기록</h2><div class="seg" id="sharedSort" role="group" aria-label="정렬"></div></div>
-    <div id="shared"></div>
-    <div id="duelBox"></div>
-  </section>
-
-  <footer>
-    비공식 팬 제작 게임이에요. K리그와 각 구단, 선수와는 관련이 없어요. 능력치는 해당 시기 활약을 기준으로 한 주관적 평가이고, 시대별 명단과 2026 K리그1 선수단은 대표 선수 위주로 구성해서 실제 등록 명단과 다를 수 있어요. 김천 상무 자리에 내 팀이 합류한다는 가상의 설정이에요. 엠블럼과 공식 이미지는 사용하지 않았어요.
-  </footer>
-</div>
-
-<script src="js/data.js"></script>
-<script src="js/data2026.js"></script>
-<script src="js/data_cups.js"></script>
-<script src="js/data_acl.js"></script>
-<script src="js/data_afc_squads.js"></script>
-<script src="js/data_attrs.js"></script>
-<script src="js/data_attrs_lite.js"></script>
-<script src="js/data_attrs_lite2.js"></script>
-<script src="js/data_squads26.js"></script>
-<script src="js/data_records.js"></script>
-<script src="js/data_ratings.js"></script>
-<script src="js/crests.js"></script>
-<script src="js/roles.js"></script>
-<script src="js/fans.js"></script>
-<script src="js/config.js"></script>
-<script src="js/born.js"></script>
-<script src="js/attrs.js"></script>
-<script src="js/core.js"></script>
-<script src="js/season.js"></script>
-<script src="js/ach.js"></script>
-<script src="js/game.js"></script>
-<script src="js/share.js"></script>
-<script src="js/duel.js"></script>
-<script src="js/protect.js"></script>
+<main>
+  <div class="brand"><span class="k">K</span>LEGEND<b>38</b></div>
+  <p class="sub">팬이 만든 비영리 K리그 시뮬레이션 · 모드를 골라 주세요</p>
+  <a class="card m" href="manager.html">
+    <small>MANAGER MODE</small><h2>감독판 · K-레전드 38</h2>
+    <p>역대 레전드 카드를 뽑아 베스트 11을 짜고, K리그1·FA컵·AFC 챔피언스리그 38경기에 도전해요.</p>
+    <span class="save" id="saveM"></span>
+    <span class="go"><span>감독으로 시작</span><span>→</span></span>
+  </a>
+  <a class="card p" href="player.html">
+    <small>PLAYER MODE</small><h2>선수판 · K-라이프</h2>
+    <p>중학교 유소년부터 은퇴까지. 훈련·계약·이적·국가대표·병역, 발롱도르와 영구결번에 도전해요.</p>
+    <span class="save" id="saveP"></span>
+    <span class="go"><span>선수로 시작</span><span>→</span></span>
+  </a>
+  <div class="soon">준비 중 · 감독판 EPL 초청경기, 선수판 프리미어리그 이적 시나리오 확장</div>
+  <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
+</main>
+<script>
+(function(){
+  function rd(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+  var m=rd("kl38-saves"), p=rd("klife-save");
+  var el=document.getElementById("saveM"); if(m&&(Array.isArray(m)?m.length:Object.keys(m).length)) el.textContent="저장된 감독 기록이 있어요";
+  var ep=document.getElementById("saveP"); if(p&&p.p&&!p.retired) ep.textContent="이어하기 · "+p.p.name+" ("+(p.year-p.p.born)+"세, "+(p.club?p.club.name:"")+")";
+})();
+</script>
 </body>
 </html>
