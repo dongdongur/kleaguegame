@@ -108,5 +108,44 @@ L.titlesOf=function(S){
   if(!out.length) out.push(sc>=1200?"믿음직한 프로":"묵묵한 선수");
   return out.slice(0,4);
 };
+/* ================= 리그 기록 · 챔피언스리그 기록 =================
+ * 수치는 공개 기록을 바탕으로 한 근사치예요. 내 시즌 기록이 리그 역대 기록을 넘으면 '신기록' 업적이 붙어요. */
+const REC={K1:{g:28,a:17},K2:{g:24,a:14},EPL:{g:34,a:20},EPL2:{g:31,a:16},LAL:{g:50,a:21},BUN:{g:41,a:21},SEA:{g:36,a:17},L1:{g:44,a:21}};
+L.LEAGUE_REC=REC; L.UCL_REC={season:17,career:140,leader:[7,12]};
+L.recordsFor=function(S,R){
+  if(R.youth||R.military) return; const rc=REC[R.leagueKey], ln=L.lgLabel(R.leagueKey), out=R.records=[];
+  if(rc){
+    if(R.goals>rc.g){ R.awards.push(ln+" 시즌 최다 골 신기록"); out.push(ln+" 시즌 최다 골 신기록! ("+R.goals+"골, 종전 "+rc.g+"골)"); }
+    else if(R.goals===rc.g&&R.goals>0){ out.push(ln+" 시즌 최다 골 타이기록 ("+R.goals+"골)"); }
+    if(R.assists>rc.a){ R.awards.push(ln+" 시즌 최다 도움 신기록"); out.push(ln+" 시즌 최다 도움 신기록! ("+R.assists+"도움, 종전 "+rc.a+"도움)"); }
+  }
+  const u=(R.matches||[]).filter(m=>m.cup==="ucl"), ug=u.reduce((s,m)=>s+(m.g||0),0), ua=u.reduce((s,m)=>s+(m.as||0),0);
+  R.uclGoals=ug; R.uclAssists=ua; if(!u.length) return;
+  const c=S.career, was=c.uclG||0; c.uclG=was+ug; c.uclA=(c.uclA||0)+ua;
+  if(ug>=ri(L.UCL_REC.leader[0],L.UCL_REC.leader[1])&&ug>=5){ R.awards.push("챔피언스리그 득점왕"); out.push("UEFA 챔피언스리그 득점왕 ("+ug+"골)"); }
+  if(ug>L.UCL_REC.season){ R.awards.push("챔스 시즌 최다 골 신기록"); out.push("챔피언스리그 한 시즌 최다 골 신기록! ("+ug+"골)"); }
+  if(c.uclG>L.UCL_REC.career&&was<=L.UCL_REC.career){ R.awards.push("챔스 통산 최다 골 신기록"); out.push("챔피언스리그 통산 최다 골 신기록! (통산 "+c.uclG+"골, 종전 "+L.UCL_REC.career+"골)"); }
+};
+const _base=L.awardsFor; L.awardsFor=function(S,R,sim){ _base(S,R,sim); L.recordsFor(S,R); };
 L.calendarAwards=L.awardsFor;
+
+/* ================= 베스트 11 명단 =================
+ * 그 시즌 리그 최고의 11명. 실존 선수가 있는 리그(K리그·프리미어리그)는 실제 이름으로, 그 밖의 리그는 가상 선수로 채워요. */
+L.bestXI=function(S,R){
+  const key=R.leagueKey, slots=[["GK","GK"],["LB","LB"],["CB","CB"],["CB","CB"],["RB","RB"],["DM","DM"],["CM","CM"],["AM","AM"],["LW","LW"],["ST","ST"],["RW","RW"]];
+  const GRP={GK:"GK",LB:"DF",CB:"DF",RB:"DF",DM:"MF",CM:"MF",AM:"MF",LW:"FW",ST:"FW",RW:"FW"};
+  let pool=[];
+  if(key==="K1"||key==="K2") L.leagueClubs(S,key).forEach(c=>{ if(c.def_) c.def_.players.forEach(p=>pool.push({name:p.name,det:p.det||p.pos,pos:p.pos,ovr:p.ovr,club:c.short})); });
+  else if(key==="EPL") L.leagueClubs(S,"EPL").forEach(c=>{ (c.players||[]).forEach(p=>pool.push({name:p[0],det:null,pos:p[1],ovr:p[2],club:c.short})); });
+  const used=new Set(), out=[]; const me=S.p;
+  slots.forEach(([slot])=>{
+    if(!out.some(x=>x.me)&&(me.sub===slot||(slot==="CB"&&me.sub==="CB"))&&GRP[slot]===me.pos){ out.push({slot,name:me.name,club:R.club.name,ovr:me.ovr,me:true}); return; }
+    let cand=pool.filter(p=>!used.has(p.name)&&(p.det===slot||(!p.det&&p.pos===GRP[slot]))); if(!cand.length) cand=pool.filter(p=>!used.has(p.name)&&p.pos===GRP[slot]);
+    cand.sort((x,y)=>y.ovr-x.ovr);
+    if(cand.length){ const c=cand[Math.min(cand.length-1,Math.floor(Math.random()*2))]; used.add(c.name); out.push({slot,name:c.name,club:c.club,ovr:c.ovr}); }
+    else out.push({slot,name:poolName(),club:"",ovr:Math.round(R.lvl+ri(0,5))});
+  });
+  if(!out.some(x=>x.me)){ const i=out.findIndex(x=>x.slot===me.sub)>=0?out.findIndex(x=>x.slot===me.sub):out.findIndex(x=>GRP[x.slot]===me.pos); if(i>=0) out[i]={slot:out[i].slot,name:me.name,club:R.club.name,ovr:me.ovr,me:true}; }
+  return out;
+};
 })();

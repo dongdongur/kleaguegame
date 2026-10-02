@@ -542,7 +542,7 @@ L.commitSeason=function(S,R){
   S.funds=r1(S.funds+(R.youth?(L.familyPts(S)*.035+.04):S.salary*.7));
 };
 /* 수상이 어느 대회(리그)에서 나온 건지 */
-L.awardComp=function(name,R){ if(/^KFA/.test(name)) return "대한축구협회"; if(/^AFC/.test(name)) return "AFC"; if(/발롱도르/.test(name)) return "발롱도르"; return R.leagueName||""; };
+L.awardComp=function(name,R){ if(/^KFA/.test(name)) return "대한축구협회"; if(/^AFC/.test(name)) return "AFC"; if(/발롱도르/.test(name)) return "발롱도르"; if(/챔피언스리그|챔스/.test(name)) return "UEFA 챔피언스리그"; return R.leagueName||""; };
 /* 커리어 팀 흐름: 시간 순서대로 (복무 포함) */
 L.clubChain=function(S){ const out=[]; S.history.filter(h=>!h.youth).forEach(h=>{ const nm=h.military?"군 복무":h.club; if(!out.length||out[out.length-1].name!==nm) out.push({name:nm,from:h.year,to:h.year,mil:!!h.military||h.lg==="MIL"}); else out[out.length-1].to=h.year; }); return out; };
 L.slimRecord=function(R,S){ return {year:R.year,age:R.age,club:R.club.name,clubId:R.club.id,lg:R.club.lg,leagueName:R.leagueName,rank:R.rank,N:R.N,W:R.W,D:R.D,L:R.L,apps:R.apps,starts:R.starts,minutes:R.minutes,goals:R.goals,assists:R.assists,cs:R.cs||0,rating:R.rating,mom:R.mom||0,
@@ -652,8 +652,8 @@ L.otherTable=function(S,key){
 L.legacy=function(S){
   const c=S.career, a=S.awards.filter(x=>!x.youth), t=S.trophies.filter(x=>!x.youth);
   const value=Math.round(S.p.peak*8), rec=Math.round(c.goals*3+c.assists*2+c.apps*.5+c.cs*1.5);
-  const W={"리그 MVP":60,"올해의 선수":70,"득점왕":45,"공동 득점왕":35,"도움왕":35,"공동 도움왕":25,"올해의 골키퍼":45,"베스트 11":22,"올해의 팀":22,"영플레이어상":18,"팀 올해의 선수":10,"골든부트":70,"골든글러브":55,"PFA 올해의 선수":120,"발롱도르":260,"발롱도르 후보":40,"KFA 올해의 선수":30,"AFC 올해의 국제선수":40};
-  const aw=a.reduce((s,x)=>s+(W[x.name]||8),0);
+  const W={"리그 MVP":60,"올해의 선수":70,"득점왕":45,"공동 득점왕":35,"도움왕":35,"공동 도움왕":25,"올해의 골키퍼":45,"베스트 11":22,"올해의 팀":22,"영플레이어상":18,"팀 올해의 선수":10,"골든부트":70,"골든글러브":55,"PFA 올해의 선수":120,"발롱도르":260,"발롱도르 후보":40,"KFA 올해의 선수":30,"AFC 올해의 국제선수":40,"챔피언스리그 득점왕":90,"챔스 시즌 최다 골 신기록":220,"챔스 통산 최다 골 신기록":300};
+  const aw=a.reduce((s,x)=>s+(W[x.name]||(/최다 골 신기록/.test(x.name)?150:/최다 도움 신기록/.test(x.name)?120:8)),0);
   const tr=t.reduce((s,x)=>s+(/월드컵|챔피언스리그|유로파/.test(x.name)?110:/아시안게임|올림픽/.test(x.name)?55:/아시안컵/.test(x.name)?75:/우승/.test(x.name)?45:20),0);
   const nat=c.caps*3+c.intGoals*10;
   return {total:value+rec+aw+tr+nat,value,rec,aw,tr,nat};

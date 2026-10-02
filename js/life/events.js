@@ -150,18 +150,18 @@ const POOL=[
   opts:[A("바로 의무팀에 알린다",{safe:true,win:{cond:8},ok:"큰일을 막았어요."}),
         A("참고 훈련한다",{p:45,win:{stat:1},lose:{inj:ri(2,5),morale:-4,cond:-8},ok:"통증이 가라앉았어요.",no:"결국 근육이 올라와 쉬게 됐어요."})]},
  /* ---- 가정 형편 (미성년·대학) ---- */
- {id:"famcrash",w:2.2,when:S=>S.family&&(minor(S)||univ(S))&&S.family.pts>=4&&!S.famEv,title:"집안에 먹구름이 몰려왔어요",body:"부모님 사업이 크게 흔들렸어요. 훈련비와 용돈이 눈에 띄게 줄어듭니다.",
+ {id:"famcrash",w:.9,when:S=>S.family&&(minor(S)||univ(S))&&S.family.pts>=4&&!S.famEv&&S.history.length>=2&&(["rich","upper"].includes(S.family.id)?Math.random()<.2:true),title:"집안에 먹구름이 몰려왔어요",body:"부모님 사업이 크게 흔들렸어요. 훈련비와 용돈이 눈에 띄게 줄어듭니다.",
   opts:[A("장학금에 도전한다",{p:"schol",win:{fam:-1,morale:3,trust:2},lose:{fam:-3,morale:-6},ok:"장학 선발에 통과했어요! 학비 걱정을 덜었어요.",no:"장학 선발에서 떨어졌어요. 부모님께 죄송한 마음뿐이에요.",act:"quitRisk"}),
         A("아르바이트와 합숙으로 버틴다",{p:55,win:{fam:-1,morale:-2,trust:2},lose:{fam:-3,morale:-6,cond:-6},ok:"힘들지만 길을 찾았어요.",no:"버거운 한 해가 됐어요.",act:"quitRisk"}),
         A("운동을 접고 학업에 전념한다",{safe:true,win:{},ok:"눈물을 삼키며 축구화를 벗었어요.",act:"quitNow"})]},
- {id:"famboom",w:1.2,when:S=>S.family&&(minor(S)||univ(S))&&S.family.pts<12&&!S.famEv2&&S.famEv,title:"집안에 해가 들었어요",body:"부모님 일이 다시 풀리면서 뒷바라지를 더 해 줄 수 있게 되었어요.",
+ {id:"famboom",w:2.4,when:S=>S.family&&(minor(S)||univ(S))&&S.family.pts<12&&!S.famEv2&&S.famEv,title:"집안에 해가 들었어요",body:"부모님 일이 다시 풀리면서 뒷바라지를 더 해 줄 수 있게 되었어요.",
   opts:[A("감사히 받고 더 열심히 한다",{p:100,win:{fam:2,morale:4},ok:"지원 포인트가 늘었어요! 훈련 설정에서 다시 나눠 쓸 수 있어요."})]},
- {id:"famletter",w:1.5,when:S=>S.family&&(minor(S)||univ(S)),title:"도시락과 편지",body:"경기장에 몰래 오신 부모님이 도시락과 손편지를 건네셨어요.",
+ {id:"famletter",w:.8,when:S=>S.family&&(minor(S)||univ(S)),title:"도시락과 편지",body:"경기장에 몰래 오신 부모님이 도시락과 손편지를 건네셨어요.",
   opts:[A("편지를 읽는다",{safe:true,win:{morale:7,trust:1},ok:"가슴이 따뜻해졌어요."})]},
- {id:"sponsoryouth",w:1.2,when:S=>S.family&&S.family.pts<=5&&minor(S)&&S.fame>=6,title:"지역 후원자의 제안",body:"지역 기업인이 어려운 형편의 유망주를 돕고 싶다고 해요.",
+ {id:"sponsoryouth",w:.8,when:S=>S.family&&S.family.pts<=5&&minor(S)&&S.fame>=6,title:"지역 후원자의 제안",body:"지역 기업인이 어려운 형편의 유망주를 돕고 싶다고 해요.",
   opts:[A("정중히 받아들인다",{p:85,win:{fam:2,fame:2},lose:{morale:-2},ok:"후원 덕에 지원 포인트가 늘었어요.",no:"사정이 있어 무산됐어요."}),
         A("스스로 해내겠다며 사양한다",{safe:true,win:{trust:2,morale:3},ok:"자존심을 지켰어요."})]},
- {id:"studypress",w:1.5,when:S=>S.family&&teen(S)&&S.family.pts<=6&&!S.famEv3,title:"'공부해라' 최후통첩",body:"부모님이 성적표를 보시고 '이번 학기에도 이러면 축구는 끝'이라고 하셨어요.",
+ {id:"studypress",w:.8,when:S=>S.family&&teen(S)&&S.family.pts<=6&&!S.famEv3,title:"'공부해라' 최후통첩",body:"부모님이 성적표를 보시고 '이번 학기에도 이러면 축구는 끝'이라고 하셨어요.",
   opts:[A("약속하고 정말 공부한다",{p:65,win:{morale:-1,trust:2,cond:-4},lose:{cond:-6,morale:-3,fam:-1},ok:"성적이 올라 부모님이 한시름 놓으셨어요.",no:"두 마리 토끼를 쫓다 둘 다 놓쳤어요. 부모님의 지원이 줄었어요.",act:"quitRiskLow"}),
         A("꼭 프로가 되겠다고 맞선다",{p:40,win:{morale:5,fam:1},lose:{morale:-6,fam:-2},ok:"결연한 눈빛에 부모님이 한 번 더 믿어 주셨어요.",no:"집안 분위기가 얼음장이 됐어요.",act:"quitRisk"}),
         A("축구를 포기한다",{safe:true,win:{},ok:"담담히 받아들이고 새 길을 찾기로 했어요.",act:"quitNow"})]},
@@ -220,7 +220,7 @@ L.resolveEvent=function(S,ev,idx){
   let ending=null;
   if(o.act){ const a=String(o.act);
     if(a==="quitNow"&&L.maybeQuit) ending={reason:"family",text:"집안 사정으로 운동을 포기하고 학업에 전념하기로 했습니다."};
-    else if(a==="quitRisk"&&!hit&&Math.random()<clamp(.55-.06*((S.points||{}).grit|0),.12,.6)) ending={reason:"family",text:"형편이 어려워 더는 운동을 이어 갈 수 없었습니다. 그래도 한때는 누구보다 빛나는 유망주였어요."};
+    else if(a==="quitRisk"&&!hit&&!(S.family&&(S.family.id==="rich"||S.family.id==="upper"))&&Math.random()<clamp(.35-.05*((S.points||{}).grit|0),.05,.4)) ending={reason:"family",text:"형편이 어려워 더는 운동을 이어 갈 수 없었습니다. 그래도 한때는 누구보다 빛나는 유망주였어요."};
     else if(a==="quitRiskLow"&&!hit&&Math.random()<.2) ending={reason:"study",text:"부모님과의 약속대로 축구를 접고 학업에 매진하기로 했습니다."};
     else if(a.startsWith("sub:")&&hit){ const sub=a.slice(4); const nm=L.POSDEF[S.p.pos].subs.find(s=>s[0]===sub); if(L.changeSub(S,sub)) lines.push("포지션 변경: "+(nm?nm[1]:sub)+" — 역할 "+L.roleName(S.p)); }
     else if(a.startsWith("role:")&&hit){ const id=a.slice(5); if(L.changeRole(S,id)) lines.push("역할 변경: "+L.roleName(S.p)); }
