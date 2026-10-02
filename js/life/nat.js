@@ -25,6 +25,10 @@ const TOURN={
       rounds:[["조별리그",.72],["16강",.55],["8강",.50],["4강",.45],["결승",.46]],matches:[3,1,1,1,1],medal:false},
 };
 L.TOURN=TOURN;
+/* 개최지: 실제로 정해진 곳은 그대로, 그 뒤는 가상 개최지예요 */
+const HOST={wc:{2026:"미국·캐나다·멕시코",2030:"스페인·포르투갈·모로코",2034:"사우디아라비아"},ac:{2027:"사우디아라비아",2031:"카타르"},oly:{2028:"미국 로스앤젤레스",2032:"호주 브리즈번"},ag:{2026:"일본 아이치·나고야",2030:"카타르 도하",2034:"사우디아라비아 리야드"}};
+const FAKE_HOST={wc:["브라질","독일","한국·일본","잉글랜드","아르헨티나","이집트","호주","프랑스","멕시코"],ac:["일본","한국","카타르","호주","이란","우즈베키스탄"],oly:["프랑스 파리","일본 오사카","캐나다 토론토","독일 베를린","브라질 리우"],ag:["중국 항저우","인도네시아","한국","우즈베키스탄"],u20:["아르헨티나","칠레","폴란드","인도네시아","우즈베키스탄","이집트"],u17:["카타르","페루","인도네시아","브라질","세네갈"]};
+L.hostOf=function(id,y){ const h=HOST[id]&&HOST[id][y]; if(h) return h; const l=FAKE_HOST[id]||["미정"]; return l[Math.abs((y*7+id.length*3)%l.length)]+" (가상)"; };
 const held=(t,y)=>y>=t.first&&(y-t.first)%t.every===0;
 const levelRef=S=>S.stage==="pro"||S.stage==="univ"?0:L.youthLevel(L.age(S));
 
@@ -48,7 +52,7 @@ L.planCallups=function(S,sim){
     /* K리그: 같은 해에 열리는 대회. 프리미어리그 시즌(8월~이듬해 5월): 올해 8월 이후 + 내년 8월까지의 대회 */
     const years=cal==="E"?[S.year,S.year+1]:[S.year];
     years.forEach(y=>{ if(!held(t,y)) return; const m=t.m[0]; if(cal==="E"&&!((y===S.year&&m>=8)||(y===S.year+1&&m<=8))) return;
-      const pr=L.callupProb(S,t); if(pr>0&&Math.random()<pr) out.push({t:t.id,name:t.name,short:t.short,after:segFor(cal,m),year:y,months:t.m[0]===t.m[1]?t.m[0]+"월":t.m[0]+"~"+t.m[1]+"월",done:false,pr:Math.round(pr*100)}); }); });
+      const pr=L.callupProb(S,t); if(pr>0&&Math.random()<pr) out.push({t:t.id,name:t.name,short:t.short,host:L.hostOf(t.id,y),after:segFor(cal,m),year:y,months:t.m[0]===t.m[1]?t.m[0]+"월":t.m[0]+"~"+t.m[1]+"월",done:false,pr:Math.round(pr*100)}); }); });
   /* 월드컵·아시안컵 해에는 확실한 에이스가 못 나가는 일이 없도록 부상 시 제외 */
   return out;
 };
@@ -80,7 +84,7 @@ L.joinTournament=function(S,c){
   let games=0; for(let i=0;i<played;i++) games+=t.matches[i];
   const caps=Math.max(0,Math.round(games*sr)); const mf=sr>.5?.9:.5;
   const goals=binom(caps,clamp(L.shareG(p.sub)*mf*.8*Math.exp((p.ovr-ref)/30),0,.5));
-  const r={t:t.id,name:t.name,short:t.short,year:YR,stage,caps,games,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
+  const r={t:t.id,name:t.name,short:t.short,year:YR,host:L.hostOf(t.id,YR),stage,caps,games,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
   if(t.id==="wc"&&r.stage==="우승") r.text="월드컵 우승! 온 나라가 뒤집어졌습니다.";
   /* 반영 */
   S.career.caps+=caps; S.career.intGoals+=goals;

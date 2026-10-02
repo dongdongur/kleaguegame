@@ -92,6 +92,8 @@ L.applyStyle=function(p){
   add(r&&r.fx.st); add(f.st); p.sfx=now; p.ovr=L.ovrOf(p);
 };
 /* 세부 포지션 바꾸기 (은사·감독의 제안). 같은 포지션 안에서만 바뀌어요 */
-L.changeSub=function(S,sub){ const p=S.p; if(!L.POSDEF[p.pos].subs.some(s=>s[0]===sub)) return false; const was=L.POSDEF[p.pos].subs.find(s=>s[0]===p.sub); p.sub=sub; const r=L.rolesOf(sub)[0]; p.role=r?r[0]:null; L.applyStyle(p); L.addMoment(S,"포지션 변경","포변",(was?was[1]:"")+" → "+L.POSDEF[p.pos].subs.find(s=>s[0]===sub)[1]+" 포지션을 바꿨습니다."); return true; };
-L.changeRole=function(S,id){ const p=S.p; const r=L.roleDef(p.sub,id); if(!r) return false; p.role=id; L.applyStyle(p); L.addMoment(S,"역할 변경","역할",r.name+" 역할을 맡게 됐습니다."); return true; };
+function logStyle(S,text){ (S.styleLog=S.styleLog||[]).push({year:S.year,age:L.age(S),text}); }
+L.logStyle=logStyle;
+L.changeSub=function(S,sub){ const p=S.p; if(!L.POSDEF[p.pos].subs.some(s=>s[0]===sub)) return false; const was=L.POSDEF[p.pos].subs.find(s=>s[0]===p.sub); p.sub=sub; const r=L.rolesOf(sub)[0]; p.role=r?r[0]:null; L.applyStyle(p); const nn=L.POSDEF[p.pos].subs.find(s=>s[0]===sub)[1]; L.addMoment(S,"포지션 변경","포변",(was?was[1]:"")+" → "+nn+" 포지션을 바꿨습니다."); logStyle(S,(was?was[1]:"")+" → "+nn+" 포지션 변경 ("+L.roleName(p)+" 역할)"); return true; };
+L.changeRole=function(S,id){ const p=S.p; const r=L.roleDef(p.sub,id); if(!r) return false; p.role=id; L.applyStyle(p); L.addMoment(S,"역할 변경","역할",r.name+" 역할을 맡게 됐습니다."); logStyle(S,r.name+" 역할로 변경"); return true; };
 })();

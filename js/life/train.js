@@ -179,8 +179,9 @@ L.buyItem=function(S,kind,id){
 L.BRANDS=[{id:"nako",name:"나O키"},{id:"adios",name:"아O다스"},{id:"pumer",name:"퓨머"},{id:"nbal",name:"뉴발O스"},{id:"undr",name:"언더O머"},{id:"mizo",name:"미O노"}];
 L.endorseOffers=function(S){
   if(S.stage!=="pro"||S.fame<14||S.endorse) return [];
-  const n=S.fame>=40?3:S.fame>=25?2:1; const bs=shuffle(L.BRANDS).slice(0,n); const p=S.p;
-  return bs.map(b=>{ const fee=r1(Math.max(.2,(S.fame/100)*7+Math.max(0,p.ovr-70)*.28+rnd(-.2,.6))); const yrs=ri(1,3);
+  const n=S.fame>=70?4:S.fame>=40?3:S.fame>=25?2:1; const bs=shuffle(L.BRANDS).slice(0,n); const p=S.p;
+  const lgF=S.club&&L.isForeign(S.club.lg)?(S.club.lg==='EPL'||S.club.lg==='LAL'||S.club.lg==='BUN'||S.club.lg==='SEA'?1:.6):.28;
+  return bs.map((b,bi)=>{ const star=Math.pow(S.fame/100,3.2)*Math.pow(clamp((p.ovr-72)/25,0,1),1.4); const fee=r1(Math.max(.3,.3+(S.fame/100)*3+650*star*lgF)*(b.id==='nako'||b.id==='adios'?1.15:1)*rnd(.88,1.12)); const yrs=ri(1,4);
     const opt=Math.random();
     const clause=opt<.4?{type:"fame",n:Math.min(95,Math.round(S.fame+6)),label:"시즌 말 인기 "+Math.min(95,Math.round(S.fame+6))+" 이상"}:opt<.75?{type:"apps",n:25,label:"리그 25경기 이상 출전"}:{type:"rating",n:6.9,label:"시즌 평점 6.9 이상"};
     return {brand:b.name,id:b.id,fee,years:yrs,clause}; });

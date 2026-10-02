@@ -189,3 +189,20 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 
 /* 긴 팝업: 오른쪽 위 고정 닫기 버튼 */
 .xclose{position:sticky;top:0;justify-self:end;z-index:5;width:44px;height:44px;margin:-6px -4px -44px 0;border-radius:12px;border:1px solid var(--line);background:rgba(10,16,40,.92);color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center}
+
+/* ===== 영구결번 장면: 황금 유니폼이 돌며 등번호와 이름이 나타나요 ===== */
+.ov.jerseyov{background:radial-gradient(700px 520px at 50% 30%,rgba(255,200,60,.35),rgba(2,3,10,.97)) #02030a;overflow:hidden}
+.jbeams{position:absolute;left:50%;top:34%;width:900px;height:900px;margin:-450px 0 0 -450px;background:repeating-conic-gradient(rgba(255,214,90,.12) 0 8deg,transparent 8deg 16deg);animation:spin 26s linear infinite;pointer-events:none;border-radius:50%;-webkit-mask-image:radial-gradient(circle,#000 18%,transparent 66%);mask-image:radial-gradient(circle,#000 18%,transparent 66%)}
+.jstage{position:relative;text-align:center;display:grid;gap:8px;justify-items:center;padding:20px 18px;width:min(92vw,420px);animation:jin .9s cubic-bezier(.2,1.2,.3,1)}
+@keyframes jin{from{transform:scale(.4) translateY(40px);opacity:0}}
+.jspin{width:230px;height:250px;position:relative;transform-style:preserve-3d;animation:jrot 7s linear infinite;margin:6px 0}
+.jface svg{filter:drop-shadow(0 0 22px rgba(255,200,60,.6))}
+.jface{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.jback{transform:rotateY(180deg)}
+@keyframes jrot{from{transform:perspective(900px) rotateY(0)}to{transform:perspective(900px) rotateY(360deg)}}
+.jstage h3{color:#ffe27a;font-size:26px;text-shadow:0 0 18px rgba(255,200,60,.6)}
+.jsub{font:700 22px Oswald,sans-serif;color:#fff3b8;letter-spacing:.06em}
+.jsparks{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,#ffe27a 1.5px,transparent 2px),radial-gradient(circle,#fff 1px,transparent 1.5px);background-size:46px 58px,31px 43px;opacity:.55;animation:sparkle 3s linear infinite}
+@keyframes sparkle{from{background-position:0 0,0 0}to{background-position:0 58px,0 -43px}}
+.stylelog p{margin:2px 0}
+@media(prefers-reduced-motion:reduce){.jspin,.jbeams,.jsparks{animation:none}}

@@ -93,18 +93,18 @@ L.familyPts=S=>S.family&&(S.stage==="youth"||S.stage==="univ")?Math.max(0,S.fami
 const POS_AVG={FW:[180,73],MF:[177,70],DF:[183,77],GK:[188,82]};
 L.bodyFx=function(pos,h,w){
   const av=POS_AVG[pos]; h=h||av[0]; w=w||av[1];
-  const tall=clamp((h-av[0])/8,-2.5,2.5), bmi=w/Math.pow(h/100,2), heavy=clamp((bmi-22.5)/1.8,-2.5,2.5);
+  const tall=clamp((h-av[0])/8,-4,4), bmi=w/Math.pow(h/100,2), heavy=clamp((bmi-22.5)/1.8,-3.5,3.5);
   const o={}; const add=(k,v)=>{ o[k]=(o[k]||0)+v; };
   const d=POSDEF[pos];
   d.stats.forEach(([k])=>{
-    if(k==="physical"||k==="tackle"||k==="defending") add(k,1.6*tall+1.1*heavy);
-    else if(k==="pace") add(k,-1.4*tall-1.2*heavy);
-    else if(k==="dribble") add(k,-1.1*tall-.5*heavy);
-    else if(k==="stamina") add(k,-.5*heavy);
-    else if(k==="saving"||k==="handling"||k==="command") add(k,1.2*tall);
-    else if(k==="reflex") add(k,-1.0*tall-.5*heavy);
+    if(k==="physical"||k==="tackle"||k==="defending") add(k,2.8*tall+1.8*heavy);
+    else if(k==="pace") add(k,-2.4*tall-1.8*heavy);
+    else if(k==="dribble") add(k,-1.8*tall-.9*heavy);
+    else if(k==="stamina") add(k,-.9*heavy);
+    else if(k==="saving"||k==="handling"||k==="command") add(k,2.2*tall);
+    else if(k==="reflex") add(k,-1.8*tall-.8*heavy);
   });
-  const res={}; Object.keys(o).forEach(k=>{ const v=Math.round(clamp(o[k],-5,5)); if(v) res[k]=v; });
+  const res={}; Object.keys(o).forEach(k=>{ const v=Math.round(clamp(o[k],-14,14)); if(v) res[k]=v; });
   return {stats:res,tall:Math.round(tall*10)/10,bmi:Math.round(bmi*10)/10};
 };
 L.bodyText=function(pos,h,w){
@@ -134,7 +134,7 @@ L.create=function(o){
     phase:a0<PRO_START?"prep":"draft",offers:[],plan:null,history:[],awards:[],trophies:[],moments:[],feed:[],incentives:[],
     career:{apps:0,starts:0,minutes:0,goals:0,assists:0,cs:0,caps:0,intGoals:0,ratingSum:0,ratingN:0,mom:0,youthApps:0,youthGoals:0,bonus:0},
     drift:{},league:{k1:null,k2:null},rep:50,fame:3,cond:90,morale:70,funds:.1,sim:null,lastR:null,nat:{},ballon:[],clubYears:{},foreignYears:0,retired:false};
-  { const rs=L.rolesOf?L.rolesOf(S.p.sub):[]; S.p.role=o.role||(rs[0]&&rs[0][0])||null; if(L.applyStyle) L.applyStyle(S.p); }
+  { const rs=L.rolesOf?L.rolesOf(S.p.sub):[]; const pref={finisher:"poacher",target:"target",dribbler:"inside",playmaker:"maker",box:"b2b",destroyer:"anchor",stopper:"stopper",builder:"ballplay",runner:"overlap",shotstopper:"line",sweeper:"sweeper",commander:"line"}[S.p.type]; S.p.role=o.role||((rs.find(r=>r[0]===pref)||rs[0]||[])[0])||null; if(L.applyStyle) L.applyStyle(S.p); S.styleLog=[{year:S.year,age:a0,text:(L.POSDEF[pos].subs.find(s=>s[0]===S.p.sub)||[0,S.p.sub])[1]+" · "+(L.roleName?L.roleName(S.p):"")+" · "+S.p.foot+" · "+S.p.height+"cm "+S.p.weight+"kg 로 시작"}]; }
   S.p.ovr=ovrOf(S.p); S.p.peak=S.p.ovr;
   L.initLeague(S);
   { const f=L.rollFamily(pts0.family|0); S.family={id:f.id,name:f.name,pts:f.pts,pts0:f.pts,note:f.note}; S.funds=r1(.1+f.funds*.1); }
@@ -222,7 +222,8 @@ L.clubRef=function(S,c,lg){ return {id:c.id,name:c.name,short:c.short||c.name,lg
  * 실제 수치(2025): K리그1 평균 3.1억(국내 2.4억·외국인 8.4억), 최고 국내 15.9억·외국인 21억, K리그2 평균 1.4억,
  *                 프리미어리그 평균 약 70억(연 370만 파운드), 최고 약 500억(연 3,660만 달러 이상) */
 const LG_SAL={K1:1,K2:.7,MIL:.25,YOUTH:.03,UNIV:0}; Object.keys(FL).forEach(k=>{ LG_SAL[k]=FL[k].sal; });
-L.salaryOf=function(ovr,ag,lg){ const base=1.5*Math.exp((ovr-60)/8.5); const ageF=ag<=20?.8:ag<=22?.92:ag<=30?1:ag<=33?.88:.7; const cap={K1:22,K2:8,MIL:.4,YOUTH:.1}[lg]; const v=base*(LG_SAL[lg]!=null?LG_SAL[lg]:1)*ageF; return Math.max(.3,r1(cap?Math.min(cap,v):v)); };
+L.capOf=function(lg,ovr){ if(lg==="K1") return 22+Math.max(0,(ovr||0)-78)*2.2; return {K2:8,MIL:.4,YOUTH:.1}[lg]||null; };
+L.salaryOf=function(ovr,ag,lg){ const base=1.5*Math.exp((ovr-60)/8.5); const ageF=ag<=20?.8:ag<=22?.92:ag<=30?1:ag<=33?.88:.7; const cap=L.capOf(lg,ovr); const v=base*(LG_SAL[lg]!=null?LG_SAL[lg]:1)*ageF; return Math.max(.3,r1(cap?Math.min(cap,v):v)); };
 /* 구단별 연봉 현황: 그 구단 선수들의 추정 연봉으로 최고/최저/평균을 보여줘요 */
 L.clubPayroll=function(S,clubId,lg){
   const def=L.defById(clubId); let list=null;
@@ -320,6 +321,7 @@ L.beginSeason=function(S,plan){
     const me=clubs.find(c=>c.id===myId)||clubs[0]; lvl=me.l; sim.st={}; clubs.forEach(c=>{ sim.st[c.id]={att:c.att,def:c.def}; });
     sim.rounds=L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0);
   }
+  if(stage==='pro'&&key!=='YOUTH'){ const bst=clamp((p.ovr-lvl)*.12,0,3); const w={FW:[.9,.1],MF:[.6,.3],DF:[.2,.8],GK:[.1,.9]}[p.pos]; const my=sim.st&&sim.st[myId]; if(my&&bst>0){ my.att+=bst*w[0]; my.def+=bst*w[1]; } }
   sim.myId=myId; sim.lvl=lvl; sim.tab={}; sim.teams.forEach(t=>{ sim.tab[t.id]={id:t.id,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}; });
   sim.segs=L.segsFor(S,key); sim.cal=L.calKey(S,key); const N=sim.rounds.length; let acc=0; sim.segEnd=sim.segs.map((s,i)=>{ acc+=s.frac; return i===sim.segs.length-1?N:Math.round(N*acc); });
   sim.sr=clamp(L.startRateAt(effOvr(S),lvl,S.trust,p),.02,.97); if(S.team==="2군"&&stage==="pro") sim.sr=Math.min(sim.sr,.1);
@@ -434,22 +436,27 @@ L.planCups=function(S,sim){
 function cupOpp(S,sim,cup){ const lvl=sim.lvl;
   if(cup.id==="acl") return {name:pick(["알 힐랄","알 나스르","요코하마 F. 마리노스","비셀 고베","상하이 하이강","부리람","알 아인","에스테그랄"]),l:lvl+rnd(-5,8)};
   if(cup.id==="uel") return {name:pick(["AS 로마","올림피크 리옹","레인저스","포르투","페예노르트","빅토리아 플젠","슬라비아 프라하","갈라타사라이","PAOK","스포르팅 브라가"]),l:lvl+rnd(-6,5)};
-  if(cup.id==="ucl") return {name:pick(["레알 마드리드","바이에른 뮌헨","PSG","인터","바르셀로나","도르트문트","나폴리","벤피카"]),l:lvl+rnd(-4,8)};
+  if(cup.id==="ucl") return {name:pick(["레알 마드리드","바이에른 뮌헨","PSG","인터","바르셀로나","도르트문트","나폴리","벤피카"]),l:lvl+rnd(-7,4)};
   if(sim.key==="YOUTH") return {name:L.schoolName(age(S),S.stage==="univ"),l:lvl+rnd(-6,6)};
   const t=pick(sim.teams.filter(x=>x.id!==sim.myId)); return {name:t.short||t.name,l:(t.l!=null?t.l:lvl)+rnd(-3,3)}; }
 L.playCupsAt=function(S,sim,segId){
   const out=[], segLabel=sim.segs.find(s=>s.id===segId).label;
   (sim.cups||[]).forEach(cup=>{ for(let guard=0;guard<8;guard++){ if(!cup.alive) return; const rd=cup.rounds[cup.round]; if(!rd||rd.at!==segId) return;
+    const euro=cup.id==="ucl"||cup.id==="uel", lp=euro&&/리그 페이즈/.test(rd.n), two=euro&&/(16강|8강|4강)/.test(rd.n);
     const o=cupOpp(S,sim,cup); const my=sim.st[sim.myId]||{att:sim.lvl,def:sim.lvl};
-    const home=Math.random()<.5; const H=home?my:{att:o.l,def:o.l}, A=home?{att:o.l,def:o.l}:my;
-    const [gh,ga]=playMatch(H,A); let f=home?gh:ga, a=home?ga:gh, pk=null;
-    if(f===a){ const w=Math.random()<.5+(sim.lvl-o.l)/60; pk=w?[5,4]:[3,4]; }
-    const won=f>a||(f===a&&pk&&pk[0]>pk[1]);
-    const rec=myRec(S,sim,{r:0,home,opp:o.name,f,a},cup.name); rec.cupRound=rd.n; rec.pk=pk; rec.res=won?"W":(f===a?"D":"L"); rec.cup=cup.id; out.push(rec);
-    if(!won){ cup.alive=false; cup.res=rd.n+" 탈락"; }
+    const oS={att:o.l,def:o.l}; let won, pk=null, rec, lost=false, aggTxt=null;
+    if(two){ let aF=0,aA=0; for(let leg=0;leg<2;leg++){ const home=leg===0; const H=home?my:oS, A=home?oS:my; const [gh,ga]=playMatch(H,A); const f=home?gh:ga, a=home?ga:gh; aF+=f; aA+=a;
+        const r=myRec(S,sim,{r:0,home,opp:o.name,f,a},cup.name); r.cupRound=rd.n+(leg?" 2차전":" 1차전"); r.cup=cup.id; r.res=f>a?"W":f===a?"D":"L"; out.push(r); rec=r; }
+      won=aF>aA; if(aF===aA){ const w=Math.random()<.5+(sim.lvl-o.l)/60; pk=w?[5,4]:[3,4]; won=w; rec.pk=pk; } aggTxt=aF+":"+aA; rec.agg=aggTxt; rec.res=won?"W":"L"; rec.cupRound=rd.n+" 2차전 (합계 "+aF+":"+aA+")"; }
+    else { const home=Math.random()<.5; const H=home?my:oS, A=home?oS:my; const [gh,ga]=playMatch(H,A); const f=home?gh:ga, a=home?ga:gh;
+      if(f===a&&!lp){ const w=Math.random()<.5+(sim.lvl-o.l)/60; pk=w?[5,4]:[3,4]; }
+      won=f>a||(f===a&&pk&&pk[0]>pk[1]); lost=f<a;
+      rec=myRec(S,sim,{r:0,home,opp:o.name,f,a},cup.name); rec.cupRound=rd.n; rec.pk=pk; rec.res=won?"W":(f===a?"D":"L"); rec.cup=cup.id; out.push(rec); }
+    if(lp){ if(lost) cup.lpLoss=(cup.lpLoss||0)+1; const last=cup.round===3; if(last&&(cup.lpLoss||0)>=3){ cup.alive=false; cup.res="리그 페이즈 탈락"; } else cup.round++; }
+    else if(!won){ cup.alive=false; cup.res=rd.n+" 탈락"; }
     else if(cup.round===cup.rounds.length-1){ cup.alive=false; cup.res="우승"; sim.cupTitles.push(cup.name+" 우승"); }
     else cup.round++;
-    L.feedAdd(S,S.year+" "+segLabel,cup.name+" "+rd.n+" "+(won?"통과":"탈락")+(rec.min?" · "+(rec.g?rec.g+"골 ":"")+(rec.as?rec.as+"도움 ":"")+"평점 "+rec.rt:" · 결장"),won?0:-1);
+    L.feedAdd(S,S.year+" "+segLabel,cup.name+" "+rd.n+" "+(lp?(won?"승리":rec.res==="D"?"무승부":"패배"):(won?"통과":"탈락"))+(rec.min?" · "+(rec.g?rec.g+"골 ":"")+(rec.as?rec.as+"도움 ":"")+"평점 "+rec.rt:" · 결장"),won||lp?0:-1);
   } });
   return out;
 };
@@ -579,7 +586,7 @@ L.contractOffer=function(S){
   const lg=S.club.lg==="MIL"?"K1":S.club.lg; const market=L.salaryOf(S.p.ovr,ag,lg);
   const perf=clamp((last.rating||6.2)-6.4,-1,2)*.07, trustF=clamp(S.trust-.4,-.3,.4)*.25;
   /* 연봉은 해마다 시장가에 서서히 수렴해요 (갑자기 폭등·폭락하지 않게 현재 연봉의 70%~160% 안) */
-  let offer=market*(1+perf+trustF)*(S.rep>70?1.06:1); offer=clamp(offer,Math.min(S.salary*.7,market*1.2),Math.min(Math.max(S.salary*1.6,market),market*1.35)); offer=r1(Math.max(.3,offer)); { const cap={K1:22,K2:8}[lg]; if(cap) offer=Math.min(offer,cap); }
+  let offer=market*(1+perf+trustF)*(S.rep>70?1.06:1); offer=clamp(offer,Math.min(S.salary*.7,market*1.2),Math.min(Math.max(S.salary*1.6,market),market*1.35)); offer=r1(Math.max(.3,offer)); { const cap=L.capOf(lg,S.p.ovr); if(cap) offer=Math.min(offer,cap); }
   return {last:S.salary,offer,rate:Math.round((offer/Math.max(.1,S.salary)-1)*100),years:ag<=23?3:ag<=30?2:1,market};
 };
 L.negotiate=function(S,offer){ const x=Math.random(), mult=x<.45?1.12:x<.8?1.0:.93; return {offer:r1(offer.offer*mult),mult,rate:Math.round((offer.offer*mult/Math.max(.1,S.salary)-1)*100),years:offer.years}; };
@@ -592,9 +599,10 @@ L.transferOffers=function(S,opts){
   const score=p.ovr+S.rep*.03+S.fame*.04, cur=S.club.lg==="MIL"?"K1":S.club.lg, foreign=L.isForeign(cur);
   const myLvl=(()=>{ const c=L.leagueClubs(S,cur).find(x=>x.id===S.club.id); return c?c.l:70; })();
   const add=(c,lg,tag)=>{ const sr=L.startRateAt(p.ovr,c.l,S.trust*.8,p); const mkt=L.salaryOf(clamp(Math.max(p.ovr,c.l-2)+1,p.ovr,99),ag,lg);
-    const rawSal=L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt, capL={K1:22,K2:8}[lg];
+    if(foreign&&!L.isForeign(lg)&&ag<33&&S.salary>=10&&mkt<S.salary*.35) return;
+    const rawSal=L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt, capL=(lg==="K1"||lg==="K2")?L.capOf(lg,p.ovr):null;
     out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:capL?Math.min(capL,rawSal):rawSal,years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:L.isForeign(lg),sr}); };
-  const domesticOk=!foreign||ag>=27||S.foreignYears>=3||(foreignBench(S)&&ag>=25);
+  const domesticOk=!foreign||ag>=30||S.foreignYears>=6||(foreignBench(S)&&ag>=26);
   if(domesticOk){
     const cands=L.leagueClubs(S,"K1").map(c=>Object.assign({},c,{_lg:"K1"})).concat(L.leagueClubs(S,"K2").map(c=>Object.assign({},c,{_lg:"K2"}))).filter(c=>c.id!==S.club.id);
     const ok=cands.filter(c=>{ if(c.l<p.ovr-7&&!foreign) return false; if(foreign&&c.l<p.ovr-9) return false; const sr=L.startRateAt(p.ovr,c.l,S.trust*.8,p); return sr>.4&&c.l<=score+6&&!(c._lg==="K2"&&p.ovr>72); });
@@ -605,6 +613,7 @@ L.transferOffers=function(S,opts){
     const fo=[]; ["EPL","BUN","LAL","SEA","L1","J1","SPL"].forEach(k=>{ if(k==="SPL"&&(ag<26||p.ovr<66)) return; L.leagueClubs(S,k).filter(c=>c.id!==S.club.id&&c.l<=p.ovr+8&&c.l>=Math.max(minL,p.ovr-9)).forEach(c=>fo.push([c,k])); });
     shuffle(fo).slice(0,3).forEach(([c,k])=>add(c,k,L.lgLabel(k)));
   }
+  out.sort((x,y)=>y.lvl-x.lvl||y.salary-x.salary);
   return out;
 };
 L.doTransfer=function(S,offer){
@@ -659,7 +668,7 @@ L.applyPromotion=function(S){
   L.syncClubLeague(S);
 };
 /* 이적 직후 승강이 일어나도 소속 리그 표시가 어긋나지 않게 맞춰 줘요 */
-L.syncClubLeague=function(S){ if(S.club&&S.stage==="pro"){ if(S.club.lg==="K2"&&S.salary>8) S.salary=8; else if(S.club.lg==="K1"&&S.salary>22) S.salary=22; } if(S.club&&topOf(S.club.lg)){ const top=topOf(S.club.lg); S.club.lg=idsOf(S,top).includes(S.club.id)?top:PAIRS[top][0]; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
+L.syncClubLeague=function(S){ if(S.club&&S.stage==="pro"){ { const cp=(S.club.lg==="K1"||S.club.lg==="K2")?L.capOf(S.club.lg,S.p.ovr):null; if(cp&&S.salary>cp) S.salary=Math.round(cp*10)/10; } } if(S.club&&topOf(S.club.lg)){ const top=topOf(S.club.lg); S.club.lg=idsOf(S,top).includes(S.club.id)?top:PAIRS[top][0]; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
 L.otherTable=function(S,key){
   const clubs=L.leagueClubs(S,key); const st={}, tab={}; clubs.forEach(c=>{ st[c.id]=c; tab[c.id]={id:c.id,pts:0,gf:0,ga:0}; });
   L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0).forEach(rd=>rd.forEach(([h,a])=>{ const [gh,ga]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a]; H.gf+=gh;H.ga+=ga;A.gf+=ga;A.ga+=gh; if(gh>ga) H.pts+=3; else if(gh<ga) A.pts+=3; else {H.pts++;A.pts++;} }));
@@ -668,7 +677,7 @@ L.otherTable=function(S,key){
 L.legacy=function(S){
   const c=S.career, a=S.awards.filter(x=>!x.youth), t=S.trophies.filter(x=>!x.youth);
   const value=Math.round(S.p.peak*8), rec=Math.round(c.goals*3+c.assists*2+c.apps*.5+c.cs*1.5);
-  const W={"리그 MVP":60,"올해의 선수":70,"득점왕":45,"공동 득점왕":35,"도움왕":35,"공동 도움왕":25,"올해의 골키퍼":45,"베스트 11":22,"올해의 팀":22,"영플레이어상":18,"팀 올해의 선수":10,"골든부트":70,"골든글러브":55,"PFA 올해의 선수":120,"발롱도르":260,"발롱도르 후보":40,"KFA 올해의 선수":30,"AFC 올해의 국제선수":40,"챔피언스리그 득점왕":90,"챔스 시즌 최다 골 신기록":220,"챔스 통산 최다 골 신기록":300};
+  const W={"리그 MVP":60,"올해의 선수":70,"득점왕":45,"공동 득점왕":35,"도움왕":35,"공동 도움왕":25,"올해의 골키퍼":45,"베스트 11":22,"올해의 팀":22,"영플레이어상":18,"팀 올해의 선수":10,"골든부트":70,"올해의 골키퍼":45,"PFA 올해의 선수":120,"발롱도르":260,"발롱도르 후보":40,"KFA 올해의 선수":30,"AFC 올해의 국제선수":40,"챔피언스리그 득점왕":90,"챔스 시즌 최다 골 신기록":220,"챔스 통산 최다 골 신기록":300};
   const aw=a.reduce((s,x)=>s+(W[x.name]||(/최다 골 신기록/.test(x.name)?150:/최다 도움 신기록/.test(x.name)?120:8)),0);
   const tr=t.reduce((s,x)=>s+(/월드컵|챔피언스리그|유로파/.test(x.name)?110:/아시안게임|올림픽/.test(x.name)?55:/아시안컵/.test(x.name)?75:/우승/.test(x.name)?45:20),0);
   const nat=c.caps*3+c.intGoals*10;

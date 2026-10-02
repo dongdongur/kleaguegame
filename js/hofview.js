@@ -55,6 +55,7 @@ function player(r){
   if(!d){ h+=`<p class="note">이 선수는 상세 기록이 함께 올라오기 전에 등록됐어요. 위 요약만 볼 수 있어요. (새로 등록하는 선수부터 능력치·업적·시즌별 커리어를 모두 볼 수 있어요)</p>`; open(h); return; }
   const tags=[]; if(d.sub) tags.push(d.sub); if(d.role) tags.push(d.role); if(d.foot) tags.push(d.foot); if(d.trait) tags.push(d.trait); if(d.hidden) tags.push("✨ "+d.hidden); if(d.height) tags.push(d.height+"cm "+d.weight+"kg");
   h+=`<div class="tags">${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`;
+  if(d.styleLog&&d.styleLog.length) h+=`<h3>포지션·역할 변경 기록</h3>`+d.styleLog.map(x=>`<div class="ln"><b>${x[0]}</b><span>${esc(x[2])} <small>(${x[1]}세)</small></span></div>`).join("");
   if(d.titles&&d.titles.length) h+=`<div class="tags">${d.titles.map(t=>`<span class="tag g">${esc(t)}</span>`).join("")}</div>`;
   if(d.stats&&d.stats.length){ h+=`<h3>능력치 (전성기 ${r.peak} · 은퇴 시 ${d.ovr})</h3>`+d.stats.map(s=>`<div class="sb"><span>${esc(s[0])}</span><div class="bar"><i style="width:${s[1]}%"></i></div><b>${s[1]}</b></div>`).join(""); }
   if(d.trophies&&d.trophies.length){ h+=`<h3>우승 기록</h3>`+grp(d.trophies).map(([n,ys])=>`<div class="ln"><b>${ys.length}</b><span>${esc(n)} <small>${ys.join(", ")}</small></span></div>`).join(""); }
