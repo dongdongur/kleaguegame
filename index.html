@@ -20,6 +20,30 @@ body{min-height:100dvh;color:var(--txt);font:15px/1.55 var(--f-body);display:fle
  background:radial-gradient(900px 520px at 85% -8%,rgba(60,90,255,.28),transparent 60%),radial-gradient(700px 420px at -8% 12%,rgba(25,242,163,.14),transparent 60%),linear-gradient(180deg,#070c1c,#05070f 40%);background-attachment:fixed;
  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
 main{width:100%;max-width:480px;padding:22px 16px 40px;display:grid;gap:14px;align-content:start}
+.wrap{width:100%;max-width:480px}
+.col{display:grid;gap:14px;align-content:start}
+@media(min-width:960px){body{justify-content:center}.wrap{max-width:1040px;display:grid;grid-template-columns:480px 1fr;gap:28px;padding:22px 16px 40px;align-items:start}.wrap main{padding:0;max-width:none}}
+.hof{display:grid;gap:12px}
+.hof h2{font-family:var(--f-head);font-weight:400;font-size:22px;display:flex;align-items:center;gap:8px}
+.hof h2 small{font:600 11px var(--f-num);letter-spacing:.14em;color:var(--gold)}
+.board{border-radius:20px;padding:14px;background:linear-gradient(160deg,rgba(255,207,74,.10),rgba(14,22,49,.9) 40%);border:1px solid rgba(255,207,74,.28);display:grid;gap:10px;position:relative;overflow:hidden}
+.board.p{background:linear-gradient(160deg,rgba(39,215,255,.10),rgba(14,22,49,.9) 40%);border-color:rgba(39,215,255,.28)}
+.board .bt{display:flex;justify-content:space-between;align-items:baseline}
+.board .bt b{font-family:var(--f-head);font-weight:400;font-size:17px}
+.board .bt small{color:var(--muted);font-size:11.5px}
+.rk{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.rk .no{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:700 19px var(--f-num);color:#1a1300}
+.rk.r1{background:linear-gradient(90deg,rgba(255,207,74,.22),rgba(255,255,255,.03));border-color:rgba(255,207,74,.6);box-shadow:0 0 22px rgba(255,207,74,.18)}
+.rk.r1 .no{background:linear-gradient(135deg,#ffe38a,#e0a82a)}
+.rk.r2 .no{background:linear-gradient(135deg,#f2f5ff,#aab4cf)}
+.rk.r3 .no{background:linear-gradient(135deg,#f0c19a,#c07a3b)}
+.rk .who{min-width:0}.rk .who b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk .who small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk .sc{text-align:right;font:700 20px var(--f-num);color:var(--gold)}
+.rk .sc small{display:block;font:500 11px var(--f-body);color:var(--muted)}
+.rk.r1 .who b{font-size:17px}
+.empty{color:var(--muted);font-size:13px;padding:6px 2px}
+
 .brand{display:flex;align-items:baseline;gap:6px;font-family:var(--f-head);font-size:30px;line-height:1}
 .brand .k{color:var(--acc);font-size:38px}.brand b{font-weight:400;color:var(--gold);font-size:38px}
 .sub{color:var(--muted);font-size:13.5px;margin-top:-6px}
@@ -37,6 +61,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
 </style>
 </head>
 <body>
+<div class="wrap">
 <main>
   <div class="brand"><span class="k">K</span>LEGEND<b>38</b></div>
   <p class="sub">팬이 만든 비영리 K리그 시뮬레이션 · 모드를 골라 주세요</p>
@@ -52,15 +77,34 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
     <span class="save" id="saveP"></span>
     <span class="go"><span>선수로 시작</span><span>→</span></span>
   </a>
-  <div class="soon"><b>업데이트 예정</b><br>· 프리미어리그 승강(강등·승격)과 챔피언십 추가<br>· 분데스리가 · 라리가 · 세리에 A · 리그 1 이적 (선수판) 및 해당 리그 초청경기 (감독판)<br>· 감독판 시즌 도중 이벤트·인터뷰, 커리어 성장 요소, K리그 기록 업적<br>· 친구 팀과 맞대결, 서버 최초 기록, 구단별 영구결번 번호 선점<br>· 사진·엠블럼 라이선스 정리 후 앱 출시 검토</div>
+  <div class="soon"><b>업데이트 예정</b><br>· 선수판: 라리가 · 분데스리가 · 리그 1 · 세리에 A · 챔피언십 실제 선수 명단 (리그 하나씩 순서대로)<br>· 선수판: J리그 · 사우디 프로리그 이적과 AFC 챔피언스리그 확장<br>· 선수판: 유로파리그, 각국 리그 승강<br>· 감독판: 시즌 도중 이벤트·인터뷰, 커리어 성장 요소, K리그 기록 업적, 달력 개편<br>· 감독판: 모바일 화면 다듬기</div>
   <footer>비영리 팬 프로젝트 · 선수 능력치는 공개 기록을 바탕으로 한 추정치예요.<br>모바일에서 가장 잘 동작해요.</footer>
 </main>
+<aside class="col hof" id="hofCol" style="padding:22px 16px 0 16px">
+  <h2>🏆 명예의 전당 <small>HALL OF FAME</small></h2>
+  <section class="board"><div class="bt"><b>감독판 TOP 3</b><small>시즌 승점 기준</small></div><div id="hofM"><p class="empty">불러오는 중…</p></div></section>
+  <section class="board p"><div class="bt"><b>선수판 TOP 3</b><small>커리어 점수 기준</small></div><div id="hofP"><p class="empty">불러오는 중…</p></div></section>
+  <p class="empty">친구들의 기록이 서버에서 바로 올라와요. 은퇴한 선수나 끝낸 시즌을 등록하면 여기에 이름을 올릴 수 있어요.</p>
+</aside>
+</div>
+<script src="js/config.js"></script>
 <script>
 (function(){
   function rd(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
   var m=rd("kl38-saves"), p=rd("klife-save");
   var el=document.getElementById("saveM"); if(m&&(Array.isArray(m)?m.length:Object.keys(m).length)) el.textContent="저장된 감독 기록이 있어요";
   var ep=document.getElementById("saveP"); if(p&&p.p&&!p.retired) ep.textContent="이어하기 · "+p.p.name+" ("+(p.year-p.p.born)+"세, "+(p.club?p.club.name:"")+")";
+})();
+(function(){
+  var C=window.KL_CONFIG||{}; var esc=function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
+  function get(path){ return fetch(C.SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:C.SUPABASE_ANON_KEY,Authorization:"Bearer "+C.SUPABASE_ANON_KEY}}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+  function rows(list,fn,emptyMsg){ if(!list.length) return '<p class="empty">'+emptyMsg+'</p>'; return list.map(function(x,i){ var o=fn(x); return '<div class="rk r'+(i+1)+'"><span class="no">'+(i+1)+'</span><div class="who"><b>'+esc(o.t)+'</b><small>'+esc(o.s)+'</small></div><div class="sc">'+esc(o.v)+'<small>'+esc(o.u)+'</small></div></div>'; }).join(""); }
+  var m=document.getElementById("hofM"), p=document.getElementById("hofP");
+  if(!C.SUPABASE_URL){ m.innerHTML=p.innerHTML='<p class="empty">서버 설정이 없어요.</p>'; return; }
+  get("results?select=nickname,team_name,manager,w,d,l,pts,rank,form&order=pts.desc,gf.desc&limit=3").then(function(l){
+    m.innerHTML=rows(l,function(x){ return {t:x.nickname+" · "+x.team_name,s:x.w+"승 "+x.d+"무 "+x.l+"패 · "+x.rank+"위 · "+x.form+(x.manager?" · 감독 "+x.manager:""),v:x.pts,u:"승점"}; },"아직 등록된 감독 기록이 없어요. 시즌을 마치고 첫 기록을 올려 보세요!"); }).catch(function(){ m.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
+  get("life_hof?select=nickname,name,pos,club,years,goals,assists,ballon,wc,jersey,score,grade&order=score.desc&limit=3").then(function(l){
+    p.innerHTML=rows(l,function(x){ return {t:x.name+" · "+x.nickname,s:x.pos+" · "+x.club+" · "+x.years+"년 · "+x.goals+"골 "+x.assists+"도움"+(x.ballon?" · 발롱도르 "+x.ballon+"회":"")+(x.wc?" · 월드컵 우승":"")+(x.jersey?" · 영구결번":""),v:x.score,u:x.grade+" 등급"}; },"아직 은퇴한 선수가 없어요. 첫 레전드가 되어 보세요!"); }).catch(function(){ p.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
 })();
 </script>
 </body>

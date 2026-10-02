@@ -85,7 +85,7 @@ function homeView(){
     <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button></section>
    <section class="card"><h3 class="sec">명예의 전당</h3>${hof.length?hof.slice().sort((a,b)=>b.score-a.score).slice(0,10).map((x,i)=>`<div class="hof"><b>${i+1}</b><div><b>${esc(x.name)}</b><br><small>${esc(x.pos)} · ${esc(x.club)} · ${x.years}년 · 통산 ${x.goals}골 ${x.assists}도움${x.retire?" · 영구결번":""}</small></div><span class="pill gold">${x.grade} ${x.score}</span></div>`).join(""):`<p class="muted">아직 은퇴한 선수가 없어요.</p>`}</section>
    <div class="grid2"><button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button><button class="wide" data-act="dex">📖 이벤트 도감</button></div>
-   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 프리미어리그 강등·승격, 챔피언십<br>· 분데스리가 · 라리가 · 세리에 A · 리그 1 이적<br>· 친구 선수와 가상 맞대결, 서버 최초 기록<br>· 구단별 영구결번 번호 선점, 더 많은 이벤트와 스토리</p></section>
+   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 라리가 · 분데스리가 · 리그 1 · 세리에 A · 챔피언십 실제 선수 명단 (하나씩 순서대로)<br>· J리그 · 사우디 프로리그 이적, AFC 챔피언스리그 확장<br>· 유로파리그, 각국 리그 승강<br>· 더 많은 이벤트와 스토리, 연출 다듬기</p></section>
    <p class="muted c"><a class="lnk" href="index.html">게임 선택 메뉴로</a>${S?` · <button class="lnk" data-act="wipe">저장 삭제</button>`:""}</p></main>`;
 }
 
