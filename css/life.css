@@ -160,3 +160,13 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .signpad{width:100%;height:140px;border-radius:12px;background:#0a1030;border:1px dashed rgba(255,207,74,.5);touch-action:none}
 .xi{display:grid;gap:6px}.xi>div{display:grid;grid-template-columns:38px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .xi>div.me{border-color:var(--gold);background:rgba(255,207,74,.12)}.xi b{font-family:var(--f-num);color:var(--acc)}.xi small{color:var(--muted)}
+
+/* ===== 챔피언스리그 연출 ===== */
+.ov.ucl{background:radial-gradient(700px 480px at 50% 18%,rgba(90,120,255,.35),rgba(1,3,14,.96)),repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 2px,transparent 2px 14px) #01030e}
+.ov.ucl .sheet{background:linear-gradient(180deg,#101b4d,#070d2a 75%);border:1px solid rgba(180,205,255,.55);box-shadow:0 0 36px rgba(100,140,255,.35)}
+.ov.ucl .sheet h3,.ov.ucl .kick,.ov.ucl .tagline{color:#cfe0ff}
+.uclsheet{text-align:center}.uclsheet .stars{color:#e8f0ff;letter-spacing:.35em;font-size:12px;text-shadow:0 0 10px #7ba2ff;animation:twinkle 2.4s ease-in-out infinite}
+.umatch{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px;background:rgba(120,150,255,.1);border:1px solid rgba(160,190,255,.3)}
+.umatch .rd{font-size:11px;color:#9db8ff;font-family:var(--f-num)}.umatch em{font-style:normal;font-family:var(--f-num);font-size:20px}.umatch em.w{color:var(--acc)}.umatch em.l{color:var(--red)}.umatch em.d{color:var(--gold)}
+.umatch small{grid-column:1/-1;color:var(--muted)}
+@keyframes twinkle{50%{opacity:.45}}

@@ -25,6 +25,7 @@ function eff(S,e,f){
   if(e.funds){ S.funds=r1(Math.max(0,S.funds+e.funds)); out.push("자금 "+(e.funds>0?"+":"")+e.funds+"억"); }
   if(e.pot){ p.pot=clamp(p.pot+e.pot,p.ovr,99); add("잠재력",e.pot); }
   if(e.stat){ const d=L.POSDEF[p.pos]; const st=d.stats[ri(0,d.stats.length-1)]; p.stats[st[0]]=clamp(p.stats[st[0]]+e.stat,10,99); p.ovr=L.ovrOf(p); out.push(st[1]+" "+(e.stat>0?"+":"")+e.stat); }
+  if(e.ug&&S.sim){ const r=[...S.sim.recs].reverse().find(x=>x.cup==="ucl"&&x.min>0); if(r){ r.g++; S.sim.my.g++; out.push("챔피언스리그 골 +1"); } }
   if(e.inj){ if(S.sim) S.sim.out+=e.inj; out.push("결장 "+e.inj+"경기"); }
   if(e.fam&&S.family){ S.family.pts=Math.max(0,S.family.pts+e.fam); out.push("가정 지원 포인트 "+(e.fam>0?"+":"")+e.fam); }
   return out;
@@ -208,6 +209,7 @@ L.rollEvent=function(S,out){
 };
 function clone(ev){ return Object.assign({},ev,{opts:ev.opts.map(o=>Object.assign({},o,{win:Object.assign({},o.win),lose:o.lose?Object.assign({},o.lose):null}))}); }
 function mark(S,ev){ (S.evHist=S.evHist||[]).push({id:ev.id,t:S.segCount}); if(!ev.story&&!ev.repeat){ const sn=S.evSeen=S.evSeen||[]; if(!sn.includes(ev.id)) sn.push(ev.id); } if(S.evHist.length>40) S.evHist.shift(); ev=clone(ev); ev.opts.forEach(o=>{ if(o.p==="schol") o.p=L.scholarChance(S); }); return ev; }
+L.markEvent=mark;
 L.scholarChance=function(S){ const ag=L.age(S), ref=L.youthLevel(Math.min(18,Math.max(13,ag)))+(S.youthTier||0); return Math.round(clamp(35+(S.p.ovr-ref)*5+((S.points||{}).grit|0)*2,12,88)); };
 
 /* 선택지 결과 */
