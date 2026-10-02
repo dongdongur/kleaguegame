@@ -209,3 +209,5 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 
 .grp{margin:10px 0 2px;color:var(--acc);font:700 12.5px var(--f-num);letter-spacing:.1em}
 .shoptabs{position:sticky;top:44px;z-index:2;background:linear-gradient(180deg,#16224d 70%,transparent);padding:4px 0 8px}
+
+.tierline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 6px}

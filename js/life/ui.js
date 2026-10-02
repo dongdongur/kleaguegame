@@ -138,7 +138,7 @@ function createView(){
    <section class="card"><span class="lab">체격 (비워두면 포지션 평균)</span><div class="grid2"><input type="number" id="ht" inputmode="numeric" placeholder="키 cm" value="${esc(draft.height)}"><input type="number" id="wt" inputmode="numeric" placeholder="몸무게 kg" value="${esc(draft.weight)}"></div>
     <p class="note" id="bodyfx">${esc(bodyLine())}</p>
     <p class="muted">크고 무거울수록 피지컬·수비·제공권(골키퍼는 선방 범위)이 유리하고, 스피드·드리블은 불리해요. 작고 가벼우면 반대예요. 포지션 평균(공격수 180cm/73kg, 미드필더 177/70, 수비수 183/77, 골키퍼 188/82)에서 멀수록 효과가 커요.</p></section>
-   <section class="card"><span class="lab">특성 (하나) — 성장만이 아니라 경기·커리어·돈·팀에 각각 특색이 있어요. 숨은 특성은 20세에 재능이 확정될 때 알려줘요</span>${["성장","경기","몸·마음","커리어","팀"].map(c=>`<h4 class="grp">${c}</h4>`+TRAITS().filter(t=>t.cat===c).map(t=>`<button class="opt ${draft.trait===t.id?"on":""}" data-act="trait" data-v="${t.id}"><b>${t.icon} ${t.name}</b><small>${t.desc}</small><span class="tp">${t.eff}</span></button>`).join("")).join("")}</section>
+   <section class="card"><span class="lab">특성 (하나) — 여섯 가지 모두 노리는 방향이 달라요. 어느 쪽이 더 낫다기보다 내가 만들고 싶은 선수에 맞춰 골라요. 숨은 특성은 20세에 재능이 확정될 때 알려줘요</span>${TRAITS().map(t=>`<button class="opt ${draft.trait===t.id?"on":""}" data-act="trait" data-v="${t.id}"><b>${t.icon} ${t.name} <small class="muted">· ${t.cat}</small></b><small>${t.desc}</small><span class="tp">${t.eff}</span></button>`).join("")}</section>
    <section class="card"><span class="lab">시작 시점</span>${ROUTES.map(([k,t,s])=>`<button class="opt ${draft.route===k?"on":""}" data-act="route" data-v="${k}"><b>${t}</b><small>${s}</small></button>`).join("")}</section>
    <div class="cta"><button class="big ${(!draft.name.trim()||left)?"needs":""}" data-act="scout"><span>${!draft.name.trim()?"이름을 먼저 적어 주세요 ↑":left?"포인트 "+left+"개를 마저 나눠 주세요 ↑":"스카우트 후보 3명 보기"}</span><b>→</b></button></div></main>`;
 }
@@ -187,8 +187,10 @@ function draftView(){
 
 /* ================= 시즌 탭 ================= */
 function meters(){
-  const m=(n,v,cls)=>`<div class="meter"><span>${n}</span><div class="bar ${cls||""}"><i style="width:${v}%"></i></div><b>${Math.round(v)}</b></div>`;
-  return `<section class="card flat">${m("컨디션",S.cond,S.cond<50?"warn":"")}${m("사기",S.morale,S.morale<40?"warn":"")}${m("인기",S.fame,"gold")}<div class="row"><small class="muted">보유 자금 <b style="color:var(--gold)">${money(S.funds)}</b></small><span class="grow"></span><button class="ghost" data-act="shop" style="min-height:36px">💸 소비·후원</button></div></section>`;
+  const m=(n,v,cls)=>`<div class="meter"><span>${n}</span><div class="bar ${cls||""}"><i style="width:${Math.min(100,v)}%"></i></div><b>${Math.round(v)}</b></div>`;
+  const ft=L.fameTier(S.fame), ct=L.charTier(L.charOf(S));
+  const fameRow=`<div class="meter"><span>인기</span><div class="bar gold"><i style="width:${Math.min(100,ft.next?((S.fame-ft.base)/(ft.next-ft.base))*100:100)}%"></i></div><b>${Math.round(S.fame)}</b></div><div class="tierline"><span class="pill gold">${ft.icon} ${ft.name}</span><small class="muted">${esc(ft.desc)}${ft.next?" · 다음 "+ft.nextName+"까지 "+Math.max(1,Math.round(ft.next-S.fame)):""}</small></div>`;
+  return `<section class="card flat">${m("컨디션",S.cond,S.cond<50?"warn":"")}${m("사기",S.morale,S.morale<40?"warn":"")}${fameRow}${m("인성",L.charOf(S),"")}<div class="tierline"><span class="pill">${ct.icon} ${ct.name}</span><small class="muted">선택과 행동이 쌓여 인성 점수가 돼요. 광고 계약금과 평판에 영향을 줘요.</small></div><div class="row"><small class="muted">보유 자금 <b style="color:var(--gold)">${money(S.funds)}</b></small><span class="grow"></span><button class="ghost" data-act="shop" style="min-height:36px">💸 소비·후원</button></div></section>`;
 }
 function timeline(){
   const cur=S.sim?S.sim.seg:-1; const segs=S.sim?S.sim.segs:L.segsFor(S);
@@ -370,7 +372,7 @@ function playerTab(){
     <button class="wide" data-act="shop">💸 소비·후원</button></section>`;
 }
 function styleCard(){
-  const p=S.p, r=L.roleDef(p.sub,p.role), f=L.footInfo(p.sub,p.foot), tr=L.TRAIT_LIST.find(t=>t.id===p.trait), ty=L.TYPES[p.pos].find(x=>x[0]===p.type);
+  const p=S.p, r=L.roleDef(p.sub,p.role), f=L.footInfo(p.sub,p.foot), tr=L.TRAIT_ALL.find(t=>t.id===p.trait), ty=L.TYPES[p.pos].find(x=>x[0]===p.type);
   const hid=p.hidden&&L.scoutBand(S).final?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null;
   return `<section class="card flat"><h3 class="sec">플레이 스타일</h3>
    <p><b>${esc(subName())}</b> <small class="muted">${esc(L.SUBINFO[p.sub]||"")}</small></p>
@@ -413,9 +415,9 @@ function dexView(){ const d=rd(DEX)||{}, all=L.dexAll(); const n=all.filter(x=>d
    <p class="muted">지금까지 만난 이벤트 ${n}/${all.length}</p>${all.map(x=>d[x.id]?`<div class="card flat"><b>${esc(x.title)}</b><small class="muted">${x.story?esc(x.story)+" · ":""}만난 횟수 ${d[x.id]}회</small></div>`:`<div class="card flat" style="opacity:.55"><b>???</b><small class="muted">아직 만나지 못한 이벤트</small></div>`).join("")}</main>`; }
 function mainClub(){ const e=Object.entries(S.clubYears||{}).sort((a,b)=>b[1]-a[1])[0]; return e?e[0]:S.club.name; }
 function hofDetail(){
-  const p=S.p, d=L.POSDEF[p.pos], pro=S.history.filter(h=>!h.youth), hid=p.hidden?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null, tr=L.TRAIT_LIST.find(t=>t.id===p.trait);
+  const p=S.p, d=L.POSDEF[p.pos], pro=S.history.filter(h=>!h.youth), hid=p.hidden?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null, tr=L.TRAIT_ALL.find(t=>t.id===p.trait);
   return {v:1,ovr:p.ovr,stats:d.stats.map(([k,n])=>[n,p.stats[k]]),sub:subName(),role:L.roleName(p),foot:p.foot,height:p.height,weight:p.weight,trait:tr?tr.icon+" "+tr.name:"",hidden:hid?hid.name:"",
-    styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
+    fame:Math.round(S.fameMax||S.fame),fameTier:L.fameTier(S.fameMax||S.fame).name,char:Math.round(L.charOf(S)),charTier:L.charTier(L.charOf(S)).name,styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
     jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number})),chain:L.clubChain(S).map(c=>c.name+" ("+c.from+(c.to>c.from?"~"+c.to:"")+")"),ballon:S.ballon.map(b=>[b.year,b.rank]),
     seasons:pro.map(h=>[h.age,h.club,h.leagueName||h.lg||"",h.apps,h.goals,h.assists,h.rating,h.ovr1])};
 }
@@ -493,6 +495,13 @@ const SRV_CATS=[["goals","최다 득점","골"],["assists","최다 도움","도�
 let srvRows=null, srvLoading=false;
 function srvLoad(){ if(srvRows||srvLoading||!hofOn) return; srvLoading=true;
   fetch(CFG.SUPABASE_URL+"/rest/v1/life_hof?select=id,name,nickname,goals,assists,apps,caps,trophies,awards,ballon,wc,peak,score,cs,jersey,years&limit=1000",{headers:HH}).then(r=>r.ok?r.json():[]).then(l=>{ srvRows=l; srvLoading=false; if(view==="retired") keep(render); }).catch(()=>{ srvRows=[]; srvLoading=false; }); }
+function lifeCard(){
+  const ft=L.fameTier(S.fameMax||S.fame), ct=L.charTier(L.charOf(S)), cs=L.charSummary(S);
+  return `<section class="card flat"><small class="kick">LIFE</small><h3 class="sec">어떤 삶을 살았나</h3>
+   <div class="row"><div class="grow"><small class="muted">최고 인기</small><br><b style="font-size:20px">${ft.icon} ${esc(ft.name)}</b> <small class="muted">(${Math.round(S.fameMax||S.fame)})</small></div><div class="grow"><small class="muted">인성 점수</small><br><b style="font-size:20px">${ct.icon} ${esc(ct.name)}</b> <small class="muted">(${Math.round(L.charOf(S))})</small></div></div>
+   <p class="muted">${esc(ft.desc)}</p>
+   ${cs.up.length?`<p class="note good">👍 ${cs.up.map(x=>esc(x.k)+" +"+x.v).join(" · ")}</p>`:""}${cs.down.length?`<p class="note warn">👎 ${cs.down.map(x=>esc(x.k)+" "+x.v).join(" · ")}</p>`:""}</section>`;
+}
 function srvRecCard(){
   if(!hofOn) return ""; if(!srvRows){ srvLoad(); return `<section class="card flat"><h3 class="sec">서버 기록과 비교</h3><p class="muted">불러오는 중…</p></section>`; }
   const mine=hofEntry(""); const rows=SRV_CATS.filter(c=>!(c[0]==="cs"&&S.p.pos!=="GK"&&S.p.pos!=="DF")).map(([k,label,unit])=>{
@@ -518,6 +527,7 @@ function retiredView(){
   return `<main class="body"><small class="kick">RETIREMENT</small><h1>${esc(S.p.name)}, 그라운드를 떠나다</h1>
    <p class="muted">${L.age(S)}세 · 프로 ${S.history.filter(h=>!h.youth).length}시즌 · ${esc(chainHtml())}</p>
    <div class="pills">${L.titlesOf(S).map(t=>`<span class="pill gold">🏷 ${esc(t)}</span>`).join("")}</div>
+   ${lifeCard()}
    <section class="card flat"><h3 class="sec">선수 정보</h3><p class="muted">${esc(S.p.height)}cm ${esc(S.p.weight)}kg · ${esc(S.p.foot)} · ${esc(subName())}${L.roleName(S.p)?" · "+esc(L.roleName(S.p)):""} · ${esc(S.p.typeName)}</p>${(S.styleLog||[]).length?`<div class="stylelog">${S.styleLog.map(x=>`<p class="muted"><b>${x.year}</b> (${x.age}세) ${esc(x.text)}</p>`).join("")}</div>`:""}</section>
    ${jr.map(j=>`<section class="banner"><small>PERMANENTLY RETIRED NUMBER</small><div class="no">${j.number}</div><b>${esc(j.club)} 영구결번</b><small>${j.yrs}시즌 활약 · 우승 ${j.titles}회</small></section>`).join("")}
    <section class="hero"><small class="kick">LEGACY</small><div class="row"><h1 style="font-size:64px;color:var(--gold)">${g}</h1><div class="grow"><b style="font-size:24px;font-family:var(--f-num)">${lg.total}</b><br><small class="muted">커리어 점수</small></div></div></section>

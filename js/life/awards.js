@@ -56,7 +56,7 @@ L.ballonCheck=function(S,R,sc){
   const nat=R.natEvents||[]; let natB=0; nat.forEach(n=>{ if(n.skipped) return; natB+=n.t==="wc"?(n.title?6:/준우승|4강/.test(n.stage)?2.5:.6):n.t==="ac"?(n.title?1.5:.4):0; });
   const cup=R.trophies.reduce((a,t)=>a+(/(프리미어리그|라리가|분데스리가|세리에 A) 우승/.test(t)?2.2:/리그 1 우승/.test(t)?1.5:/챔피언스리그 우승/.test(t)?3:0),0);
   const prod=p.pos==="FW"?R.goals*.12+R.assists*.05:p.pos==="MF"?R.goals*.1+R.assists*.1:p.pos==="DF"?R.goals*.15+R.cs*.04:R.cs*.12;
-  const s=(p.ovr-80)*.35+(R.rating-6.9)*3.2+prod*.7+lgBonus+cup+natB+S.fame*.02;
+  const s=(p.ovr-80)*.35+(R.rating-6.9)*3.2+prod*.7+lgBonus+cup+natB+L.fameEff(S.fame)*.02;
   const comps=[]; for(let i=0;i<30;i++) comps.push(9.5-i*.3+rnd(-1.1,1.1));
   comps.sort((a,b)=>b-a);
   let rank=1+comps.filter(c=>c>s).length;
@@ -101,6 +101,8 @@ L.titlesOf=function(S){
   if(L.hasHonor&&L.hasHonor(S,"owner")) out.push("구단주 출신 레전드");
   if(L.hasHonor&&L.hasHonor(S,"found")) out.push("기부왕");
   if((S.assetProfit||0)>=150) out.push("투자의 귀재");
+  { const ch=L.charOf(S); if(ch>=90) out.push("성인군자 레전드"); else if(ch>=75) out.push("모범 선수"); else if(ch<=15) out.push("악동으로 기억되는"); }
+  { const ft=L.fameTier(S.fameMax||S.fame); if(ft.i>=5) out.push("G.O.A.T"); else if(ft.i>=4) out.push("월드스타"); }
   if(sc>=3600) out.push("역대 최고의 전설");
   if(clubs===1&&yrs>=12) out.push("원클럽맨");
   if(pos!=="GK"&&c.goals>=200) out.push("골 머신");

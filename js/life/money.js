@@ -65,7 +65,8 @@ L.buyHonor=function(S,id){ const h=L.honorDef(id); if(!h) return {ok:false,text:
   if(S.funds<h.price) return {ok:false,text:"자금이 부족해요. (필요 "+h.price+"억)"};
   if(h.needYears){ const yrs=S.club?(S.clubYears||{})[S.club.name]||0:0; if(yrs<h.needYears) return {ok:false,text:"현재 구단에서 "+h.needYears+"시즌 이상 뛰어야 해요. (지금 "+yrs+"시즌)"}; }
   S.honors=S.honors||[]; S.honors.push({id,year:S.year,club:S.club?S.club.name:"",price:h.price});
-  S.funds=r1(S.funds-h.price); if(h.fame) S.fame=clamp(S.fame+h.fame,0,100); if(h.rep) S.rep=clamp(S.rep+h.rep,0,100);
+  S.funds=r1(S.funds-h.price); if(h.fame) S.fame=Math.max(0,S.fame+h.fame); if(h.rep) S.rep=clamp(S.rep+h.rep,0,100);
+  if(id==="found") L.charDelta(S,8,"기부: "+h.name); else if(id==="statue"||id==="stake"||id==="owner") L.charDelta(S,1,"명예: "+h.name);
   L.addMoment(S,"명예",h.name,h.name+" ("+h.price+"억)"); L.feedAdd(S,S.year+" 명예",h.name,1); return {ok:true,text:h.name+" 완료! 커리어 점수 +"+h.legacy}; };
 L.honorLegacy=S=>(S.honors||[]).reduce((s,x)=>s+((L.honorDef(x.id)||{}).legacy||0),0);
 
@@ -74,7 +75,7 @@ L.moneyYear=function(S,R){
   const notes=[]; if(S.stage!=="pro"||R.youth) return notes; const tf=L.traitFx(S.p);
   /* 스태프 비용 */
   (S.staff||[]).slice().forEach(id=>{ const s=L.STAFF.find(x=>x.id===id); if(!s) return; const c=L.staffCost(S,s);
-    if(S.funds>=c){ S.funds=r1(S.funds-c); notes.push(s.icon+" "+s.name+" 비용 −"+c+"억"); if(id==="pr"){ S.fame=clamp(S.fame+2,0,100); } }
+    if(S.funds>=c){ S.funds=r1(S.funds-c); notes.push(s.icon+" "+s.name+" 비용 −"+c+"억"); if(id==="pr"){ S.fame=Math.max(0,S.fame+2); } }
     else { S.staff=S.staff.filter(x=>x!==id); notes.push("⚠ 자금이 부족해 "+s.name+"와(과) 계약이 끝났어요"); } });
   /* 투자 수익 */
   (S.assets||[]).slice().forEach(a=>{ const d=L.assetDef(a.id); if(!d) return; let mean=d.mean*(d.fameScaled?clamp(S.fame/60,.2,1.8):1), vol=d.vol;
@@ -85,7 +86,7 @@ L.moneyYear=function(S,R){
   S.assets=(S.assets||[]).filter(a=>a.value>0.05);
   /* 명예 항목: 재단 기부금·구단 배당 */
   (S.honors||[]).forEach(x=>{ const h=L.honorDef(x.id); if(!h) return;
-    if(h.yearly){ const c=-h.yearly; if(S.funds>=c){ S.funds=r1(S.funds-c); notes.push(h.icon+" "+h.name+" 기부금 −"+c+"억"); } else { S.rep=clamp(S.rep-2,0,100); notes.push("⚠ 재단 기부금을 못 내 평판이 조금 떨어졌어요"); } }
+    if(h.yearly){ const c=-h.yearly; if(S.funds>=c){ S.funds=r1(S.funds-c); L.charDelta(S,2,"기부: "+h.name+" 기부금"); notes.push(h.icon+" "+h.name+" 기부금 −"+c+"억"); } else { S.rep=clamp(S.rep-2,0,100); notes.push("⚠ 재단 기부금을 못 내 평판이 조금 떨어졌어요"); } }
     if(h.yield){ const d=r1(x.price*h.yield); S.funds=r1(S.funds+d); notes.push(h.icon+" "+h.name+" 배당 +"+d+"억"); } });
   R.moneyNotes=notes; return notes;
 };

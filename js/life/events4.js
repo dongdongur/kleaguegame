@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const L=window.LIFE; if(!L||!L.EVC) return;
-const {young,teen,univ,pro,minor}=L.EVC;
+const {young,teen,univ,pro,minor}=L.EVC; const {ri,clamp}=L;
 const R=(label,p,win,lose,ok,no)=>({label,p,win,lose,ok,no});
 const Z=(label,win,ok)=>({label,safe:true,win,ok});
 const E=(id,w,when,title,body,opts)=>L.EVPOOL.push({id,w,when,title,body,opts});
@@ -45,4 +45,22 @@ E("spl_ramadan",1,spl,"라마단 기간 일정","라마단 기간이라 훈련 �
 E("spl_starsquad",2,spl,"스타 군단의 라커룸","월드클래스 스타들이 가득한 라커룸이에요. 눈이 휘둥그레져요.",[R("먼저 다가가 조언을 구한다",75,{stat:1,rep:2,trust:2},{morale:-1},"배울 게 정말 많았어요.","분위기에 위축됐어요."),Z("묵묵히 제 몫을 한다",{trust:2},"실력으로 인정받았어요.")]);
 E("spl_stadium",1,spl,"새 구장 개장","화려한 신축 구장 개장식이 열려요. 관중은 아직 많지 않아요.",[R("경기 후 팬들에게 다가간다",70,{fame:3,morale:3},{morale:0},"팬들이 반갑게 맞았어요.","행사가 짧게 끝났어요."),Z("경기에만 집중한다",{trust:1},"묵묵히 뛰었어요.")]);
 E("spl_camel",1,spl,"사막 체험","구단이 선수단 단합을 위해 사막 투어를 준비했어요.",[R("적극 참여한다",85,{morale:6,trust:2},{cond:-2},"잊지 못할 추억이 생겼어요.","모래바람에 하루가 힘들었어요."),Z("호텔에서 쉰다",{cond:4},"체력을 아꼈어요.")]);
+/* ---- 어릴 때 단기 유학 (한 번) ---- */
+L.STUDY={
+ brazil:{name:"브라질",icon:"🇧🇷",desc:"삼바 리듬의 드리블과 창의성",stat:{FW:"dribble",MF:"dribble",DF:"pace",GK:"reflex"},sub:"기술·자유로움"},
+ spain:{name:"스페인",icon:"🇪🇸",desc:"점유와 패스 축구의 본고장",stat:{FW:"composure",MF:"passing",DF:"building",GK:"kicking"},sub:"패스·빌드업"},
+ germany:{name:"독일",icon:"🇩🇪",desc:"체력과 조직력의 나라",stat:{FW:"physical",MF:"stamina",DF:"physical",GK:"command"},sub:"체력·피지컬"},
+ italy:{name:"이탈리아",icon:"🇮🇹",desc:"수비와 전술의 나라",stat:{FW:"composure",MF:"defending",DF:"defending",GK:"handling"},sub:"수비·전술"},
+ argentina:{name:"아르헨티나",icon:"🇦🇷",desc:"승부욕과 결정력의 나라",stat:{FW:"finishing",MF:"vision",DF:"tackle",GK:"saving"},sub:"결정력·승부욕"}
+};
+L.studyAbroad=function(S,key){ const d=L.STUDY[key]; if(!d) return null; const p=S.p, pos=p.pos, k1=d.stat[pos]; const names=Object.fromEntries(L.POSDEF[pos].stats);
+  const others=L.POSDEF[pos].stats.map(s=>s[0]).filter(k=>k!==k1); const k2=others[Math.floor(Math.random()*others.length)];
+  const g1=ri(3,5), g2=ri(1,2); p.stats[k1]=clamp(p.stats[k1]+g1,10,99); p.stats[k2]=clamp(p.stats[k2]+g2,10,99); p.ovr=L.ovrOf(p); p.peak=Math.max(p.peak,p.ovr);
+  (S.studies=S.studies||[]).push({year:S.year,key,name:d.name}); S.studied=true; L.addMoment(S,"유학","유학",d.name+" 유학으로 "+names[k1]+" +"+g1+" 성장했습니다."); L.feedAdd(S,S.year+" 유학",d.name+" 유학 — "+names[k1]+" +"+g1+" · "+names[k2]+" +"+g2,1);
+  if(L.logStyle) L.logStyle(S,d.name+" 유학 ("+names[k1]+" +"+g1+")"); return {k1,g1,k2,g2,names}; };
+L.EVPOOL.push({id:"study_abroad",w:3.2,when:S=>minor(S)&&S.stage==="youth"&&!S.abroadYouth&&!S.studied&&L.age(S)>=14&&L.age(S)<=17,title:"해외 단기 유학 제안",body:"지도자가 '여름 한 철 해외 축구 강국에서 배워 오면 크게 클 것'이라며 유학을 추천해요. 나라마다 배울 수 있는 게 달라요.",
+ dynamic:(S,base)=>{ const keys=Object.keys(L.STUDY).sort(()=>Math.random()-.5).slice(0,3); const names=Object.fromEntries(L.POSDEF[S.p.pos].stats); const poor=S.family&&S.family.pts<=4;
+   const opts=keys.map(k=>{ const d=L.STUDY[k]; const o=R(d.icon+" "+d.name+" 유학 · "+names[d.stat[S.p.pos]]+" 집중",poor?55:85,{fam:poor?0:-2,morale:4,cond:-2},{fam:0,morale:-3},d.name+"에서 값진 시간을 보냈어요. ("+d.desc+")","비자·일정 문제로 이번에는 가지 못했어요."); o.act="study:"+k; o.costNote=poor?"(가정 형편이 빠듯해 장학생 선발에 도전해요 · 비용 없음, 성공 확률 낮음)":"(유학 비용: 가정 지원 포인트 −2)"; return o; });
+   opts.push(Z("한국에서 계속 훈련한다",{trust:2,morale:1},"익숙한 곳에서 한 단계 더 올라서기로 했어요."));
+   return Object.assign({},base,{opts}); }});
 })();

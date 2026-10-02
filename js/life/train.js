@@ -45,7 +45,7 @@ L.applySegPlan=function(S,seg){
     const c=L.trainCost(S,plan.tierUsed); if(c>0){ S.funds=r1(S.funds-c); plan.paid=r1(plan.paid+c); } }
   if(plan.invest){ const iv=L.INV_SEG[plan.invest]; const c=r1(iv.cost*sc); if(iv&&S.funds>=c){ S.funds=r1(S.funds-c); plan.paid=r1(plan.paid+c); plan.investOk=true; if(plan.invest==="medical") S.cond=clamp(S.cond+6,0,100); if(plan.invest==="mental") S.morale=clamp(S.morale+4,0,100); } else notes.push(iv.name+" 비용이 모자라 건너뛰었어요."); }
   if(plan.focus==="rest"){ S.cond=clamp(S.cond+10,0,100); S.morale=clamp(S.morale+1,0,100); }
-  else if(plan.focus==="media"){ S.fame=clamp(S.fame+ri(2,4),0,100); S.morale=clamp(S.morale+1,0,100); S.cond=clamp(S.cond-1,0,100); }
+  else if(plan.focus==="media"){ S.fame=Math.max(0,S.fame+ri(2,4)); S.morale=clamp(S.morale+1,0,100); S.cond=clamp(S.cond-1,0,100); }
   else S.cond=clamp(S.cond-3,25,100);
   plan.notes=notes; return plan;
 };
@@ -92,10 +92,10 @@ L.seasonPost=function(S,R,sim){
   if(R.rating>=7.3&&ag<=27) p.pot=Math.min(99,(p.pot0||p.pot)+8,p.pot+(Math.random()<.5?1:0)); else if(R.rating>0&&R.rating<6.1&&ag<24) p.pot=Math.max(p.ovr,p.pot-(Math.random()<.4?1:0));
   S.trust=clamp(S.trust+((R.sr-.5)*.25+(R.rating>7?.05:0))*(((R.sr-.5)>0)?tf.trust:1),.05,.95);
   S.rep=clamp(S.rep+(R.rating-6.4)*4+(R.awards.length*6)+(R.trophies.length*3),0,100);
-  S.fame=clamp(S.fame+((R.goals*.5+R.assists*.3)/Math.max(1,(R.apps/20))+(R.awards.length*6)+R.trophies.length*4)*tf.fame-2,0,100);
+  S.fame=Math.max(0,S.fame+L.fameStep(S,((R.goals*.5+R.assists*.3)/Math.max(1,(R.apps/20))+(R.awards.length*6)+R.trophies.length*4)*tf.fame)); S.fameMax=Math.max(S.fameMax||0,S.fame); S.rep=clamp(S.rep+(L.charOf(S)-50)*.04,0,100);
   /* 후원 정산 */
   R.endorse=null; const e=S.endorse; if(e){ const ok=L.endorseCheck(e,R,S); const pay=ok?e.fee:r1(e.fee*.5); S.funds=r1(S.funds+pay); S.career.sponsor=r1((S.career.sponsor||0)+pay);
-    R.endorse={brand:e.brand,ok,pay}; if(!ok) S.fame=clamp(S.fame-2,0,100); e.years--; if(e.years<=0) S.endorse=null; }
+    R.endorse={brand:e.brand,ok,pay}; if(!ok) S.fame=Math.max(0,S.fame-2); e.years--; if(e.years<=0) S.endorse=null; }
   /* 차량 유지비 */
   const upkeep=r1((S.cars||[]).reduce((a,c)=>a+c.price*.05,0)); if(upkeep>0){ S.funds=r1(Math.max(0,S.funds-upkeep)); R.upkeep=upkeep; }
   if(L.moneyYear) L.moneyYear(S,R);
@@ -173,7 +173,8 @@ L.buyItem=function(S,kind,id){
   const lines=["사기 +"+it.mood]; if(it.cond) lines.push("컨디션 +"+it.cond);
   /* 인기가 높을수록 자랑이 되고, 낮은데 사치하면 눈총을 받아요 */
   let fameGain=it.fame; if(kind==="car"){ if(S.fame<20&&it.price>=9){ S.trust=clamp(S.trust-.04,.05,.95); fameGain=Math.round(fameGain/2); lines.push("신인이 사치한다는 말이 나와요 (감독 신뢰 ↓)"); } else if(S.fame>=40) fameGain+=2; S.cars=(S.cars||[]).concat([{id,name:it.name,price:it.price,year:S.year}]); S.vanity=(S.vanity||0)+it.price; }
-  if(fameGain) { S.fame=clamp(S.fame+fameGain,0,100); lines.push("인기 +"+fameGain); }
+  if(fameGain) { S.fame=Math.max(0,S.fame+fameGain); lines.push("인기 +"+fameGain); }
+  if(it.id==="donate") L.charDelta(S,3,"기부: "+it.name); if(it.id==="academy") L.charDelta(S,6,"기부: "+it.name); if(it.id==="family") L.charDelta(S,1.5,"가족: "+it.name);
   if(it.rep){ S.rep=clamp(S.rep+it.rep,0,100); lines.push("평판 +"+it.rep); }
   L.feedAdd(S,S.year+" 소비",it.name+" 구매 ("+it.price+"억)",1); L.addMoment(S,kind==="car"?"차량 구매":"소비",it.name,it.name+"을(를) 샀습니다. ("+it.price+"억)");
   return {ok:true,text:it.name+" 구매 완료! "+lines.join(" · ")};
@@ -183,13 +184,13 @@ L.endorseOffers=function(S){
   if(S.stage!=="pro"||S.fame<14||S.endorse) return [];
   const n=S.fame>=70?4:S.fame>=40?3:S.fame>=25?2:1; const bs=shuffle(L.BRANDS).slice(0,n); const p=S.p;
   const lgF=S.club&&L.isForeign(S.club.lg)?(S.club.lg==='EPL'||S.club.lg==='LAL'||S.club.lg==='BUN'||S.club.lg==='SEA'?1:.6):.28;
-  return bs.map((b,bi)=>{ const star=Math.pow(S.fame/100,3.2)*Math.pow(clamp((p.ovr-72)/25,0,1),1.4); const fee=r1(Math.max(.3,.3+(S.fame/100)*3+650*star*lgF)*(b.id==='nako'||b.id==='adios'?1.15:1)*rnd(.88,1.12)*L.traitFx(p).endorse*((L.hasStaff&&L.hasStaff(S,"agent"))?1.1:1)); const yrs=ri(1,4);
+  return bs.map((b,bi)=>{ const star=Math.pow(L.fameEff(S.fame)/100,3.2)*Math.pow(clamp((p.ovr-72)/25,0,1),1.4); const fee=r1(Math.max(.3,.3+(L.fameEff(S.fame)/100)*3+650*star*lgF)*(b.id==='nako'||b.id==='adios'?1.15:1)*rnd(.88,1.12)*L.traitFx(p).endorse*L.charEndorseMul(S)*((L.hasStaff&&L.hasStaff(S,"agent"))?1.1:1)); const yrs=ri(1,4);
     const opt=Math.random();
     const clause=opt<.4?{type:"fame",n:Math.min(95,Math.round(S.fame+6)),label:"시즌 말 인기 "+Math.min(95,Math.round(S.fame+6))+" 이상"}:opt<.75?{type:"apps",n:25,label:"리그 25경기 이상 출전"}:{type:"rating",n:6.9,label:"시즌 평점 6.9 이상"};
     return {brand:b.name,id:b.id,fee,years:yrs,clause}; });
 };
 L.endorseCheck=function(e,R,S){ const c=e.clause; if(c.type==="fame") return S.fame>=c.n; if(c.type==="apps") return R.apps>=c.n; return R.rating>=c.n; };
-L.signEndorse=function(S,o){ S.endorse={brand:o.brand,fee:o.fee,years:o.years,clause:o.clause}; S.fame=clamp(S.fame+3,0,100); L.addMoment(S,"광고 계약","광고",o.brand+"와(과) 광고 계약을 맺었습니다. (연 "+o.fee+"억)"); };
+L.signEndorse=function(S,o){ S.endorse={brand:o.brand,fee:o.fee,years:o.years,clause:o.clause}; S.fame=Math.max(0,S.fame+3); L.addMoment(S,"광고 계약","광고",o.brand+"와(과) 광고 계약을 맺었습니다. (연 "+o.fee+"억)"); };
 
 /* ================= 해외 유스 =================
  * 유소년 때 두각을 나타내거나 집이 부유하면 프리미어리그 구단의 유스로 갈 수 있어요. 환경이 좋아서 성장이 빠르지만 적응이 힘들어요. */
@@ -212,9 +213,9 @@ L.overseasDirect=function(S){
   const p=S.p, ag=age(S); const rich=S.family&&S.family.pts0>=9; if(!(rich||p.ovr>=66)) return [];
   return shuffle(L.EPL().filter(c=>c.l<=Math.max(78,p.ovr+14))).slice(0,2).map(c=>({club:L.clubRef(S,{id:c.id,name:c.name,short:c.short,col:c.col},"EPL"),lvl:c.l,salary:L.salaryOf(Math.max(50,p.ovr-6),ag,"EPL")*.5,years:3,role:"2군(U21)",sr:.1,foreign:true,direct:true,tag:"해외 직행"}));
 };
-L.declineCall=function(S,c){
+L.declineCall=function(S,c){ if(L.charDelta) L.charDelta(S,-4,"대표팀: 소집 불참");
   c.done=true; S.nat=S.nat||{}; S.nat.refused=(S.nat.refused||0)+1; const t=L.TOURN[c.t];
-  S.fame=clamp(S.fame-(t.id==="wc"?6:3),0,100); S.rep=clamp(S.rep-2,0,100); S.morale=clamp(S.morale+2,0,100);
+  S.fame=Math.max(0,S.fame-(t.id==="wc"?6:3)); S.rep=clamp(S.rep-2,0,100); S.morale=clamp(S.morale+2,0,100);
   const r={t:c.t,name:c.name,year:S.year,declined:true,text:"소집에 응하지 않았습니다. 여론이 싸늘해졌어요."}; if(S.sim) S.sim.natRecs.push(r);
   L.feedAdd(S,S.year+" 대표팀",c.name+" 소집 불참 — 팬들의 비판이 이어져요",-1);
   if(S.nat.refused===3) L.addMoment(S,"대표팀 기피","대표팀 기피","세 번째 소집을 거부했습니다. '대표팀 기피자'라는 비난이 따라붙어요.");
