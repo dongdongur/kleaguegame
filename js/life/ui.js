@@ -212,7 +212,7 @@ function compCard(){
   const key=S.stage==="youth"||S.stage==="univ"?"YOUTH":L.leagueKey(S); const names=[];
   names.push(key==="YOUTH"?(S.stage==="univ"?"대학 리그":(S.club.abroad?"해외 유스 리그":"유소년 리그")):L.lgLabel(key==="K1"&&S.club.lg==="MIL"?"MIL":key));
   if(key==="K1"||key==="K2") names.push("FA컵"); if(L.isForeign(key)) L.cupNames(key).forEach(n=>names.push(n)); if(key==="YOUTH") names.push("전국대회");
-  if(key==="K1"&&S.acl) names.push("AFC 챔피언스리그 🌏"); if(L.isForeign(key)&&S.ucl) names.push("UEFA 챔피언스리그 ⭐");
+  if(key==="K1"&&S.acl) names.push("AFC 챔피언스리그 🌏"); if(L.isForeign(key)&&S.uel&&!S.ucl) names.push("UEFA 유로파리그 🟠"); if(L.isForeign(key)&&S.ucl) names.push("UEFA 챔피언스리그 ⭐");
   return `<p class="note">🏟 올해 출전 대회: ${names.map(esc).join(" · ")}${(key==="K1"&&S.acl)?"<br><small>지난 시즌 성적(또는 구단 전력)으로 AFC 챔피언스리그 출전권을 얻었어요.</small>":""}</p>`;
 }
 function prepView(){
@@ -280,7 +280,7 @@ function resultView(){
    ${(R.records||[]).map(t=>`<p class="note good">🏅 ${esc(t)}</p>`).join("")}
    ${R.awards.some(a=>/베스트 11|올해의 팀/.test(a))&&!R.youth?`<button class="wide" data-act="xi">⭐ 이번 시즌 베스트 11 보기</button>`:""}
    ${R.ballon?`<button class="wide" data-act="ballon">🏅 발롱도르 후보 ${R.ballon.rank}위 — 30인 명단 보기</button>`:""}
-   ${comps}${R.nextAcl?`<p class="note good">🌏 다음 시즌 AFC 챔피언스리그 출전권을 얻었어요!</p>`:""}${R.nextUcl?`<p class="note good">⭐ 다음 시즌 UEFA 챔피언스리그에 진출해요!</p>`:""}
+   ${comps}${R.nextAcl?`<p class="note good">🌏 다음 시즌 AFC 챔피언스리그 출전권을 얻었어요!</p>`:""}${R.nextUel?`<p class="note good">🟠 다음 시즌 UEFA 유로파리그에 진출해요!</p>`:""}${R.nextUcl?`<p class="note good">⭐ 다음 시즌 UEFA 챔피언스리그에 진출해요!</p>`:""}
    ${(R.natEvents||[]).map(e=>e.skipped?`<p class="note warn">🇰🇷 ${esc(e.name)} — ${esc(e.text)}</p>`:e.declined?`<p class="note warn">🇰🇷 ${esc(e.name)} — 소집 불참</p>`:`<p class="note ${e.title?"good":""}">🇰🇷 ${esc(e.name)} · ${esc(e.stage)} (팀 ${e.games||e.caps}경기 중 ${e.caps}경기 출전 · ${e.goals}골)${e.exempt?" · 병역 특례!":""}</p>`).join("")}
    ${R.injury?`<p class="note warn">🩹 ${esc(R.injury.text)}</p>`:""}${R.bonus?`<p class="note good">💰 옵션 보너스 ${R.bonus}억 (${(R.bonusHit||[]).map(esc).join(", ")})</p>`:""}
    ${R.endorse?`<p class="note ${R.endorse.ok?"good":"warn"}">🤝 ${esc(R.endorse.brand)} 광고 ${R.endorse.ok?"조건 달성":"조건 미달"} — ${money(R.endorse.pay)}</p>`:""}${R.famNote?`<p class="note">${esc(R.famNote)}</p>`:""}
