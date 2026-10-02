@@ -36,7 +36,7 @@ L.callupProb=function(S,t){
     const ref=L.youthLevel(Math.min(ag,18))+(S.stage==="youth"?S.youthTier:0)+(S.stage==="pro"?6:0);
     return clamp(logistic((p.ovr-ref-t.rel)/2.8),0,.9)*(S.stage==="youth"||ag<=17?1:.75);
   }
-  const lg=S.club&&S.club.lg, bonus=lg==="EPL"?4:lg==="K2"?-3:0;
+  const lg=S.club&&S.club.lg, bonus=(lg==="EPL"||lg==="LAL"||lg==="BUN"||lg==="SEA")?4:lg==="L1"?3:lg==="K2"?-3:lg==="EPL2"?1:0;
   return clamp(logistic((p.ovr+bonus+S.rep*.02+S.fame*.02-1-t.thr)/2.6),0,.97);
 };
 /* 개최 달 → 이 구간 뒤에 소집돼요. K리그(3~12월 시즌)와 프리미어리그(8~5월 시즌)는 구간 달이 달라요 */

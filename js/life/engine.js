@@ -144,7 +144,7 @@ L.create=function(o){
 /* 몸값(이적 가치, 억 원): 연봉과 다른 개념이에요. 능력치·나이·소속 리그 수준으로 정해요. 군 복무 중에도 선수 가치는 그대로 평가돼요 */
 L.marketValue=function(S){
   const ag=age(S), p=S.p; const ageF=ag<=19?1.25:ag<=23?1.3:ag<=27?1.1:ag<=30?.8:ag<=33?.45:.2;
-  const lg=S.club&&S.club.lg; const lgF=lg==="EPL"?1.6:lg==="K2"?.8:lg==="YOUTH"||lg==="UNIV"?.3:1;
+  const lg=S.club&&S.club.lg; const lgF=FL[lg]?FL[lg].mv:lg==="K2"?.8:lg==="YOUTH"||lg==="UNIV"?.3:1;
   return Math.max(.1,r1(1.2*Math.exp((p.ovr-60)/6.2)*ageF*lgF*clamp(.6+S.rep/150,.6,1.3)));
 };
 L.pushValue=function(S){ (S.valueHist=S.valueHist||[]).push({year:S.year,age:age(S),club:S.club?S.club.name:"",lg:S.club?S.club.lg:"",val:L.marketValue(S),ovr:S.p.ovr,mil:S.military==="sangmu"||S.military==="serving"}); };
@@ -188,8 +188,22 @@ const EPL_DEFAULT=[
 ];
 const EPL=()=>window.KL_EPL&&window.KL_EPL.length?window.KL_EPL:EPL_DEFAULT;
 L.EPL=EPL;
+/* ===== 해외 리그 =====
+ * 프리미어리그(EPL) · 챔피언십(EPL2) · 분데스리가(BUN) · 라리가(LAL) · 세리에 A(SEA) · 리그 1(L1). 모두 같은 1~99 능력치 척도를 쓰고, 구단 전력(l)으로 난이도가 정해져요.
+ * 상위 리그일수록 전력이 높아서 같은 능력치로는 골을 넣기 어렵고, 능력치가 높은 선수가 K리그로 돌아오면 득점왕을 노릴 수 있어요.
+ * sal = 연봉 배수 · mv = 몸값 배수 · ucl = 챔피언스리그 출전 순위(이내) */
+const FL={
+ EPL:{name:"프리미어리그",sal:5.6,mv:1.6,ucl:4},EPL2:{name:"챔피언십",sal:1.1,mv:.7,ucl:0},
+ BUN:{name:"분데스리가",sal:3.6,mv:1.3,ucl:4},LAL:{name:"라리가",sal:4.2,mv:1.35,ucl:4},SEA:{name:"세리에 A",sal:3.6,mv:1.25,ucl:4},L1:{name:"리그 1",sal:2.6,mv:1.0,ucl:3}
+};
+L.FL=FL; L.isForeign=lg=>!!FL[lg]; Object.keys(FL).forEach(k=>{ LGNAME[k]=FL[k].name; });
+const KFL=()=>window.KL_FL||{};
+const ALLENG=()=>EPL().concat(KFL().EPL2||[]);
+L.allFL=()=>{ const o=ALLENG().slice(); ["BUN","LAL","SEA","L1"].forEach(k=>{ (KFL()[k]||[]).forEach(c=>o.push(c)); }); return o; };
+L.flFind=id=>L.allFL().find(c=>c.id===id);
+const flClubs=(S,key)=>{ if(key==="EPL"||key==="EPL2"){ const ids=S.eplIds||EPL().map(c=>c.id), all=ALLENG(); return key==="EPL"?all.filter(c=>ids.includes(c.id)):all.filter(c=>!ids.includes(c.id)); } return KFL()[key]||[]; };
 L.leagueClubs=function(S,key){
-  if(key==="EPL") return EPL().map(c=>{ const d=S.drift["epl_"+c.id]||0; return {id:c.id,name:c.name,short:c.short,l:c.l+d,att:c.l+d,def:c.l+d,code:null,col:c.col,players:c.players||null}; });
+  if(FL[key]) return flClubs(S,key).map(c=>{ const d=S.drift["epl_"+c.id]||0; return {id:c.id,name:c.name,short:c.short,l:c.l+d,att:c.l+d,def:c.l+d,code:null,col:c.col,players:c.players||null}; });
   const ids=key==="K1"?S.league.k1:S.league.k2;
   return ids.map(L.defById).filter(Boolean).map(d=>{ const st=L.strengthOf(S,d); return {id:d.club,name:d.club,short:d.short||d.club,l:L.clubLevel(d),att:st.att,def:st.def,code:CODE(d.club),def_:d}; });
 };
@@ -198,13 +212,13 @@ L.clubRef=function(S,c,lg){ return {id:c.id,name:c.name,short:c.short||c.name,lg
 /* ================= 연봉 (억 원) =================
  * 실제 수치(2025): K리그1 평균 3.1억(국내 2.4억·외국인 8.4억), 최고 국내 15.9억·외국인 21억, K리그2 평균 1.4억,
  *                 프리미어리그 평균 약 70억(연 370만 파운드), 최고 약 500억(연 3,660만 달러 이상) */
-const LG_SAL={K1:1,K2:.7,MIL:.25,YOUTH:.03,UNIV:0,EPL:5.6};
+const LG_SAL={K1:1,K2:.7,MIL:.25,YOUTH:.03,UNIV:0}; Object.keys(FL).forEach(k=>{ LG_SAL[k]=FL[k].sal; });
 L.salaryOf=function(ovr,ag,lg){ const base=1.5*Math.exp((ovr-60)/8.5); const ageF=ag<=20?.8:ag<=22?.92:ag<=30?1:ag<=33?.88:.7; const cap={K1:22,K2:8,MIL:.4,YOUTH:.1}[lg]; const v=base*(LG_SAL[lg]!=null?LG_SAL[lg]:1)*ageF; return Math.max(.3,r1(cap?Math.min(cap,v):v)); };
 /* 구단별 연봉 현황: 그 구단 선수들의 추정 연봉으로 최고/최저/평균을 보여줘요 */
 L.clubPayroll=function(S,clubId,lg){
   const def=L.defById(clubId); let list=null;
   if(def) list=def.players.slice().sort((a,b)=>b.ovr-a.ovr).slice(0,24).map(p=>({name:p.name,pos:p.pos,sal:L.salaryOf(p.ovr,p.age||27,lg==="K2"?"K2":"K1")}));
-  else { const c=EPL().find(x=>x.id===clubId); if(c&&c.players) list=c.players.slice(0,26).map(p=>({name:p[0],pos:p[1],sal:L.salaryOf(p[2],27,"EPL")})); else if(c){ list=[]; for(let i=0;i<22;i++){ const o=c.l+rnd(-9,7); list.push({name:"선수 "+(i+1),pos:"MF",sal:L.salaryOf(o,27,"EPL")}); } } }
+  else { const c=L.flFind(clubId); const fl=FL[lg]?lg:"EPL"; if(c&&c.players) list=c.players.slice(0,26).map(p=>({name:p[0],pos:p[1],sal:L.salaryOf(p[2],27,fl)})); else if(c){ list=[]; for(let i=0;i<22;i++){ const o=c.l+rnd(-9,7); list.push({name:"선수 "+(i+1),pos:"MF",sal:L.salaryOf(o,27,fl)}); } } }
   if(!list||!list.length) return null;
   list.sort((a,b)=>b.sal-a.sal); const tot=list.reduce((s,x)=>s+x.sal,0);
   return {top:list[0],low:list[list.length-1],avg:r1(tot/list.length),n:list.length};
@@ -271,7 +285,7 @@ L.playMatch=playMatch;
  *   프리미어리그(해외 유스 포함): 8월 개막 ~ 이듬해 5월 (프리시즌 6~7월), 시즌 이름은 2026-27 처럼 두 해에 걸쳐요 */
 const CAL_K=[{id:"h1",label:"전반기",months:"3~6월",frac:.36},{id:"h2",label:"중반기",months:"7~8월",frac:.20},{id:"h3",label:"후반기",months:"9~10월",frac:.24},{id:"h4",label:"시즌 마무리",months:"11~12월",frac:.20}];
 const CAL_E=[{id:"h1",label:"전반기",months:"8~10월",frac:.30},{id:"h2",label:"중반기",months:"11~12월",frac:.22},{id:"h3",label:"후반기",months:"1~3월",frac:.28},{id:"h4",label:"시즌 마무리",months:"4~5월",frac:.20}];
-L.calKey=function(S,key){ key=key||L.leagueKey(S); return key==="EPL"||(key==="YOUTH"&&S.club&&S.club.abroad)?"E":"K"; };
+L.calKey=function(S,key){ key=key||L.leagueKey(S); return FL[key]||(key==="YOUTH"&&S.club&&S.club.abroad)?"E":"K"; };
 L.segsFor=function(S,key){ return L.calKey(S,key)==="E"?CAL_E:CAL_K; };
 L.preMonths=function(S,key){ return L.calKey(S,key)==="E"?"6~7월":"1~2월"; };
 L.seasonLabel=function(S,key){ return L.calKey(S,key)==="E"?S.year+"-"+String(S.year+1).slice(2):String(S.year); };
@@ -395,10 +409,13 @@ const CUPS={
        {id:"efl",name:"EFL컵",rounds:R3("efl",[["h1","3라운드"],["h1","4라운드"],["h2","8강"],["h3","4강"],["h3","결승"]])}],
   YOUTH:[{id:"nat",name:"전국대회",rounds:R3("nat",[["h1","예선"],["h2","16강"],["h3","8강"],["h4","4강"],["h4","결승"]])}]
 };
+const GENCUP=n=>[{id:"fa",name:n,rounds:R3("fa",[["h1","1라운드"],["h2","2라운드"],["h3","8강"],["h3","4강"],["h4","결승"]])}];
+CUPS.EPL2=CUPS.EPL; CUPS.BUN=GENCUP("DFB-포칼"); CUPS.LAL=GENCUP("코파 델 레이"); CUPS.SEA=GENCUP("코파 이탈리아"); CUPS.L1=GENCUP("쿠프 드 프랑스");
+L.cupNames=k=>(CUPS[k]||[]).map(c=>c.name);
 L.planCups=function(S,sim){
   const list=(CUPS[sim.key]||[]).map(c=>({id:c.id,name:c.name,rounds:c.rounds.slice(),alive:true,round:0,res:null}));
   if(sim.key==="K1"&&S.acl) list.push({id:"acl",name:"AFC 챔피언스리그",rounds:[{at:"h3",n:"조별리그"},{at:"h4",n:"토너먼트"}],alive:true,round:0,res:null});
-  if(sim.key==="EPL"&&S.ucl) list.push({id:"ucl",name:"UEFA 챔피언스리그",rounds:[{at:"h1",n:"리그 페이즈 1"},{at:"h1",n:"리그 페이즈 2"},{at:"h2",n:"리그 페이즈 3"},{at:"h3",n:"리그 페이즈 4"},{at:"h3",n:"16강"},{at:"h4",n:"8강"},{at:"h4",n:"4강"},{at:"h4",n:"결승"}],alive:true,round:0,res:null});
+  if(FL[sim.key]&&FL[sim.key].ucl&&S.ucl) list.push({id:"ucl",name:"UEFA 챔피언스리그",rounds:[{at:"h1",n:"리그 페이즈 1"},{at:"h1",n:"리그 페이즈 2"},{at:"h2",n:"리그 페이즈 3"},{at:"h3",n:"리그 페이즈 4"},{at:"h3",n:"16강"},{at:"h4",n:"8강"},{at:"h4",n:"4강"},{at:"h4",n:"결승"}],alive:true,round:0,res:null});
   return list;
 };
 function cupOpp(S,sim,cup){ const lvl=sim.lvl;
@@ -436,10 +453,11 @@ L.finishSeason=function(S){
   R.injury=sim.injuries.length?{text:sim.injuries.map(i=>i.part+" 부상 "+i.matches+"경기 결장").join(" · "),severe:sim.injuries.some(i=>i.severe)}:null;
   R.trophies=sim.cupTitles.slice(); R.awards=[]; R.cups=(sim.cups||[]).map(c=>({name:c.name,res:c.res||(c.alive?"진행 중":"-")}));
   if(sim.key==="YOUTH"){ if(R.rank<=2&&Math.random()<.5) R.trophies.push(S.stage==="univ"?"대학 리그 우승":"주말리그 우승"); }
-  else if(R.rank===1) R.trophies.push(sim.key==="K1"?"K리그1 우승":sim.key==="K2"?"K리그2 우승":"프리미어리그 우승");
-  S.nextAcl=sim.key==="K1"&&R.rank<=3; S.nextUcl=sim.key==="EPL"&&R.rank<=4; S.acl=S.nextAcl; S.ucl=S.nextUcl;
+  else if(R.rank===1) R.trophies.push(L.lgLabel(sim.key)+" 우승");
+  S.nextAcl=sim.key==="K1"&&R.rank<=3; S.nextUcl=!!(FL[sim.key]&&R.rank<=FL[sim.key].ucl); S.acl=S.nextAcl; S.ucl=S.nextUcl;
   /* 다음 해 승강을 위해 두 리그 순위를 저장 */
   if(sim.key==="K1"||sim.key==="K2"){ S.lastTables={K1:null,K2:null}; S.lastTables[sim.key]=tab.map(t=>t.id); const other=sim.key==="K1"?"K2":"K1"; S.lastTables[other]=L.otherTable(S,other); }
+  if(sim.key==="EPL"||sim.key==="EPL2"){ S.lastFT={}; S.lastFT[sim.key]=tab.map(t=>t.id); const o=sim.key==="EPL"?"EPL2":"EPL"; S.lastFT[o]=L.otherTable(S,o); }
   R.natEvents=sim.natRecs.slice(); R.caps=sim.capsAuto||0; R.intGoals=sim.intGoalsAuto||0;
   /* 연봉 옵션(인센티브) 정산 */
   R.bonus=L.settleIncentives(S,R);
@@ -516,7 +534,7 @@ L.commitSeason=function(S,R){
   R.awards.forEach(a=>S.awards.push({year:S.year,name:a,youth:!!R.youth,comp:L.awardComp(a,R)}));
   R.trophies.forEach(t=>S.trophies.push({year:S.year,name:t,club:S.club.name,youth:!!R.youth}));
   if(!R.youth) S.clubYears[S.club.name]=(S.clubYears[S.club.name]||0)+1;
-  if(R.leagueKey==="EPL") S.foreignYears++;
+  if(FL[R.leagueKey]) S.foreignYears++;
   if(R.youth){ c.youthApps+=R.apps; c.youthGoals+=R.goals; R.awards.concat(R.trophies).forEach(t=>L.addMoment(S,t,t,S.year+"년 "+t)); }
   else { c.apps+=R.apps; c.starts+=R.starts; c.minutes+=R.minutes; c.goals+=R.goals; c.assists+=R.assists; c.cs+=R.cs||0; c.mom+=R.mom||0; if(R.rating>0){ c.ratingSum+=R.rating*R.apps; c.ratingN+=R.apps; } L.momentsFor(S,R); }
   S.funds=r1(S.funds+(R.youth?(L.familyPts(S)*.035+.04):S.salary*.7));
@@ -552,14 +570,14 @@ L.negotiate=function(S,offer){ const x=Math.random(), mult=x<.45?1.12:x<.8?1.0:.
 L.acceptContract=function(S,offer){ if(S.club&&S.club.lg==="MIL"||S.military==="serving"||S.military==="sangmu") return; S.salary=offer.offer; S.contractYears=offer.years; };
 
 /* 이적 제의: 선수의 수준(능력치+평판)에 맞는 구단만 와요. 수준이 한참 낮은 팀은 오지 않고, 해외는 프리미어리그뿐이에요 */
-function foreignBench(S){ const h=S.history.filter(x=>!x.youth); const l=h[h.length-1]; return !!l&&l.lg==="EPL"&&l.apps<15; }
+function foreignBench(S){ const h=S.history.filter(x=>!x.youth); const l=h[h.length-1]; return !!l&&L.isForeign(l.lg)&&l.apps<15; }
 L.transferOffers=function(S,opts){
   opts=opts||{}; const p=S.p, ag=age(S)+1, out=[]; if(S.military==="serving"||S.military==="sangmu"||(S.club&&S.club.lg==="MIL")||S.stage!=="pro") return out;
-  const score=p.ovr+S.rep*.03+S.fame*.04, cur=S.club.lg==="MIL"?"K1":S.club.lg, foreign=cur==="EPL";
-  const myLvl=(()=>{ const c=L.leagueClubs(S,foreign?"EPL":cur).find(x=>x.id===S.club.id); return c?c.l:70; })();
+  const score=p.ovr+S.rep*.03+S.fame*.04, cur=S.club.lg==="MIL"?"K1":S.club.lg, foreign=L.isForeign(cur);
+  const myLvl=(()=>{ const c=L.leagueClubs(S,cur).find(x=>x.id===S.club.id); return c?c.l:70; })();
   const add=(c,lg,tag)=>{ const sr=L.startRateAt(p.ovr,c.l,S.trust*.8,p); const mkt=L.salaryOf(clamp(Math.max(p.ovr,c.l-2)+1,p.ovr,99),ag,lg);
-    out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:(lg==="EPL")===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt,years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:lg==="EPL",sr}); };
-  const domesticOk=!foreign||ag>=31||(foreignBench(S)&&ag>=28);
+    out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt,years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:L.isForeign(lg),sr}); };
+  const domesticOk=!foreign||ag>=27||S.foreignYears>=3||(foreignBench(S)&&ag>=25);
   if(domesticOk){
     const cands=L.leagueClubs(S,"K1").map(c=>Object.assign({},c,{_lg:"K1"})).concat(L.leagueClubs(S,"K2").map(c=>Object.assign({},c,{_lg:"K2"}))).filter(c=>c.id!==S.club.id);
     const ok=cands.filter(c=>{ if(c.l<p.ovr-7&&!foreign) return false; if(foreign&&c.l<p.ovr-9) return false; const sr=L.startRateAt(p.ovr,c.l,S.trust*.8,p); return sr>.4&&c.l<=score+6&&!(c._lg==="K2"&&p.ovr>72); });
@@ -567,14 +585,16 @@ L.transferOffers=function(S,opts){
   }
   if(p.ovr>=70&&ag<=32){
     const minL=foreign?myLvl-2:p.ovr-6;
-    shuffle(L.leagueClubs(S,"EPL").filter(c=>c.id!==S.club.id&&c.l<=p.ovr+8&&c.l>=Math.max(minL,p.ovr-9))).slice(0,3).forEach(c=>add(c,"EPL","프리미어리그"));
+    const fo=[]; ["EPL","BUN","LAL","SEA","L1"].forEach(k=>{ L.leagueClubs(S,k).filter(c=>c.id!==S.club.id&&c.l<=p.ovr+8&&c.l>=Math.max(minL,p.ovr-9)).forEach(c=>fo.push([c,k])); });
+    shuffle(fo).slice(0,3).forEach(([c,k])=>add(c,k,L.lgLabel(k)));
   }
   return out;
 };
 L.doTransfer=function(S,offer){
   if(S.military==="serving"||S.military==="sangmu"||(S.club&&S.club.lg==="MIL")) return false;
-  S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.trust=.35; S.team="1군";
-  if(offer.club.lg==="EPL") L.addMoment(S,"해외 진출","해외 진출",offer.club.name+"(으)로 이적해 프리미어리그에 도전합니다. (연봉 "+offer.salary+"억)");
+  const prevLg=S.club&&S.club.lg; S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.trust=.35; S.team="1군";
+  if(L.isForeign(offer.club.lg)&&!L.isForeign(prevLg)) L.addMoment(S,"해외 진출","해외 진출",offer.club.name+"(으)로 이적해 "+L.lgLabel(offer.club.lg)+"에 도전합니다. (연봉 "+offer.salary+"억)");
+  else if(!L.isForeign(offer.club.lg)&&L.isForeign(prevLg)) L.addMoment(S,"K리그 복귀","복귀",offer.club.name+"(으)로 돌아왔습니다. (연봉 "+offer.salary+"억)");
 };
 
 /* ================= 병역 ================= */
@@ -600,7 +620,7 @@ L.nextYear=function(S){
   S.year++; S.plan=null; S.sim=null;
   if(S.stage==="pro") L.applyPromotion(S);
   KDEFS().forEach(d=>{ S.drift[d.club]=clamp((S.drift[d.club]||0)*.7+rnd(-1.2,1.2),-5,5); });
-  EPL().forEach(c=>{ S.drift["epl_"+c.id]=clamp((S.drift["epl_"+c.id]||0)*.8+rnd(-1,1),-4,4); });
+  L.allFL().forEach(c=>{ S.drift["epl_"+c.id]=clamp((S.drift["epl_"+c.id]||0)*.8+rnd(-1,1),-4,4); });
   afterMil(S); L.syncClubLeague(S); S.contractYears=Math.max(0,S.contractYears-1);
   S.cond=clamp(S.cond+25,0,100); S.morale=clamp(S.morale*.9+7,0,100);
   if(S.stage==="youth"){ const ag=age(S); if(ag>YOUTH_END){ S.stage="pro"; S.phase="draft"; S.offers=L.draftOffers(S); return; } if(S.club&&S.club.lg==="YOUTH") S.club.name=L.youthTeamName(S.club.short,ag); }
@@ -608,7 +628,12 @@ L.nextYear=function(S){
   S.phase="prep";
 };
 L.applyPromotion=function(S){
-  S.promoNote=null; const t=S.lastTables; if(!t||!t.K1||!t.K2){ L.syncClubLeague(S); return; } const mil=K.GIMCHEON.club;
+  S.promoNote=null; const ft=S.lastFT;
+  if(ft&&ft.EPL&&ft.EPL2){ const ids=(S.eplIds||EPL().map(c=>c.id)).slice(); const down=ft.EPL.slice(-3), up=ft.EPL2.slice(0,3);
+    S.eplIds=ids.filter(i=>!down.includes(i)).concat(up); S.lastFT=null;
+    if(S.club.lg==="EPL"&&down.includes(S.club.id)){ S.club.lg="EPL2"; S.promoNote="강등: "+S.club.name+"이(가) 챔피언십으로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) 챔피언십으로 강등되었습니다."); }
+    else if(S.club.lg==="EPL2"&&up.includes(S.club.id)){ S.club.lg="EPL"; S.promoNote="승격: "+S.club.name+"이(가) 프리미어리그로 승격했습니다."; L.addMoment(S,"승격","승격",S.club.name+"이(가) 프리미어리그로 승격했습니다."); } }
+  const t=S.lastTables; if(!t||!t.K1||!t.K2){ L.syncClubLeague(S); return; } const mil=K.GIMCHEON.club;
   const down=t.K1.filter(c=>c!==mil).slice(-2), up=t.K2.slice(0,2);
   S.league.k1=S.league.k1.filter(c=>!down.includes(c)).concat(up); S.league.k2=S.league.k2.filter(c=>!up.includes(c)).concat(down); S.lastTables=null;
   if(S.club.lg==="K1"&&down.includes(S.club.id)){ S.club.lg="K2"; S.promoNote="강등: "+S.club.name+"이(가) K리그2로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) K리그2로 강등되었습니다."); }
@@ -616,7 +641,7 @@ L.applyPromotion=function(S){
   L.syncClubLeague(S);
 };
 /* 이적 직후 승강이 일어나도 소속 리그 표시가 어긋나지 않게 맞춰 줘요 */
-L.syncClubLeague=function(S){ if(!S.club||S.club.lg=="MIL"||S.club.lg=="EPL"||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
+L.syncClubLeague=function(S){ if(S.club&&(S.club.lg==="EPL"||S.club.lg==="EPL2")){ const ids=S.eplIds||EPL().map(c=>c.id); S.club.lg=ids.includes(S.club.id)?"EPL":"EPL2"; return; } if(!S.club||S.club.lg=="MIL"||L.isForeign(S.club.lg)||S.club.lg=="YOUTH"||S.club.lg=="UNIV") return; if(S.league.k1.includes(S.club.id)) S.club.lg="K1"; else if(S.league.k2.includes(S.club.id)) S.club.lg="K2"; };
 L.otherTable=function(S,key){
   const clubs=L.leagueClubs(S,key); const st={}, tab={}; clubs.forEach(c=>{ st[c.id]=c; tab[c.id]={id:c.id,pts:0,gf:0,ga:0}; });
   L.makeRounds(clubs.map(c=>c.id),key==="K1"?3:2,key==="K1"?5:0).forEach(rd=>rd.forEach(([h,a])=>{ const [gh,ga]=playMatch(st[h],st[a]); const H=tab[h],A=tab[a]; H.gf+=gh;H.ga+=ga;A.gf+=ga;A.ga+=gh; if(gh>ga) H.pts+=3; else if(gh<ga) A.pts+=3; else {H.pts++;A.pts++;} }));

@@ -7,7 +7,7 @@
 const L=window.LIFE, {rnd,ri,pick,clamp,logistic,r1,shuffle}=L;
 
 /* 리그 1위 기록 기준 (K1/K2/EPL) */
-const LEADERS={K1:{g:[15,23],a:[9,14],cs:[13,19]},K2:{g:[14,22],a:[8,13],cs:[12,17]},EPL:{g:[20,32],a:[12,20],cs:[14,20]}};
+const LEADERS={K1:{g:[15,23],a:[9,14],cs:[13,19]},K2:{g:[14,22],a:[8,13],cs:[12,17]},EPL:{g:[20,32],a:[12,20],cs:[14,20]},EPL2:{g:[18,28],a:[11,17],cs:[13,19]},BUN:{g:[22,36],a:[12,20],cs:[12,17]},LAL:{g:[20,32],a:[11,18],cs:[14,20]},SEA:{g:[19,30],a:[10,16],cs:[14,20]},L1:{g:[18,30],a:[10,16],cs:[12,17]}};
 const mvpScore=(R,S)=>{
   const pos=S.p.pos, lead=LEADERS[R.leagueKey]||LEADERS.K1;
   const out=(R.rating-6.4)*2.4+(R.rank<=3?1.0:R.rank<=6?.4:0)+(R.rank===1?.8:0);
@@ -34,10 +34,10 @@ L.awardsFor=function(S,R,sim){
   } else if(R.cs>=tc&&R.cs>=9) A.push(E?"골든글러브":"올해의 골키퍼");
   /* 올해의 선수(MVP) */
   const sc=mvpScore(R,S)+(R.board&&R.board.maxRt&&R.rating>=R.board.maxRt?.8:0), need=2.9+rnd(-.5,.7);
-  if(sc>=need){ A.push(E?"PFA 올해의 선수":K1?"리그 MVP":"K리그2 MVP"); }
+  if(sc>=need){ A.push(E?"PFA 올해의 선수":K2?"K리그2 MVP":"리그 MVP"); }
   /* 베스트 11 · 올해의 팀 */
   const pa=p.pos==="GK"?R.rating-.0:R.rating; const bx=(pa-6.5)*1.6+(R.rank<=4?.6:0)+(R.apps>=24?.4:-.6)+rnd(-.5,.5);
-  if(bx>=1.5&&!A.includes("PFA 올해의 선수")&&!A.includes("리그 MVP")) A.push(E?"PFA 올해의 팀":K1||K2?"베스트 11":"올해의 팀");
+  if(bx>=1.5&&!A.includes("PFA 올해의 선수")&&!A.includes("리그 MVP")) A.push(E?"PFA 올해의 팀":"베스트 11");
   else if(A.includes("PFA 올해의 선수")||A.includes("리그 MVP")){ A.push(E?"PFA 올해의 팀":"베스트 11"); }
   /* 영플레이어 */
   if(ag<=(E?21:22)&&R.apps>=15&&R.rating>=6.8&&Math.random()<.45+(R.rating-6.8)*.8) A.push(E?"PFA 영플레이어상":"영플레이어상");
@@ -53,9 +53,9 @@ L.awardsFor=function(S,R,sim){
 /* 점수 = 능력치·시즌 활약·팀 성과(리그/챔스)·국제대회·인지도. 가상 경쟁자 30명의 점수와 비교해 순위를 정해요 */
 L.ballonCheck=function(S,R,sc){
   const p=S.p; if(p.ovr<76||R.apps<15||R.youth) return;
-  const lgBonus=R.leagueKey==="EPL"?0:R.leagueKey==="K1"?-6:-10;
+  const lgBonus={EPL:0,LAL:0,BUN:-.5,SEA:-1,L1:-2.5,EPL2:-8,K1:-6,K2:-10}[R.leagueKey]||-6;
   const nat=R.natEvents||[]; let natB=0; nat.forEach(n=>{ if(n.skipped) return; natB+=n.t==="wc"?(n.title?6:/준우승|4강/.test(n.stage)?2.5:.6):n.t==="ac"?(n.title?1.5:.4):0; });
-  const cup=R.trophies.reduce((a,t)=>a+(/프리미어리그 우승/.test(t)?2.2:/챔피언스리그 우승/.test(t)?3:0),0);
+  const cup=R.trophies.reduce((a,t)=>a+(/(프리미어리그|라리가|분데스리가|세리에 A) 우승/.test(t)?2.2:/리그 1 우승/.test(t)?1.5:/챔피언스리그 우승/.test(t)?3:0),0);
   const prod=p.pos==="FW"?R.goals*.12+R.assists*.05:p.pos==="MF"?R.goals*.1+R.assists*.1:p.pos==="DF"?R.goals*.15+R.cs*.04:R.cs*.12;
   const s=(p.ovr-80)*.35+(R.rating-6.9)*3.2+prod*.7+lgBonus+cup+natB+S.fame*.02;
   const comps=[]; for(let i=0;i<30;i++) comps.push(9.5-i*.3+rnd(-1.1,1.1));

@@ -15,7 +15,7 @@ const adult=S=>pro(S)||univ(S);
 const vet=S=>pro(S)&&age(S)>=30;
 const rook=S=>pro(S)&&age(S)<=24;
 const star=S=>pro(S)&&S.fame>=25;
-const abroad=S=>pro(S)&&S.club&&S.club.lg==="EPL";
+const abroad=S=>pro(S)&&S.club&&L.isForeign(S.club.lg);
 const kleague=S=>pro(S)&&S.club&&(S.club.lg==="K1"||S.club.lg==="K2"||S.club.lg==="MIL");
 const any=S=>true;
 
