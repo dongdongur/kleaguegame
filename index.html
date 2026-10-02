@@ -162,10 +162,10 @@ footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.7;margi
   if(!C.SUPABASE_URL){ m.innerHTML=p.innerHTML='<p class="empty">서버 설정이 없어요.</p>'; return; }
   var mRows=[], pRows=[], jRows=[];
   get("results?select=nickname,team_name,manager,w,d,l,pts,gf,ga,rank,form,xi,diff,season,team&diff=eq.hard&order=pts.desc,gf.desc&limit=3").then(function(l){
-    mRows=l; m.innerHTML=rows(l,function(x){ return {t:x.nickname+" · "+x.team_name,s:x.w+"승 "+x.d+"무 "+x.l+"패 · "+x.rank+"위 · "+x.form+(x.manager?" · 감독 "+x.manager:""),v:x.pts,u:"승점"}; },"아직 어려움 난이도 기록이 없어요. 어려움으로 시즌을 마치고 첫 기록을 올려 보세요!"); }).catch(function(){ m.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
+    mRows=l; m.innerHTML=rows(l,function(x){ return {t:x.nickname+" · "+x.team_name,s:x.w+"승 "+x.d+"무 "+x.l+"패 · "+x.rank+"위 · "+x.form+(x.manager?" · 감독 "+x.manager:"")+(x.team&&x.team.ver?" · v"+x.team.ver:""),v:x.pts,u:"승점"}; },"아직 어려움 난이도 기록이 없어요. 어려움으로 시즌을 마치고 첫 기록을 올려 보세요!"); }).catch(function(){ m.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
   function loadP(sel){ return get("life_hof?select="+sel+"&order=score.desc&limit=3"); }
   loadP("*").then(function(l){
-    pRows=l; p.innerHTML=rows(l,function(x){ return {t:x.name+" · "+x.nickname,s:x.pos+" · "+x.club+" · "+x.years+"년 · "+x.goals+"골 "+x.assists+"도움"+(x.ballon?" · 발롱도르 "+x.ballon+"회":"")+(x.wc?" · 월드컵 우승":"")+(x.jersey?" · 영구결번":""),v:x.score,u:x.grade+" 등급"}; },"아직 은퇴한 선수가 없어요. 첫 레전드가 되어 보세요!"); }).catch(function(){ p.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
+    pRows=l; p.innerHTML=rows(l,function(x){ return {t:x.name+" · "+x.nickname,s:x.pos+" · "+x.club+" · "+x.years+"년 · "+x.goals+"골 "+x.assists+"도움"+(x.ballon?" · 발롱도르 "+x.ballon+"회":"")+(x.wc?" · 월드컵 우승":"")+(x.jersey?" · 영구결번":"")+(x.detail&&x.detail.ver?" · v"+(x.detail.ver.end||x.detail.ver.start):""),v:x.score,u:x.grade+" 등급"}; },"아직 은퇴한 선수가 없어요. 첫 레전드가 되어 보세요!"); }).catch(function(){ p.innerHTML='<p class="empty">기록을 불러오지 못했어요.</p>'; });
 })();
 </script>
 </body>

@@ -1037,7 +1037,7 @@ async function uploadResult(R,btn){
   const m=R.me; btn.disabled=true; btn.textContent="올리는 중…";
   try{
     await KLShare.save({nickname:nick, team_name:$("teamName").value.trim()||"레전드 FC", form:S.form, mode:S.mode, diff:S.diff, manager:S.mgr?S.mgr.name:null,
-      w:m.w,d:m.d,l:m.l,pts:m.pts,gf:m.gf,ga:m.ga,rank:R.rank, xi:S.xi.map(p=>p.name), season:R.seasonNo, team:Object.assign(teamSnapshot(),{ov:S.xi.map(p=>p.ovr),cr:careerSummary()})});
+      w:m.w,d:m.d,l:m.l,pts:m.pts,gf:m.gf,ga:m.ga,rank:R.rank, xi:S.xi.map(p=>p.name), season:R.seasonNo, team:Object.assign(teamSnapshot(),{ov:S.xi.map(p=>p.ovr),cr:careerSummary(),ver:(window.KL_VER?window.KL_VER("감독판"):null)})});
     btn.textContent="올렸어요"; KLShare.refresh();
   }catch(e){ btn.disabled=false; btn.textContent="실패, 다시 시도"; }
 }

@@ -170,7 +170,7 @@ L.create=function(o){
   const target19=42+(t.pot-60)*.30;                                   // 19세 시점 능력 (재능이 높을수록 높아요)
   const base=Math.max(16,target19-(a0<PRO_START?(PRO_START-a0)*3.1:0)+(a0>PRO_START?(a0-PRO_START)*2.4:0)+rnd(-2,2));
   const HH=o.height||Math.round(POS_AVG[pos][0]+rnd(-6,6)), WW=o.weight||Math.round(POS_AVG[pos][1]+rnd(-6,6)); const bfx=L.bodyFx(pos,HH,WW).stats; const stats={}; d.stats.forEach(([k],i)=>{ stats[k]=clamp(Math.round(base+ty[2][i]+rnd(-3,3)+(bfx[k]||0)),10,95); });
-  const S={v:STATE_VER,startYear:BORN+a0,startAge:a0,points:Object.assign({talent:0,family:0,mentor:0,grit:0,health:0},pts0),year:BORN+a0,
+  const S={v:STATE_VER,verStart:(window.KL_VER?window.KL_VER("선수판"):null),startYear:BORN+a0,startAge:a0,points:Object.assign({talent:0,family:0,mentor:0,grit:0,health:0},pts0),year:BORN+a0,
     p:{name:o.name||"이름 없는 선수",pos,sub:o.sub||d.subs[0][0],type:ty[0],typeName:ty[1],born:BORN,pot:t.pot,pot0:t.pot,grade:t.grade,stats,peak:0,route:o.route||"high",trait:o.trait||null,hidden:hid||null,scoutBias:Math.round(rnd(-5,5)*10)/10,res:{},
        height:HH,weight:WW,foot:o.foot||"오른발",number:o.number||(pos==="GK"?1:pick([7,8,9,10,11,14,17,19,20,22]))},
     club:null,salary:0,contractYears:0,trust:.4,military:"none",mildone:0,team:"1군",stage:a0<PRO_START?"youth":"pro",youthTier:0,

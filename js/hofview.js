@@ -53,7 +53,7 @@ function player(r){
   let h=`<div class="hd"><div><small>${esc(r.pos)} · ${esc(r.type_name||"")} · by ${esc(r.nickname)}</small><h2>${esc(r.name)}</h2><small>${esc(r.club)} · ${r.years}년${r.jersey?" · 🎽 영구결번":""}</small></div><div style="text-align:right"><span class="pill">${esc(r.grade)} ${r.score}</span><br><button class="x" data-hvx style="margin-top:6px">✕</button></div></div>`;
   h+=`<div class="kv"><div><small>전성기 OVR</small><b>${r.peak}</b></div><div><small>출전</small><b>${r.apps}</b></div><div><small>골 / 도움</small><b>${r.goals} / ${r.assists}</b></div><div><small>대표팀</small><b>${r.caps}</b></div><div><small>우승 / 수상</small><b>${r.trophies} / ${r.awards}</b></div><div><small>발롱도르</small><b>${r.ballon}회</b></div></div>`;
   if(!d){ h+=`<p class="note">이 선수는 상세 기록이 함께 올라오기 전에 등록됐어요. 위 요약만 볼 수 있어요. (새로 등록하는 선수부터 능력치·업적·시즌별 커리어를 모두 볼 수 있어요)</p>`; open(h); return; }
-  const tags=[]; if(d.sub) tags.push(d.sub); if(d.role) tags.push(d.role); if(d.foot) tags.push(d.foot); if(d.trait) tags.push(d.trait); if(d.hidden) tags.push("✨ "+d.hidden); if(d.height) tags.push(d.height+"cm "+d.weight+"kg");
+  const tags=[]; if(d.ver&&(d.ver.start||d.ver.end)) tags.push("플레이 버전 "+(d.ver.start&&d.ver.start!==d.ver.end?"v"+d.ver.start+" → v"+d.ver.end:"v"+(d.ver.end||d.ver.start))); if(d.sub) tags.push(d.sub); if(d.role) tags.push(d.role); if(d.foot) tags.push(d.foot); if(d.trait) tags.push(d.trait); if(d.hidden) tags.push("✨ "+d.hidden); if(d.height) tags.push(d.height+"cm "+d.weight+"kg");
   h+=`<div class="tags">${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>`;
   if(d.family&&(d.family.married||(d.family.kids&&d.family.kids.length))) h+=`<div class="tags">${d.family.married?`<span class="tag">💍 결혼</span>`:""}${(d.family.kids||[]).map(k=>`<span class="tag">👶 ${esc(k)}</span>`).join("")}</div>`;
   if(d.after) h+=`<h3>은퇴 후: ${esc(d.after.name)} — ${esc(d.after.title)}</h3>`+d.after.lines.map(x=>`<div class="ln"><b>${x[0]}</b><span>${esc(x[1])}</span></div>`).join("");
@@ -79,7 +79,7 @@ function manager(r){
   let h=`<div class="hd"><div><small>by ${esc(r.nickname)} · ${esc(r.form)}${r.manager?" · 감독 "+esc(r.manager):""}</small><h2>${esc(r.team_name)}</h2><small>${r.w}승 ${r.d}무 ${r.l}패 · ${r.rank}위 · 득실 ${r.gf}:${r.ga}</small></div><div style="text-align:right"><span class="pill">${r.pts}점</span><br><button class="x" data-hvx style="margin-top:6px">✕</button></div></div>`;
   const t=r.team||{}, ov=t.ov, cr=t.cr;
   const sum=ov?ov.reduce((a,b)=>a+(b||0),0):null;
-  h+='<div class="kv"><div><small>포메이션</small><b>'+esc(t.f||r.form)+'</b></div><div><small>선발 총 능력치</small><b>'+(sum!=null?sum+' <small>(평균 '+(sum/11).toFixed(1)+')</small>':'-')+'</b></div><div><small>시즌 수</small><b>'+(cr?cr.n:(r.season||1))+'</b></div></div>';
+  h+=(t.ver?'<div class="tags"><span class="tag">플레이 버전 v'+esc(t.ver)+'</span></div>':'')+'<div class="kv"><div><small>포메이션</small><b>'+esc(t.f||r.form)+'</b></div><div><small>선발 총 능력치</small><b>'+(sum!=null?sum+' <small>(평균 '+(sum/11).toFixed(1)+')</small>':'-')+'</b></div><div><small>시즌 수</small><b>'+(cr?cr.n:(r.season||1))+'</b></div></div>';
   if(r.diff) h+='<div class="tags"><span class="tag '+(r.diff==="hard"?"g":"")+'">'+(r.diff==="hard"?"어려움":"쉬움")+'</span>'+(t.rm?'<span class="tag">'+(t.rm==="prime"?"전성기 능력치":"시즌 능력치")+'</span>':'')+(t.m?'<span class="tag">감독 '+esc(t.m)+'</span>':'')+'</div>';
   const pt=(t.xi&&t.xi.length===11)?pitch(t.f||r.form,t.xi,ov):"";
   if(pt) h+='<h3>선발 라인업</h3>'+pt;
