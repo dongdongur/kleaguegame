@@ -2,7 +2,7 @@
  * K-라이프 시즌 이벤트 (js/life/events.js)
  * 구간(전반기·중반기·후반기·시즌 마무리)이 끝날 때마다 일정 확률로 이벤트가 하나 나와요. 나이대(중학생·고등학생·대학생·프로)에 맞는 이야기만 나와요.
  * 확률 규칙(화면의 '확률 도감'에도 적혀 있어요):
- *   - 이벤트가 나올 확률: 전반기 70% · 중반기 55% · 후반기 70% · 시즌 마무리 55%. 한 번 나온 이벤트는 9구간 동안 다시 나오지 않아요.
+ *   - 이벤트가 나올 확률: 전반기 70% · 중반기 55% · 후반기 70% · 시즌 마무리 55%. 한 번 나온 이벤트는 그 인생에서 다시 나오지 않아요.
  *   - 선택지에 적힌 % 가 실제 성공 확률이에요. 1~100 사이 주사위를 굴려서 그 값 이하면 성공. 숨은 보정은 없어요.
  *   - '안전한 선택'은 주사위 없이 확정돼요. 대신 좋은 효과가 60%로 줄고, 30% 확률로 작은 대가(사기 −3 / 감독 신뢰 −1 / 인기 −2 중 하나)가 따라와요.
  *   - 결과 수치는 표시값의 70~130% 사이로 조금씩 달라져요.
@@ -32,7 +32,8 @@ function eff(S,e,f){
 L.applyEffects=eff;
 
 const young=S=>L.age(S)<=15&&S.stage==="youth", teen=S=>S.stage==="youth"&&L.age(S)>=16, univ=S=>S.stage==="univ", pro=S=>S.stage==="pro", minor=S=>S.stage==="youth";
-const A=(label,o)=>Object.assign({label},o);   // 선택지 만들기
+const A=(label,o)=>Object.assign({label},o);
+L.EVC={young,teen,univ,pro,minor}; L.EVA=A; L.EVPOOL=[];   // 선택지 만들기
 /* 이벤트 정의: id, w(가중치), when, who(상황 한 줄), title, body, opts */
 const POOL=[
  /* ---- 중학생 (13~15세) ---- */
@@ -189,7 +190,7 @@ function rivalEvent(S){
 L.startStory=function(S){ if(S.story||S.storyDone) return; if(S.history.length<1) return; if(L.age(S)<15) return; S.story={id:"rival",step:1,wait:0,name:rivalName(S),ovr:S.p.ovr+ri(-2,3)}; S.storyDone=true; };
 
 /* 이벤트 도감 목록 */
-L.dexAll=function(){ return POOL.map(p=>({id:p.id,title:p.title})).concat([{id:"rival1",title:"또래 라이벌의 등장",story:"평생의 라이벌 1/3"},{id:"rival2",title:"라이벌과의 첫 맞대결",story:"평생의 라이벌 2/3"},{id:"rival3",title:"결정적 승부",story:"평생의 라이벌 3/3"}]); };
+L.dexAll=function(){ return POOL.concat(L.EVPOOL).map(p=>({id:p.id,title:p.title})).concat([{id:"rival1",title:"또래 라이벌의 등장",story:"평생의 라이벌 1/3"},{id:"rival2",title:"라이벌과의 첫 맞대결",story:"평생의 라이벌 2/3"},{id:"rival3",title:"결정적 승부",story:"평생의 라이벌 3/3"}]); };
 L.EVENT_RULES=["이벤트가 나올 확률: 전반기 70% · 중반기 55% · 후반기 70% · 시즌 마무리 55%","한 번 나온 이벤트는 9구간 동안 다시 나오지 않아요","선택지에 적힌 %가 실제 성공 확률이에요. 1~100 주사위가 그 값 이하면 성공해요 (숨은 보정 없음)","'안전한 선택'은 주사위 없이 확정되지만, 좋은 효과가 60%로 줄고 30% 확률로 작은 대가가 따라와요","결과 수치는 표시값의 70~130% 사이로 조금씩 달라져요","중학생·고등학생·대학생·프로 나이대에 맞는 이야기만 나와요"];
 
 /* 구간이 끝날 때 호출. segId = 방금 끝난 구간 */
@@ -198,7 +199,7 @@ L.rollEvent=function(S,out){
   S.segCount=(S.segCount||0)+1; L.startStory(S);
   const rv=rivalEvent(S); if(rv) return mark(S,rv);
   const prob=SEG_P[out&&out.seg]||.6; if(Math.random()>prob) return null;
-  const hist=S.evHist||(S.evHist=[]); const pool=POOL.filter(e=>(!e.when||e.when(S))&&!hist.some(h=>h.id===e.id&&S.segCount-h.t<9));
+  const hist=S.evHist||(S.evHist=[]); const seen=S.evSeen||(S.evSeen=[]); const pool=POOL.concat(L.EVPOOL).filter(e=>(!e.when||e.when(S))&&!seen.includes(e.id)&&!hist.some(h=>h.id===e.id&&S.segCount-h.t<9));
   if(!pool.length) return null; const tot=pool.reduce((a,e)=>a+e.w,0); let r=Math.random()*tot, e=pool[0];
   for(const c of pool){ r-=c.w; if(r<=0){ e=c; break; } }
   if(e.id==="famcrash") S.famEv=true; if(e.id==="famboom") S.famEv2=true; if(e.id==="studypress") S.famEv3=true;
@@ -206,7 +207,7 @@ L.rollEvent=function(S,out){
   return mark(S,clone(ev));
 };
 function clone(ev){ return Object.assign({},ev,{opts:ev.opts.map(o=>Object.assign({},o,{win:Object.assign({},o.win),lose:o.lose?Object.assign({},o.lose):null}))}); }
-function mark(S,ev){ (S.evHist=S.evHist||[]).push({id:ev.id,t:S.segCount}); if(S.evHist.length>40) S.evHist.shift(); ev=clone(ev); ev.opts.forEach(o=>{ if(o.p==="schol") o.p=L.scholarChance(S); }); return ev; }
+function mark(S,ev){ (S.evHist=S.evHist||[]).push({id:ev.id,t:S.segCount}); if(!ev.story&&!ev.repeat){ const sn=S.evSeen=S.evSeen||[]; if(!sn.includes(ev.id)) sn.push(ev.id); } if(S.evHist.length>40) S.evHist.shift(); ev=clone(ev); ev.opts.forEach(o=>{ if(o.p==="schol") o.p=L.scholarChance(S); }); return ev; }
 L.scholarChance=function(S){ const ag=L.age(S), ref=L.youthLevel(Math.min(18,Math.max(13,ag)))+(S.youthTier||0); return Math.round(clamp(35+(S.p.ovr-ref)*5+((S.points||{}).grit|0)*2,12,88)); };
 
 /* 선택지 결과 */

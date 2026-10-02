@@ -144,3 +144,16 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .tab .tr.hd.full{position:sticky;top:0;background:var(--panel);z-index:1}
 .trainbtn em{display:block}
 .load .sheet{animation:none}
+
+/* ===== 발롱도르 시상 팝업 ===== */
+.ov.gold{background:radial-gradient(600px 400px at 50% 30%,rgba(255,207,74,.28),rgba(2,4,12,.94))}
+.goldsheet{position:relative;overflow:hidden;text-align:center;border:1px solid rgba(255,207,74,.6);background:linear-gradient(180deg,#2a2208,#0d1530 70%);box-shadow:0 0 40px rgba(255,207,74,.35);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+.goldsheet .rays{position:absolute;left:50%;top:70px;width:520px;height:520px;margin:-260px 0 0 -260px;background:repeating-conic-gradient(rgba(255,207,74,.13) 0 10deg,transparent 10deg 20deg);animation:spin 18s linear infinite;pointer-events:none}
+.goldsheet>*{position:relative}
+.goldsheet .kick{color:var(--gold)}
+.goldsheet .ball{font-size:64px;line-height:1;filter:drop-shadow(0 0 18px rgba(255,207,74,.9));animation:float 2.4s ease-in-out infinite}
+.goldsheet h3{color:var(--gold);font-size:24px}
+.goldsheet .gsub{font-weight:700}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{50%{transform:translateY(-6px) scale(1.06)}}
+@keyframes pop{from{transform:scale(.85);opacity:0}}

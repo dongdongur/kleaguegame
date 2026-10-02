@@ -12,7 +12,7 @@ const L=window.LIFE, {rnd,ri,pick,clamp,logistic,r1,binom}=L;
 /* 통과 확률 사다리: 한국의 평균적인 실력 기준 (조별 → 토너먼트). 선수 한 명이 바꾸는 폭은 작아요 */
 const TOURN={
   wc:{id:"wc",name:"FIFA 월드컵",short:"월드컵",first:2026,every:4,m:[6,7],minAge:19,thr:77,
-      rounds:[["조별리그",.46],["32강",.60],["16강",.40],["8강",.30],["4강",.30],["결승",.30]],matches:[3,1,1,1,1,1],medal:false,sens:.004},
+      rounds:[["조별리그",.60],["32강",.60],["16강",.40],["8강",.30],["4강",.30],["결승",.30]],matches:[3,1,1,1,1,1],medal:false,sens:.004},
   ac:{id:"ac",name:"AFC 아시안컵",short:"아시안컵",first:2027,every:4,m:[1,1],minAge:19,thr:73,
       rounds:[["조별리그",.90],["16강",.78],["8강",.65],["4강",.58],["결승",.50]],matches:[3,1,1,1,1],medal:false},
   oly:{id:"oly",name:"올림픽",short:"올림픽",first:2028,every:4,m:[7,8],minAge:19,maxAge:23,thr:64,
@@ -80,7 +80,7 @@ L.joinTournament=function(S,c){
   let games=0; for(let i=0;i<played;i++) games+=t.matches[i];
   const caps=Math.max(0,Math.round(games*sr)); const mf=sr>.5?.9:.5;
   const goals=binom(caps,clamp(L.shareG(p.sub)*mf*.8*Math.exp((p.ovr-ref)/30),0,.5));
-  const r={t:t.id,name:t.name,short:t.short,year:YR,stage,caps,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
+  const r={t:t.id,name:t.name,short:t.short,year:YR,stage,caps,games,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
   if(t.id==="wc"&&r.stage==="우승") r.text="월드컵 우승! 온 나라가 뒤집어졌습니다.";
   /* 반영 */
   S.career.caps+=caps; S.career.intGoals+=goals;

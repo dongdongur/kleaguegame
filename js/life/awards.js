@@ -66,9 +66,14 @@ L.ballonCheck=function(S,R,sc){
   R.awards.push(rank===1?"발롱도르":"발롱도르 후보 "+rank+"위"); if(rank===1) R.trophies.push("발롱도르 수상");
 };
 /* 후보 30인 명단 (연도별 · 내 이름이 들어가요) */
+/* 실존 스타(활동 시기 [시작,끝] 해) — 그 시기에 활동 중인 선수가 후보에 먼저 들어가요. 부족한 자리는 가상의 선수로 채워요 */
+const STARS=[["리오넬 메시",2000,2029],["크리스티아누 호날두",2000,2028],["킬리안 음바페",2000,2038],["엘링 홀란",2000,2038],["주드 벨링엄",2000,2040],["빈시우스 주니오르",2000,2037],["로드리",2000,2033],["모하메드 살라",2000,2030],["해리 케인",2000,2034],["라민 야말",2000,2046],["오스만 뎀벨레",2000,2036],["하피냐",2000,2036],["케빈 더 브라위너",2000,2029],["페드리",2000,2040],["부카요 사카",2000,2040],["필 포든",2000,2038],["비티냐",2000,2040],["페데리코 발베르데",2000,2038],["카림 벤제마",2000,2027],["루카 모드리치",2000,2027],["네이마르",2000,2028],["손흥민",2000,2030],["로베르트 레반도프스키",2000,2028],["마르틴 외데고르",2000,2036],["비르힐 판 다이크",2000,2030],["티보 쿠르투아",2000,2033],["알리송",2000,2032],["플로리안 비르츠",2000,2042],["자말 무시알라",2000,2040],["파블로 가비",2000,2040],["니코 윌리엄스",2000,2040],["쥘 쿤데",2000,2036],["안토니오 뤼디거",2000,2031],["알렉산더 이삭",2000,2036],["라우타로 마르티네스",2000,2035],["후안 알바레스",2000,2036],["이강인",2000,2038],["김민재",2000,2034],["루이스 디아스",2000,2034],["주앙 네베스",2000,2043]];
 L.ballonList=function(S,rank){
-  const names=new Set([S.p.name]); const arr=[]; for(let i=1;i<=30;i++){ if(i===rank) arr.push({rank:i,name:S.p.name,me:true}); else { let n; do { n=poolName(); } while(names.has(n)); names.add(n); arr.push({rank:i,name:n}); } }
-  return arr;
+  const names=new Set([S.p.name]); const yr=S.lastR?S.lastR.year:S.year; const act=shuffle(STARS.filter(s=>yr>=s[1]&&yr<=s[2]).map(s=>s[0]));
+  const arr=[]; for(let i=1;i<=30;i++){ if(i===rank) arr.push({rank:i,name:S.p.name,me:true}); else { let n=act.pop(); if(!n||names.has(n)){ do { n=poolName(); } while(names.has(n)); } names.add(n); arr.push({rank:i,name:n}); } }
+  /* 실존 스타는 앞 순위에 오도록 정렬 (가상 선수는 뒤로) */
+  const fake=s=>!STARS.some(x=>x[0]===s.name); const others=arr.filter(a=>!a.me).sort((a,b)=>fake(a)-fake(b)); let k=0;
+  return arr.map(a=>a.me?a:Object.assign({},a,{name:others[k++].name}));
 };
 
 /* ================= 영구결번 ================= */

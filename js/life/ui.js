@@ -93,7 +93,7 @@ function createView(){
     <span class="lab">주발</span><div class="chips">${["오른발","왼발","양발"].map(f=>`<button data-act="foot" data-v="${f}" class="${draft.foot===f?"on":""}">${f}</button>`).join("")}</div></section>
    <section class="card" id="sec-pts"><span class="lab">초기 포인트 10 — 남은 포인트 <b style="color:${left?"var(--gold)":"var(--acc)"}">${left}</b></span>
     <p class="muted">포인트를 투자하면 유리한 쪽으로 확률이 쏠려요. 결과는 '무작위 + 투자'로 정해지니, 한쪽에 몰면 대박도 쪽박도 가능해요.</p>
-    ${PT_CATS.map(([k,n,dsc])=>`<div class="row"><div class="grow"><b>${n}</b><br><small class="muted">${dsc}</small></div><button class="ghost" data-act="pt" data-v="${k}:-1" ${draft.points[k]<=0?"disabled":""}>−</button><b style="min-width:26px;text-align:center;font-family:var(--f-num);font-size:18px">${draft.points[k]}</b><button class="ghost" data-act="pt" data-v="${k}:1" ${draft.points[k]>=5||left<=0?"disabled":""}>＋</button></div>`).join("")}</section>
+    ${PT_CATS.filter(c=>!(c[0]==="mentor"&&(draft.route==="high"||draft.route==="univ"))).map(([k,n,dsc])=>`<div class="row"><div class="grow"><b>${n}</b><br><small class="muted">${dsc}</small></div><button class="ghost" data-act="pt" data-v="${k}:-1" ${draft.points[k]<=0?"disabled":""}>−</button><b style="min-width:26px;text-align:center;font-family:var(--f-num);font-size:18px">${draft.points[k]}</b><button class="ghost" data-act="pt" data-v="${k}:1" ${draft.points[k]>=5||left<=0?"disabled":""}>＋</button></div>`).join("")}</section>
    <section class="card"><span class="lab">체격 (비워두면 포지션 평균)</span><div class="grid2"><input type="number" id="ht" inputmode="numeric" placeholder="키 cm" value="${esc(draft.height)}"><input type="number" id="wt" inputmode="numeric" placeholder="몸무게 kg" value="${esc(draft.weight)}"></div>
     <p class="note" id="bodyfx">${esc(bodyLine())}</p>
     <p class="muted">크고 무거울수록 피지컬·수비·제공권(골키퍼는 선방 범위)이 유리하고, 스피드·드리블은 불리해요. 작고 가벼우면 반대예요. 포지션 평균(공격수 180cm/73kg, 미드필더 177/70, 수비수 183/77, 골키퍼 188/82)에서 멀수록 효과가 커요.</p></section>
@@ -260,7 +260,7 @@ function resultView(){
    ${R.awards.length?`<div class="pills">${R.awards.map(a=>`<span class="pill gold">⭐ ${esc(a)} · ${esc(L.awardComp(a,R))}</span>`).join("")}</div>`:""}
    ${R.ballon?`<button class="wide" data-act="ballon">🏅 발롱도르 후보 ${R.ballon.rank}위 — 30인 명단 보기</button>`:""}
    ${comps}${R.nextAcl?`<p class="note good">🌏 다음 시즌 AFC 챔피언스리그 출전권을 얻었어요!</p>`:""}${R.nextUcl?`<p class="note good">⭐ 다음 시즌 UEFA 챔피언스리그에 진출해요!</p>`:""}
-   ${(R.natEvents||[]).map(e=>e.skipped?`<p class="note warn">🇰🇷 ${esc(e.name)} — ${esc(e.text)}</p>`:e.declined?`<p class="note warn">🇰🇷 ${esc(e.name)} — 소집 불참</p>`:`<p class="note ${e.title?"good":""}">🇰🇷 ${esc(e.name)} · ${esc(e.stage)} (${e.caps}경기 ${e.goals}골)${e.exempt?" · 병역 특례!":""}</p>`).join("")}
+   ${(R.natEvents||[]).map(e=>e.skipped?`<p class="note warn">🇰🇷 ${esc(e.name)} — ${esc(e.text)}</p>`:e.declined?`<p class="note warn">🇰🇷 ${esc(e.name)} — 소집 불참</p>`:`<p class="note ${e.title?"good":""}">🇰🇷 ${esc(e.name)} · ${esc(e.stage)} (팀 ${e.games||e.caps}경기 중 ${e.caps}경기 출전 · ${e.goals}골)${e.exempt?" · 병역 특례!":""}</p>`).join("")}
    ${R.injury?`<p class="note warn">🩹 ${esc(R.injury.text)}</p>`:""}${R.bonus?`<p class="note good">💰 옵션 보너스 ${R.bonus}억 (${(R.bonusHit||[]).map(esc).join(", ")})</p>`:""}
    ${R.endorse?`<p class="note ${R.endorse.ok?"good":"warn"}">🤝 ${esc(R.endorse.brand)} 광고 ${R.endorse.ok?"조건 달성":"조건 미달"} — ${money(R.endorse.pay)}</p>`:""}${R.famNote?`<p class="note">${esc(R.famNote)}</p>`:""}
    ${S.promoNote?`<p class="note">${esc(S.promoNote)}</p>`:""}
@@ -486,7 +486,8 @@ function modalHtml(){
   if(m.t==="callup"){ const c=m.c, refused=(S.nat&&S.nat.refused)||0; return `<div class="ov center"><div class="sheet"><small class="kick">CALL-UP</small><h3>${esc(c.name)} 대표팀 소집</h3><p class="muted">${esc(S.p.name)} 선수가 ${esc(c.name)} 명단에 이름을 올렸어요. 소집에 응할까요?</p>${refused?`<p class="note warn">지금까지 소집을 ${refused}번 거부했어요. 3번이 되면 '대표팀 기피자'로 낙인찍혀요.</p>`:""}
     <button class="big" data-act="callgo"><span>대회에 합류</span><b>→</b></button><button class="wide red" data-act="calldecl">불참한다 (인기·평판 하락)</button></div></div>`; }
   if(m.t==="ballon"){ const R=S.lastR; const lst=L.ballonList(S,R.ballon.rank); return `<div class="ov"><div class="sheet"><div class="grab"></div><small class="kick">BALLON D'OR ${R.year}</small><h3>후보 30인 · 내 순위 ${R.ballon.rank}위</h3><div class="tab">${lst.map(x=>`<div class="tr ${x.me?"me":""}" style="grid-template-columns:30px 1fr"><span>${x.rank}</span><span>${esc(x.name)}${x.me?" ◀":""}</span></div>`).join("")}</div><button class="wide" data-act="mok">닫기</button></div></div>`; }
-  if(m.t==="msg") return `<div class="ov center"><div class="sheet"><small class="kick">${esc(m.kick||"알림")}</small><h3>${esc(m.title)}</h3><p>${esc(m.body)}</p>${m.banner?`<div class="banner"><div class="no">${esc(m.banner)}</div></div>`:""}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`;
+  if(m.t==="gold") return `<div class="ov center gold"><div class="sheet goldsheet"><div class="rays"></div><small class="kick">${esc(m.kick)}</small><div class="ball">⚽</div><h3>${esc(m.title)}</h3><p class="gsub">${esc(m.sub)}</p><p class="muted c">${esc(m.club)}</p>${m.lines.map(x=>`<p class="muted c">${esc(x)}</p>`).join("")}<button class="big" data-act="mok"><span>트로피 받기</span><b>🏆</b></button></div></div>`;
+  if(m.t==="msg") return`<div class="ov center"><div class="sheet"><small class="kick">${esc(m.kick||"알림")}</small><h3>${esc(m.title)}</h3><p>${esc(m.body)}</p>${m.banner?`<div class="banner"><div class="no">${esc(m.banner)}</div></div>`:""}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`;
   return "";
 }
 
@@ -528,9 +529,11 @@ function finishSeason(){
     if(R.scoutFinal){ const sf=R.scoutFinal; const hid=sf.hidden?" 그리고 스카우터가 숨은 재능을 발견했습니다 — "+L.traitName(sf.hidden,true)+". "+L.HIDDEN_LIST.find(h=>h.id===sf.hidden).desc:""; const txt={S:"세계 무대에서도 통할 재목입니다. 키우기에 따라 월드클래스가 될 수 있어요.",A:"국가대표급 잠재력이 보입니다. 꾸준히 성장하면 리그 정상급이 될 거예요.",B:"1군 주전으로 충분히 자리 잡을 재목입니다.",C:"재능은 평범하지만 노력으로 길을 개척할 수 있는 선수입니다."}[sf.grade];
       modals.push({t:"msg",kick:"SCOUT REPORT",title:"재능 딱지가 확정됐어요: "+sf.grade,body:"20세까지의 경기 결과와 성장을 종합한 스카우터의 최종 평가입니다. "+txt+hid,banner:sf.grade}); }
     else if(S.history.length===1&&!S.scoutedMid){ S.scoutedMid=true; modals.push({t:"msg",kick:"SCOUT REPORT",title:"스카우터의 첫 중간 평가: "+L.scoutBand(S).label,body:"아직은 범위로만 말할 수 있어요. 20세가 되면 경기 결과와 성장에 따라 하나로 확정됩니다."}); }
+    if(R.ballon&&R.ballon.rank===1){ const n=S.ballon.filter(b=>b.rank===1).length; modals.unshift({t:"gold",kick:"BALLON D'OR "+R.year,title:esc0(S.p.name)+", 올해의 발롱도르",sub:(n>1?n+"번째 ":"")+"세계 최고의 선수로 선정됐어요",club:R.club.name,lines:[R.leagueName+" "+R.rank+"위 · "+R.goals+"골 "+R.assists+"도움 · 평점 "+R.rating,...(R.trophies.length?[R.trophies.join(" · ")]:[])]}); }
     save(); render();
   });
 }
+function esc0(s){ return String(s==null?"":s); }
 function buildOff(){
   off={};
   if(S.stage==="pro"){
@@ -576,7 +579,7 @@ document.addEventListener("click",e=>{
     case "sub": draft.sub=v; keep(render); break;
     case "foot": draft.foot=v; keep(render); break;
     case "trait": draft.trait=v; keep(render); break;
-    case "route": draft.route=v; keep(render); break;
+    case "route": draft.route=v; if(v==="high"||v==="univ") draft.points.mentor=0; keep(render); break;
     case "pt": { const [k,d]=v.split(":"); const nx=draft.points[k]+(+d); if(nx<0||nx>5||(+d>0&&ptsLeft()<=0)) break; draft.points[k]=nx; keep(render); break; }
     case "create": view="create"; render(); break;
     case "scout":
