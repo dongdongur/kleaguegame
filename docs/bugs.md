@@ -128,5 +128,5 @@
 ## 유스 시절에 SNS 반응이 나옴 (2026-10-02)
 - 증상: 유스·대학 시즌 결과에도 기사·SNS 반응이 뜸
 - 원인: L.reactions/segReactions가 단계(stage)를 확인하지 않음
-- 해결: 프로가 아니면 null 반환, engine의 feedAdd 가드
+- 해결: 유스·대학은 나이대별 별도 반응(youthReact)으로 교체, 눈에 띄는 시즌에만 표시
 - 파일: js/life/reactions.js, js/life/engine.js
