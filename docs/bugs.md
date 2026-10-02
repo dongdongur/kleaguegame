@@ -124,3 +124,9 @@
 - 원인: tribute 마크업에 닫는 따옴표를 넣지 않음
 - 해결: .cq 스팬 추가
 - 파일: js/hofview.js
+
+## 유스 시절에 SNS 반응이 나옴 (2026-10-02)
+- 증상: 유스·대학 시즌 결과에도 기사·SNS 반응이 뜸
+- 원인: L.reactions/segReactions가 단계(stage)를 확인하지 않음
+- 해결: 프로가 아니면 null 반환, engine의 feedAdd 가드
+- 파일: js/life/reactions.js, js/life/engine.js

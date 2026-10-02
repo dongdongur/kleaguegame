@@ -100,7 +100,6 @@ const SRCNAME={"커뮤니티":["익명_축덕","닉네임_없음","직관_300회
  P(c=>c.leagueTitle,1,4,["주장: '이 우승은 {n}을 포함한 모든 선수의 것입니다'","감독: '시즌 내내 흔들리지 않은 건 선수들이 서로를 믿었기 때문입니다'"],"인터뷰"),
  P(c=>c.injury,0,3,["감독: '{n}은 서두르지 않고 완벽히 회복한 뒤 돌려보낼 겁니다'","동료: '{n} 형 빨리 와요. 라커룸이 허전해요'"],"인터뷰"),
  P(c=>c.newClub,0,3,["감독: '{n}은 우리가 찾던 퍼즐 조각입니다'","구단: '{n}과 함께 다음 단계로 나아가겠습니다'"],"인터뷰"),
- P(c=>c.stage!=="pro",1,4,["유스 코치: '{n}은 훈련 태도가 남달라요. 눈에 띄는 선수예요'","학교 감독: '{n}이 진로를 잘 선택하도록 돕고 싶어요'"],"인터뷰"),
  /* 상대 팬 */
  P(c=>c.hot||c.goldenBoot,-1,3,["{n} 오늘도 우리 수비 다 털어 갔다… 제발 다른 리그 가라","{n}한테 또 당했다. 올해만 몇 번째냐 진짜","상대팀 팬인데 인정할 건 인정함. {n} 잘한다 ㅠㅠ"],"상대팬"),
  P(c=>c.derbyW>0,-1,4,["{d} 졌다… 이번 주 출근길이 두렵다","{c} 팬들 오늘 신나겠네. 다음엔 우리가 이긴다"],"상대팬"),
@@ -133,6 +132,7 @@ const HEAD=[
  [c=>true,["{n}, {c}에서 {rank}위로 시즌 마무리","{n}의 한 시즌 — {c} {rank}위의 기록"]]
 ];
 L.reactions=function(S,R){
+  if(S.stage!=="pro"||R.youth) return null;   // 유스·대학 시절엔 SNS가 없어요
   const club=(R.club&&(R.club.short||R.club.name))||(S.club&&S.club.name)||"우리 팀"; const pro=!R.youth&&S.stage==="pro";
   const prev=[...S.history].reverse().filter(h=>!h.youth&&h.year!==R.year)[0];
   const D=R.derbies||[]; const dW=D.filter(d=>d.res==="W").length, dL=D.filter(d=>d.res==="L").length, dD=D.filter(d=>d.res==="D").length, dG=D.reduce((s,d)=>s+(d.g||0),0);
@@ -176,6 +176,7 @@ const SEG=[
  [x=>x.cleanSheets,1,2,["무실점 {cs}경기 😎 뒷문이 단단하다","{n} 뒤에서 막아 주니까 든든하다"]]
 ];
 L.segReactions=function(S,out){
+  if(S.stage!=="pro") return null;
   if(!out||!out.recs) return null; const recs=out.recs.filter(r=>r.min>0); const D=out.recs.filter(r=>r.derby); const club=S.club&&(S.club.short||S.club.name)||"우리 팀";
   const lg=out.recs.filter(r=>r.comp==="리그"); const W=lg.filter(r=>r.res==="W").length, Lo=lg.filter(r=>r.res==="L").length;
   const x={n:S.p.name,c:club,hat:recs.some(r=>r.g>=3),goalDerby:D.some(r=>r.g>0),derbyW:D.some(r=>r.res==="W"),derbyL:D.some(r=>r.res==="L"),derbyD:D.some(r=>r.res==="D")&&!D.some(r=>r.res!=="D"),

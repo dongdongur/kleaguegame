@@ -543,7 +543,7 @@ L.finishSeason=function(S){
   L.seasonPost(S,R,sim); { const sc=L.scoutCheck(S); if(sc) R.scoutFinal=sc; }
   if(L.coachSeasonEnd) L.coachSeasonEnd(S); if(L.pcSeasonEnd) L.pcSeasonEnd(S);
   R.nextAcl=!!S.nextAcl; R.nextUcl=!!S.nextUcl; R.nextUel=!!S.nextUel;
-  if(L.reactions){ try{ R.react=L.reactions(S,R); L.feedAdd(S,S.year+" 반응","📰 "+R.react.headline,0); }catch(e){ R.react=null; } }
+  if(L.reactions){ try{ R.react=L.reactions(S,R); if(R.react) L.feedAdd(S,S.year+" 반응","📰 "+R.react.headline,0); }catch(e){ R.react=null; } }
   L.commitSeason(S,R);
   S.lastR=R; S.sim=null; S.phase="result"; return R;
 };
