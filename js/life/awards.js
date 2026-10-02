@@ -52,7 +52,11 @@ L.awardsFor=function(S,R,sim){
   if(ag<=21&&R.apps>=18&&R.rating>=6.3&&p.ovr>=74){
     const eu=["EPL","EPL2","LAL","BUN","SEA","L1"].includes(lg), q=Math.min(.6,.15+(p.ovr-74)*.03+(R.rating-6.3)*.4+(eu?.15:0));
     if(Math.random()<q) A.push("코파 트로피");
-    if(eu&&R.rating>=6.4&&Math.random()<q*.8) A.push("골든보이");
+  }
+  /* 골든보이는 발롱도르보다 문턱이 훨씬 낮아요: 유럽 1부 무대에서 뛰는 21세 이하 유망주면 후보 */
+  if(ag<=21&&["EPL","LAL","BUN","SEA","L1"].includes(lg)&&R.apps>=12&&R.rating>=6.0&&p.ovr>=68&&!A.includes("골든보이")){
+    const g=Math.min(.7,.2+(p.ovr-68)*.03+(R.rating-6)*.3+(A.includes("코파 트로피")?.25:0));
+    if(Math.random()<g) A.push("골든보이");
   }
   L.ballonCheck(S,R,sc);
 };
