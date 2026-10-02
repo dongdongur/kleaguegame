@@ -86,5 +86,21 @@ L.jerseyHint=function(S){
   if(!c) return null; S.jerseyHinted=true; return c;
 };
 
+/* 은퇴 칭호: 커리어의 특징을 한 마디로 */
+L.titlesOf=function(S){
+  const c=S.career, tr=S.trophies.filter(t=>!t.youth), pos=S.p.pos, out=[]; const clubs=Object.keys(S.clubYears||{}).length, yrs=S.history.filter(h=>!h.youth).length, sc=L.legacy(S).total;
+  if(S.ballon.some(b=>b.rank===1)||tr.some(t=>/FIFA 월드컵 우승/.test(t.name))) out.push("월드 아이콘");
+  if(sc>=3600) out.push("역대 최고의 전설");
+  if(clubs===1&&yrs>=12) out.push("원클럽맨");
+  if(pos!=="GK"&&c.goals>=200) out.push("골 머신");
+  if(c.assists>=150) out.push("도움 기계");
+  if(pos==="GK"&&c.cs>=200) out.push("철벽 수문장"); else if(pos==="DF"&&c.cs>=150) out.push("철벽 수비수");
+  if(c.caps>=100) out.push("센추리 클럽");
+  if(tr.length>=15) out.push("트로피 수집가");
+  if(clubs>=7) out.push("방랑자");
+  if((S.jersey||[]).length) out.push("영구결번의 주인공");
+  if(!out.length) out.push(sc>=1200?"믿음직한 프로":"묵묵한 선수");
+  return out.slice(0,4);
+};
 L.calendarAwards=L.awardsFor;
 })();

@@ -68,6 +68,8 @@ const POOL=[
   opts:[{label:"감사히 받는다",p:100,win:{stat:1,cond:-3,morale:3},ok:"기본기가 탄탄해졌어요."}]},
 ];
 
+/* 이벤트 도감: 한 번이라도 만난 이벤트를 모아서 보여줘요 */
+L.dexAll=function(){ return POOL.map(p=>({id:p.id,title:p.title,pos:!!p.when})).concat([{id:"rival1",title:"또래 라이벌의 등장",story:"평생의 라이벌 1/3"},{id:"rival2",title:"라이벌과의 첫 맞대결",story:"평생의 라이벌 2/3"},{id:"rival3",title:"결정적 승부",story:"평생의 라이벌 3/3"}]); };
 /* 평생의 라이벌 (3부작): 같은 나이·같은 포지션의 라이벌과 엇갈리는 이야기 */
 function rivalEvent(S,seg){
   const st=S.story; if(!st||st.id!=="rival") return null; if(st.wait>0){ st.wait--; return null; }

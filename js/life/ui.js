@@ -44,6 +44,7 @@ function render(){
   else if(view==="draft") h=draftView();
   else if(view==="retired") h=retiredView();
   else if(view==="hof") h=hofView();
+  else if(view==="dex") h=dexView();
   else { nav=true; h=header()+`<main class="body">${tab==="season"?seasonTab():tab==="player"?playerTab():tab==="career"?careerTab():feedTab()}</main>`+navHtml(); }
   app.className="phone"+(nav?"":" nonav");
   app.innerHTML=h+(loading?loadHtml():"")+(modals.length?modalHtml():"")+(toast?`<div class="toast">${esc(toast)}</div>`:"");
@@ -67,7 +68,7 @@ function homeView(){
     <p class="muted">중학교 유소년부터 은퇴까지. 훈련·계약·이적·국가대표·병역까지, 선택이 커리어를 바꿔요.</p>${cont}
     <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button></section>
    <section class="card"><h3 class="sec">명예의 전당</h3>${hof.length?hof.slice().sort((a,b)=>b.score-a.score).slice(0,10).map((x,i)=>`<div class="hof"><b>${i+1}</b><div><b>${esc(x.name)}</b><br><small>${esc(x.pos)} · ${esc(x.club)} · ${x.years}년 · 통산 ${x.goals}골 ${x.assists}도움${x.retire?" · 영구결번":""}</small></div><span class="pill gold">${x.grade} ${x.score}</span></div>`).join(""):`<p class="muted">아직 은퇴한 선수가 없어요.</p>`}</section>
-   <button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button>
+   <div class="grid2"><button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button><button class="wide" data-act="dex">📖 이벤트 도감</button></div>
    <p class="muted c"><a class="lnk" href="index.html">처음 화면으로</a>${S?` · <button class="lnk" data-act="wipe">저장 삭제</button>`:""}</p></main>`;
 }
 
@@ -274,6 +275,10 @@ const CFG=window.KL_CONFIG||{};
 const hofOn=!!(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY);
 const HH={apikey:CFG.SUPABASE_ANON_KEY,Authorization:"Bearer "+CFG.SUPABASE_ANON_KEY,"Content-Type":"application/json"};
 let hofRows=null, hofErr="", hofBusy=false;
+const DEX="klife-dex";
+function dexAdd(id){ const d=rd(DEX)||{}; d[id]=(d[id]||0)+1; wr(DEX,d); }
+function dexView(){ const d=rd(DEX)||{}, all=L.dexAll(); const n=all.filter(x=>d[x.id]).length;
+  return `<main class="body"><div class="row"><button class="ibtn" data-act="home">‹</button><h2>이벤트 도감</h2></div><p class="muted">지금까지 만난 이벤트 ${n}/${all.length}. 선택지와 결과가 다양하니 다른 선택도 해 보세요.</p>${all.map(x=>d[x.id]?`<div class="card flat"><b>${esc(x.title)}</b><small class="muted">${x.story?esc(x.story)+" · ":""}만난 횟수 ${d[x.id]}회</small></div>`:`<div class="card flat" style="opacity:.55"><b>???</b><small class="muted">아직 만나지 못한 이벤트</small></div>`).join("")}</main>`; }
 function mainClub(){ const e=Object.entries(S.clubYears||{}).sort((a,b)=>b[1]-a[1])[0]; return e?e[0]:S.club.name; }
 function hofEntry(nick){
   const c=S.career, lg=L.legacy(S), tr=S.trophies.filter(t=>!t.youth), aw=S.awards.filter(a=>!a.youth&&!/후보/.test(a.name));
@@ -353,6 +358,7 @@ function retiredView(){
   const lg=L.legacy(S), g=L.legacyGrade(lg.total), c=S.career, jr=S.jersey||[];
   return `<main class="body"><small class="kick">RETIREMENT</small><h1>${esc(S.p.name)}, 그라운드를 떠나다</h1>
    <p class="muted">${S.p.born+0?"":""}${L.age(S)}세 · 프로 ${S.history.filter(h=>!h.youth).length}시즌 · ${esc(Object.keys(S.clubYears).join(" → "))}</p>
+   <div class="pills">${L.titlesOf(S).map(t=>`<span class="pill gold">🏷 ${esc(t)}</span>`).join("")}</div>
    ${jr.map(j=>`<section class="banner"><small>PERMANENTLY RETIRED NUMBER</small><div class="no">${j.number}</div><b>${esc(j.club)} 영구결번</b><small>${j.yrs}시즌 활약 · 우승 ${j.titles}회</small></section>`).join("")}
    <section class="hero"><small class="kick">LEGACY</small><div class="row"><h1 style="font-size:64px;color:var(--gold)">${g}</h1><div class="grow"><b style="font-size:24px;font-family:var(--f-num)">${lg.total}</b><br><small class="muted">커리어 점수</small></div></div></section>
    <section class="four"><div class="stat"><small>출전</small><b>${c.apps}</b></div><div class="stat"><small>골</small><b>${c.goals}</b></div><div class="stat"><small>도움</small><b>${c.assists}</b></div><div class="stat"><small>대표팀</small><b>${c.caps}</b></div></section>
@@ -494,11 +500,12 @@ document.addEventListener("click",e=>{
     case "kidpos": { const k=(document.getElementById("kid")||{}).value; draft.kidName=k; draft.kidPos=v; render(); break; }
     case "kid": { const nm=((document.getElementById("kid")||{}).value||draft.kidName||"").trim(); if(nm.length<2){ say("자녀 이름을 두 글자 이상 적어 주세요"); break; } const pos=draft.kidPos||S.p.pos; const res=L.createChild(S,{name:nm,pos,trait:S.p.trait}); const par=S; S=res.state; plan={focus:"",invest:"",alloc:{}}; view="game"; tab="season"; save();
       const tl=res.talent; modals.push({t:"msg",kick:"NEXT GENERATION",title:nm+" — "+par.p.name+"의 "+(S.gen)+"세대",body:(tl.same?"부모와 같은 포지션이라 재능이 안정적으로 이어졌어요.":"다른 포지션을 선택해 재능이 크게 달라질 수 있었어요.")+" 재능 바탕 "+tl.base+" (±"+tl.spread+" 범위)에서 뽑은 결과는 비밀이에요. 첫 시즌 뒤 스카우터가 알려줄 거예요. 집안 형편: "+S.family.name+"."}); render(); break; }
+    case "dex": view="dex"; render(); break;
     case "hoflist": view="hof"; render(); hofLoad(); break;
     case "hofcmp": modals.push({t:"hofcmp",a:hofRows[+v]}); render(); break;
     case "hofup": { const nk=(document.getElementById("nick")||{}).value||""; if(!nk.trim()){ say("닉네임을 적어 주세요"); break; } try{ localStorage.setItem("klife-nick",nk.trim()); }catch(_){} hofPost(hofEntry(nk.trim())).then(()=>{ S.hofUp=true; save(); render(); say("명예의 전당에 등록했어요"); }).catch(e=>say(e.message)); break; }
     case "mok": modals.shift(); save(); render(); break;
-    case "evopt": { const m=modals[0]; m.res=L.resolveEvent(S,m.ev,+v); save(); render(); break; }
+    case "evopt": { const m=modals[0]; m.res=L.resolveEvent(S,m.ev,+v); dexAdd(m.ev.id); save(); render(); break; }
     case "callgo": { const m=modals[0]; modals[0]={t:"nat",r:L.joinTournament(S,m.c)}; save(); render(); break; }
   }
 });
