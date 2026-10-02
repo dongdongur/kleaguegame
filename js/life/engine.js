@@ -568,7 +568,7 @@ L.contractOffer=function(S){
   const lg=S.club.lg==="MIL"?"K1":S.club.lg; const market=L.salaryOf(S.p.ovr,ag,lg);
   const perf=clamp((last.rating||6.2)-6.4,-1,2)*.07, trustF=clamp(S.trust-.4,-.3,.4)*.25;
   /* 연봉은 해마다 시장가에 서서히 수렴해요 (갑자기 폭등·폭락하지 않게 현재 연봉의 70%~160% 안) */
-  let offer=market*(1+perf+trustF)*(S.rep>70?1.06:1); offer=clamp(offer,Math.min(S.salary*.7,market*1.2),Math.min(Math.max(S.salary*1.6,market),market*1.35)); offer=r1(Math.max(.3,offer));
+  let offer=market*(1+perf+trustF)*(S.rep>70?1.06:1); offer=clamp(offer,Math.min(S.salary*.7,market*1.2),Math.min(Math.max(S.salary*1.6,market),market*1.35)); offer=r1(Math.max(.3,offer)); { const cap={K1:22,K2:8}[lg]; if(cap) offer=Math.min(offer,cap); }
   return {last:S.salary,offer,rate:Math.round((offer/Math.max(.1,S.salary)-1)*100),years:ag<=23?3:ag<=30?2:1,market};
 };
 L.negotiate=function(S,offer){ const x=Math.random(), mult=x<.45?1.12:x<.8?1.0:.93; return {offer:r1(offer.offer*mult),mult,rate:Math.round((offer.offer*mult/Math.max(.1,S.salary)-1)*100),years:offer.years}; };
@@ -581,7 +581,8 @@ L.transferOffers=function(S,opts){
   const score=p.ovr+S.rep*.03+S.fame*.04, cur=S.club.lg==="MIL"?"K1":S.club.lg, foreign=L.isForeign(cur);
   const myLvl=(()=>{ const c=L.leagueClubs(S,cur).find(x=>x.id===S.club.id); return c?c.l:70; })();
   const add=(c,lg,tag)=>{ const sr=L.startRateAt(p.ovr,c.l,S.trust*.8,p); const mkt=L.salaryOf(clamp(Math.max(p.ovr,c.l-2)+1,p.ovr,99),ag,lg);
-    out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt,years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:L.isForeign(lg),sr}); };
+    const rawSal=L.isForeign(lg)===foreign?Math.max(mkt,r1(S.salary*(c.l>=myLvl-1?1.05:.85))):mkt, capL={K1:22,K2:8}[lg];
+    out.push({club:L.clubRef(S,c,lg),lvl:r1(c.l),salary:capL?Math.min(capL,rawSal):rawSal,years:ag<=24?4:3,tag:tag||L.lgLabel(lg),role:L.roleLabel(sr),foreign:L.isForeign(lg),sr}); };
   const domesticOk=!foreign||ag>=27||S.foreignYears>=3||(foreignBench(S)&&ag>=25);
   if(domesticOk){
     const cands=L.leagueClubs(S,"K1").map(c=>Object.assign({},c,{_lg:"K1"})).concat(L.leagueClubs(S,"K2").map(c=>Object.assign({},c,{_lg:"K2"}))).filter(c=>c.id!==S.club.id);
@@ -641,7 +642,7 @@ L.applyPromotion=function(S){
   const t=S.lastTables; if(!t||!t.K1||!t.K2){ L.syncClubLeague(S); return; } const mil=K.GIMCHEON.club;
   const down=t.K1.filter(c=>c!==mil).slice(-2), up=t.K2.slice(0,2);
   S.league.k1=S.league.k1.filter(c=>!down.includes(c)).concat(up); S.league.k2=S.league.k2.filter(c=>!up.includes(c)).concat(down); S.lastTables=null;
-  if(S.club.lg==="K1"&&down.includes(S.club.id)){ S.club.lg="K2"; S.promoNote="강등: "+S.club.name+"이(가) K리그2로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) K리그2로 강등되었습니다."); }
+  if(S.club.lg==="K1"&&down.includes(S.club.id)){ S.club.lg="K2"; if(S.salary>8) S.salary=8; S.promoNote="강등: "+S.club.name+"이(가) K리그2로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) K리그2로 강등되었습니다."); }
   if(S.club.lg==="K2"&&up.includes(S.club.id)){ S.club.lg="K1"; S.promoNote="승격: "+S.club.name+"이(가) K리그1으로 승격했습니다."; L.addMoment(S,"승격","승격",S.club.name+"이(가) K리그1으로 승격했습니다."); }
   L.syncClubLeague(S);
 };
