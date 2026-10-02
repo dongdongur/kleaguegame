@@ -39,6 +39,7 @@ function keep(fn){ window.__keepScroll=true; fn(); window.__keepScroll=false; }
 
 /* ================= 렌더 ================= */
 function render(){
+  if(window.KL_BGM){ const t=modals[0]&&modals[0].t; KL_BGM.mood(t==="ucl"||t==="gold"||t==="ballon"?"epic":"calm"); }
   if(S&&view==="game"&&S.phase==="offseason"&&!off) buildOff();
   let h="", nav=false;
   if(view==="home") h=homeView();
