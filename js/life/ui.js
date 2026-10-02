@@ -11,7 +11,7 @@ const app=$("app");
 const FAST=!!window.__LIFE_FAST||/[?&]fast/.test(location.search)||(()=>{ try{ return localStorage.getItem("klife-fast")==="1"; }catch(e){ return false; } })();   // 점검용: 로딩 연출 생략
 
 const POSK={FW:"공격수",MF:"미드필더",DF:"수비수",GK:"골키퍼"};
-const NEWDRAFT=()=>({name:"",number:"",pos:"FW",sub:"ST",foot:"오른발",height:"",weight:"",trait:"effort",route:"mid",points:{talent:2,family:2,mentor:2,grit:2,health:2},cands:null,pick:-1,loading:false});
+const NEWDRAFT=()=>({name:"",number:"",pos:"FW",sub:"ST",foot:"오른발",role:"",height:"",weight:"",trait:"effort",route:"mid",points:{talent:2,family:2,mentor:2,grit:2,health:2},cands:null,pick:-1,loading:false});
 const NEWPLAN=()=>({focus:"",tier:"basic",invest:"",alloc:{}});
 let S=rd(KEY); if(S&&S.v!==L.STATE_VER) S=null;
 let view=S?(S.retired?(S.quit?"quit":"retired"):S.phase==="draft"?"draft":"game"):"home";
@@ -96,13 +96,20 @@ function ptsLeft(){ return 10-Object.values(draft.points).reduce((a,b)=>a+b,0); 
 function createView(){
   const d=L.POSDEF[draft.pos];
   if(!d.subs.some(s=>s[0]===draft.sub)) draft.sub=d.subs[0][0];
+  if(!L.rolesOf(draft.sub).some(r=>r[0]===draft.role)) draft.role=(L.rolesOf(draft.sub)[0]||[])[0]||"";
   const left=ptsLeft();
   return `<main class="body"><div class="row"><button class="ibtn" data-act="home">‹</button><h2>선수 만들기</h2></div>
    <section class="card" id="sec-name"><span class="lab">이름</span><input type="text" id="nm" maxlength="8" value="${esc(draft.name)}" placeholder="선수 이름">
     <span class="lab">등번호 (비워두면 자동)</span><input type="number" id="no" inputmode="numeric" min="1" max="99" value="${esc(draft.number)}" placeholder="1–99"></section>
    <section class="card"><span class="lab">포지션</span><div class="chips">${Object.keys(L.POSDEF).map(k=>`<button data-act="pos" data-v="${k}" class="${draft.pos===k?"on":""}">${POSK[k]}</button>`).join("")}</div>
+    <p class="muted">${esc(L.POSINFO[draft.pos])}</p>
     <span class="lab">세부 포지션</span><div class="chips">${d.subs.map(s=>`<button data-act="sub" data-v="${s[0]}" class="${draft.sub===s[0]?"on":""}">${s[1]}</button>`).join("")}</div>
-    <span class="lab">주발</span><div class="chips">${["오른발","왼발","양발"].map(f=>`<button data-act="foot" data-v="${f}" class="${draft.foot===f?"on":""}">${f}</button>`).join("")}</div></section>
+    <p class="muted">${esc(L.SUBINFO[draft.sub]||"")}</p>
+    <span class="lab">선호 역할 — 같은 자리에서 맡을 임무 (은사를 만나면 바뀔 수도 있어요)</span>
+    ${L.rolesOf(draft.sub).map(r=>`<button class="opt ${draft.role===r[0]?"on":""}" data-act="role" data-v="${r[0]}"><b>${esc(r[1])}</b><small>${esc(r[2])}</small></button>`).join("")}
+    <span class="lab">주발</span><div class="chips">${["오른발","왼발","양발"].map(f=>`<button data-act="foot" data-v="${f}" class="${draft.foot===f?"on":""}">${f}</button>`).join("")}</div>
+    <p class="note">${esc(L.footInfo(draft.sub,draft.foot).text)}</p>
+    ${(draft.sub==="LW"||draft.sub==="RW"||draft.sub==="LB"||draft.sub==="RB")?`<p class="muted">같은 측면이라도 주발에 따라 스타일이 달라져요. 오른쪽 자리 + 오른발 = 정발(크로스형), 오른쪽 자리 + 왼발 = 역발(안으로 파고드는 득점형)이에요.</p>`:""}</section>
    <section class="card" id="sec-pts"><span class="lab">초기 포인트 10 — 남은 포인트 <b style="color:${left?"var(--gold)":"var(--acc)"}">${left}</b></span>
     <p class="muted">포인트를 투자하면 유리한 쪽으로 확률이 쏠려요. 결과는 '무작위 + 투자'로 정해지니, 한쪽에 몰면 대박도 쪽박도 가능해요.</p>
     ${PT_CATS.filter(c=>!(c[0]==="mentor"&&(draft.route==="high"||draft.route==="univ"))).map(([k,n,dsc])=>`<div class="row"><div class="grow"><b>${n}</b><br><small class="muted">${dsc}</small></div><button class="ghost" data-act="pt" data-v="${k}:-1" ${draft.points[k]<=0?"disabled":""}>−</button><b style="min-width:26px;text-align:center;font-family:var(--f-num);font-size:18px">${draft.points[k]}</b><button class="ghost" data-act="pt" data-v="${k}:1" ${draft.points[k]>=5||left<=0?"disabled":""}>＋</button></div>`).join("")}</section>
@@ -117,7 +124,7 @@ function bodyLine(){ return "체격 효과: "+L.bodyText(draft.pos,+draft.height
 function readForm(){ const g=id=>{ const e=$(id); return e?e.value:null; }; const n=g("nm"); if(n!=null) draft.name=n; const no=g("no"); if(no!=null) draft.number=no; const h=g("ht"); if(h!=null) draft.height=h; const w=g("wt"); if(w!=null) draft.weight=w; }
 function makeCands(){
   const t=L.rollTalent(); const ty=L.TYPES[draft.pos];
-  return ty.map(x=>L.create({name:draft.name.trim()||"이름 없는 선수",pos:draft.pos,sub:draft.sub,type:x[0],route:draft.route,talent:t,foot:draft.foot,trait:draft.trait,points:Object.assign({},draft.points),number:+draft.number||undefined,height:+draft.height||undefined,weight:+draft.weight||undefined}));
+  return ty.map(x=>L.create({name:draft.name.trim()||"이름 없는 선수",pos:draft.pos,sub:draft.sub,role:draft.role,type:x[0],route:draft.route,talent:t,foot:draft.foot,trait:draft.trait,points:Object.assign({},draft.points),number:+draft.number||undefined,height:+draft.height||undefined,weight:+draft.weight||undefined}));
 }
 function scoutView(){
   if(draft.loading) return `<main class="body"><section class="card load"><small class="kick">SCOUTING</small><h2>스카우트가 후보를 추리는 중</h2><div class="pg"><i style="width:${draft.prog||10}%"></i></div><div class="steps"><p class="ok">${POSK[draft.pos]} 후보군 추리기</p><p class="ok">주발·체격 대조</p><p>잠재력 평가</p></div></section></main>`;
@@ -325,10 +332,23 @@ function playerTab(){
    ${d.stats.map(([k,n])=>`<div class="sbar"><span>${n}</span><div class="bar"><i style="width:${p.stats[k]}%"></i></div><b>${p.stats[k]}</b></div>`).join("")}
    <div class="three"><div class="stat"><small>최고 OVR</small><b>${p.peak}</b></div><div class="stat"><small>재능${b.final?"":" 예상"}</small><b>${b.label}</b></div><div class="stat"><small>나이</small><b>${age()}</b></div></div>
    ${b.final?"":`<p class="muted">재능 등급은 20세 시즌이 끝나면 확정돼요. 경기 결과와 성장에 따라 달라질 수 있어요.</p>`}</section>
+   ${styleCard()}
    ${meters()}
    <section class="card flat"><h3 class="sec">계약</h3><div class="pay"><small>소속</small><b>${esc(S.club.name)}</b><small>연봉</small><b>${S.stage==="pro"?money(S.salary):"-"}</b><small>계약 기간</small><b>${S.stage==="pro"?S.contractYears+"년":"-"}</b><small>보유 자금</small><b>${money(S.funds)}</b><small>가정 환경</small><b>${S.family?esc(S.family.name)+(L.familyPts(S)?" · "+L.familyPts(S)+"점":""):"-"}</b><small>병역</small><b>${({none:"미필",exempt:"특례(면제)",sangmu:"상무 복무 중",serving:"현역 복무 중",served:"군필"})[S.military]||"-"}</b></div>${S.incentives.length?`<span class="lab">연봉 옵션</span>${S.incentives.map(o=>`<p class="muted">· ${esc(o.label)} (+${o.bonus}억)</p>`).join("")}`:""}
     ${S.endorse?`<p class="muted">🤝 ${esc(S.endorse.brand)} 광고 · 연 ${money(S.endorse.fee)}</p>`:""}${(S.cars||[]).length?`<p class="muted">🚗 보유 차량: ${(S.cars).map(c=>esc(c.name)).join(", ")}</p>`:""}
     <button class="wide" data-act="shop">💸 소비·후원</button></section>`;
+}
+function styleCard(){
+  const p=S.p, r=L.roleDef(p.sub,p.role), f=L.footInfo(p.sub,p.foot), tr=L.TRAIT_LIST.find(t=>t.id===p.trait), ty=L.TYPES[p.pos].find(x=>x[0]===p.type);
+  const hid=p.hidden&&L.scoutBand(S).final?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null;
+  return `<section class="card flat"><h3 class="sec">플레이 스타일</h3>
+   <p><b>${esc(subName())}</b> <small class="muted">${esc(L.SUBINFO[p.sub]||"")}</small></p>
+   ${r?`<p><b>${esc(r.name)}</b> <small class="muted">${esc(r.desc)}</small></p>`:""}
+   <p><b>${esc(f.label)}</b> <small class="muted">${esc(f.text)}</small></p>
+   ${ty?`<p><b>${esc(ty[1])}</b> <small class="muted">${esc(ty[3])}</small></p>`:""}
+   ${tr?`<p><b>${tr.icon} ${esc(tr.name)}</b> <small class="muted">${esc(tr.desc)}</small></p>`:""}
+   ${hid?`<p><b>${hid.icon} ${esc(hid.name)}</b> <small class="muted">${esc(hid.desc)}</small></p>`:""}
+   <p><b>체격</b> <small class="muted">${esc(L.bodyText(p.pos,p.height,p.weight))}</small></p></section>`;
 }
 function careerTab(){
   const c=S.career, pro=S.history.filter(h=>!h.youth), yth=S.history.filter(h=>h.youth);
@@ -589,7 +609,8 @@ document.addEventListener("click",e=>{
     case "wipe": if(confirm("저장된 선수를 삭제할까요?")){ try{ localStorage.removeItem(KEY); }catch(_){} S=null; render(); } break;
     case "new": S=null; draft=NEWDRAFT(); plan=NEWPLAN(); view="create"; render(); break;
     case "pos": draft.pos=v; draft.sub=L.POSDEF[v].subs[0][0]; keep(render); break;
-    case "sub": draft.sub=v; keep(render); break;
+    case "sub": draft.sub=v; draft.role=""; keep(render); break;
+    case "role": draft.role=v; keep(render); break;
     case "foot": draft.foot=v; keep(render); break;
     case "trait": draft.trait=v; keep(render); break;
     case "route": draft.route=v; if(v==="high"||v==="univ") draft.points.mentor=0; keep(render); break;

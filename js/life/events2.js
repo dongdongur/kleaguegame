@@ -133,6 +133,16 @@ E("l_property",1,S=>pro(S)&&S.funds>=3,"부동산 투자 권유","지인이 건�
 E("l_restaurant",1,S=>pro(S)&&S.funds>=2,"치킨집 차려 볼까","동료가 같이 가게를 열자고 해요.",[R("공동 투자한다",45,{funds:.8,fame:1},{funds:-.6,morale:-3},"입소문 맛집이 됐어요.","장사가 잘 안 풀렸어요."),Z("정중히 거절한다",{trust:1},"본업에 집중해요.")]);
 E("l_crypto",1,S=>pro(S)&&S.funds>=1,"코인 투자 열풍","동료들이 코인 얘기만 해요.",[R("소액으로 해 본다",35,{funds:.6},{funds:-.5,morale:-3},"운 좋게 수익을 봤어요.","손실을 봤어요."),Z("관심 없다고 한다",{trust:1},"안정을 택했어요.")]);
 
+/* ===== 포지션·역할 변경 (은사 · 감독) ===== */
+L.EVPOOL.push({id:"pos_mentor",w:2.2,when:S=>(pro(S)||univ(S)||teen(S))&&age(S)>=17&&age(S)<=31&&S.p.pos!=="GK"&&L.POSDEF[S.p.pos].subs.length>1,title:"은사와의 만남",body:"예전 지도자가 경기를 보고 찾아왔어요. '넌 다른 자리에서 더 빛날 것 같다'고 해요.",
+  dynamic:(S,base)=>{ const subs=L.POSDEF[S.p.pos].subs.filter(s=>s[0]!==S.p.sub); if(!subs.length) return null; const t=subs[Math.floor(Math.random()*subs.length)];
+    const cur=L.POSDEF[S.p.pos].subs.find(s=>s[0]===S.p.sub); const opts=[R(cur[1]+" → "+t[1]+" 포지션 변경에 도전",55,{trust:3,morale:2},{trust:-3,morale:-4},t[1]+"으로 자리를 옮겼어요. "+(L.SUBINFO[t[0]]||""),"새 자리에서 적응하지 못했어요. 원래 자리에 남기로 했어요."),Z("지금 자리를 지킨다",{trust:1},"익숙한 자리에서 더 다듬기로 했어요.")];
+    opts[0].act="sub:"+t[0]; return Object.assign({},base,{body:base.body+" ("+t[1]+": "+(L.SUBINFO[t[0]]||"")+")",opts}); }});
+L.EVPOOL.push({id:"role_coach",w:2.2,when:S=>pro(S)&&age(S)>=19&&L.rolesOf(S.p.sub).length>1,title:"역할 변경 제안",body:"감독이 전술을 바꾸면서 당신에게 새로운 임무를 맡기고 싶어 해요.",
+  dynamic:(S,base)=>{ const rs=L.rolesOf(S.p.sub).filter(r=>r[0]!==S.p.role); if(!rs.length) return null; const r=rs[Math.floor(Math.random()*rs.length)];
+    const opts=[R(r[1]+" 역할을 맡는다",65,{trust:3,morale:2},{trust:-2,morale:-3},r[1]+" 역할로 뛰게 됐어요. "+r[2],"어색한 임무에 헤맸어요. 원래 역할로 돌아갔어요."),Z("기존 역할을 지키고 싶다고 말한다",{trust:1},"감독이 고개를 끄덕였어요.")];
+    opts[0].act="role:"+r[0]; return Object.assign({},base,{body:base.body+" ("+r[1]+": "+r[2]+")",opts}); }});
+
 /* ===== 공통 ===== */
 E("c_jinx",1,any,"징크스","경기 전 항상 같은 순서로 장비를 챙겨야 마음이 편해요.",[R("징크스를 깬다",50,{morale:3},{morale:-4},"의외로 아무 일도 없었어요.","찜찜한 마음이 따라다녀요."),Z("그대로 간다",{morale:1},"루틴을 지켰어요.")]);
 E("c_rain_dance",1,any,"비 내리는 날의 산책","훈련이 취소됐어요. 비가 내려요.",[Z("우산 없이 걸어 본다",{morale:3},"머릿속이 맑아졌어요.")]);

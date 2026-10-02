@@ -203,7 +203,7 @@ L.rollEvent=function(S,out){
   if(!pool.length) return null; const tot=pool.reduce((a,e)=>a+e.w,0); let r=Math.random()*tot, e=pool[0];
   for(const c of pool){ r-=c.w; if(r<=0){ e=c; break; } }
   if(e.id==="famcrash") S.famEv=true; if(e.id==="famboom") S.famEv2=true; if(e.id==="studypress") S.famEv3=true;
-  let ev={id:e.id,title:e.title,body:e.body,opts:e.opts}; if(e.dynamic==="abroad"){ ev=buildAbroad(S,ev); if(!ev) return null; }
+  let ev={id:e.id,title:e.title,body:e.body,opts:e.opts}; if(e.dynamic==="abroad"){ ev=buildAbroad(S,ev); if(!ev) return null; } else if(typeof e.dynamic==="function"){ ev=e.dynamic(S,ev); if(!ev) return null; }
   return mark(S,clone(ev));
 };
 function clone(ev){ return Object.assign({},ev,{opts:ev.opts.map(o=>Object.assign({},o,{win:Object.assign({},o.win),lose:o.lose?Object.assign({},o.lose):null}))}); }
@@ -222,6 +222,8 @@ L.resolveEvent=function(S,ev,idx){
     if(a==="quitNow"&&L.maybeQuit) ending={reason:"family",text:"집안 사정으로 운동을 포기하고 학업에 전념하기로 했습니다."};
     else if(a==="quitRisk"&&!hit&&Math.random()<clamp(.55-.06*((S.points||{}).grit|0),.12,.6)) ending={reason:"family",text:"형편이 어려워 더는 운동을 이어 갈 수 없었습니다. 그래도 한때는 누구보다 빛나는 유망주였어요."};
     else if(a==="quitRiskLow"&&!hit&&Math.random()<.2) ending={reason:"study",text:"부모님과의 약속대로 축구를 접고 학업에 매진하기로 했습니다."};
+    else if(a.startsWith("sub:")&&hit){ const sub=a.slice(4); const nm=L.POSDEF[S.p.pos].subs.find(s=>s[0]===sub); if(L.changeSub(S,sub)) lines.push("포지션 변경: "+(nm?nm[1]:sub)+" — 역할 "+L.roleName(S.p)); }
+    else if(a.startsWith("role:")&&hit){ const id=a.slice(5); if(L.changeRole(S,id)) lines.push("역할 변경: "+L.roleName(S.p)); }
     else if(a.startsWith("abroad:")&&hit){ const [,cid,kind]=a.split(":"); const c=L.EPL().find(x=>x.id===cid); if(c){ L.goAbroadYouth(S,c,kind); lines.push("해외 유스로 이적: "+c.short+" 아카데미"); } }
   }
   const es=S.evStats=S.evStats||{n:0,risk:0,riskHit:0,hit:0,luck:0}; es.n++; if(hit) es.hit++; if(!o.safe&&(o.p!=null?o.p:100)<=50){ es.risk++; if(hit) es.riskHit++; } es.luck=Math.round((es.luck+(o.safe?0:(hit?1:0)-(need!=null?need:100)/100))*100)/100;

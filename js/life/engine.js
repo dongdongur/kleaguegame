@@ -134,6 +134,7 @@ L.create=function(o){
     phase:a0<PRO_START?"prep":"draft",offers:[],plan:null,history:[],awards:[],trophies:[],moments:[],feed:[],incentives:[],
     career:{apps:0,starts:0,minutes:0,goals:0,assists:0,cs:0,caps:0,intGoals:0,ratingSum:0,ratingN:0,mom:0,youthApps:0,youthGoals:0,bonus:0},
     drift:{},league:{k1:null,k2:null},rep:50,fame:3,cond:90,morale:70,funds:.1,sim:null,lastR:null,nat:{},ballon:[],clubYears:{},foreignYears:0,retired:false};
+  { const rs=L.rolesOf?L.rolesOf(S.p.sub):[]; S.p.role=o.role||(rs[0]&&rs[0][0])||null; if(L.applyStyle) L.applyStyle(S.p); }
   S.p.ovr=ovrOf(S.p); S.p.peak=S.p.ovr;
   L.initLeague(S);
   { const f=L.rollFamily(pts0.family|0); S.family={id:f.id,name:f.name,pts:f.pts,pts0:f.pts,note:f.note}; S.funds=r1(.1+f.funds*.1); }
@@ -352,8 +353,9 @@ function myRec(S,sim,m,comp){
   else if(r<sr+(1-sr)*.55&&sr<.9) rec.min=ri(8,32);
   if(rec.min>0){
     const mf=rec.min/90;
-    rec.g=binom(m.f,clamp(L.shareG(sub)*sim.form*Math.exp((ovr-lvl)/18)*mf,0,.6));
-    rec.as=binom(Math.max(0,m.f-rec.g),clamp(L.shareA(sub)*sim.formA*Math.exp((ovr-lvl)/22)*mf,0,.5));
+    const sfx=L.styleFx?L.styleFx(p):{g:1,a:1};
+    rec.g=binom(m.f,clamp(L.shareG(sub)*sfx.g*sim.form*Math.exp((ovr-lvl)/18)*mf,0,.6));
+    rec.as=binom(Math.max(0,m.f-rec.g),clamp(L.shareA(sub)*sfx.a*sim.formA*Math.exp((ovr-lvl)/22)*mf,0,.5));
     let rt=6.05+(ovr-lvl)/20*(.5+mf*.5)+(rec.res==="W"?.35:rec.res==="L"?-.3:0)+rec.g*.95+rec.as*.55+rnd(-.5,.5);
     if(p.pos==="GK"||p.pos==="DF"){ if(m.a===0) rt+=.5; else rt-=Math.min(m.a,4)*.12; }
     rec.rt=r1(clamp(rt,3.5,10)); rec.cs=(rec.st&&m.a===0&&(p.pos==="GK"||p.pos==="DF"))?1:0;
