@@ -18,7 +18,7 @@ L.newKid=function(S){ const girl=Math.random()<.5; const used=(S.kids||[]).map(k
   const k={name:nm,girl,born:S.year,pot,grade:pot>=90?"S":pot>=82?"A":pot>=74?"B":"C",order:(S.kids||[]).length+1};
   (S.kids=S.kids||[]).push(k); S.lastBirth=S.year; return k; };
 L.kidHint=k=>k.grade==="S"?"세계 무대에서 통할 재능이 보여요":k.grade==="A"?"국가대표급 재능 조짐이 있어요":k.grade==="B"?"주전으로 자리잡을 만한 재능이에요":"평범하지만 노력으로 길을 열 수 있어요";
-L.marry=function(S){ S.married={year:S.year}; S.dating=false; L.addMoment(S,"결혼","결혼","결혼했습니다."); L.feedAdd(S,S.year+" 가정","결혼식을 올렸어요",1); };
+L.marry=function(S){ S.married={year:S.year}; S.dating=false; L.addMoment(S,"결혼","결혼","결혼했어요."); L.feedAdd(S,S.year+" 가정","결혼식을 올렸어요",1); };
 
 /* 예전에 있던 단순 결혼·출산 이벤트는 새 연결 이벤트로 교체 */
 L.EVPOOL=L.EVPOOL.filter(e=>e.id!=="l_wedding"&&e.id!=="l_baby");
@@ -70,7 +70,7 @@ L.kidApply=function(C,kid,pos){ if(!kid||!kid.inv) return; const lv=kid.inv, sam
 
 /* ===== 플레잉코치 ===== */
 L.canPlayCoach=S=>S.stage==="pro"&&age(S)>=32&&!S.playcoach&&S.military!=="serving"&&S.club&&S.club.lg!=="MIL";
-L.setPlayCoach=function(S){ S.playcoach={since:S.year,club:S.club.id,club_name:S.club.name}; S.pcYears=0; S.salary=r1(Math.max(.3,S.salary*.75)); S.trust=clamp(S.trust+.06,.05,.95); L.addMoment(S,"플레잉코치","코치","플레잉코치로 새 역할을 시작했습니다."); if(L.logStyle) L.logStyle(S,"플레잉코치 전환"); L.feedAdd(S,S.year+" 커리어","플레잉코치로 전환 — 선수와 코치를 겸해요",1); if(L.charDelta) L.charDelta(S,2,"헌신: 플레잉코치"); };
+L.setPlayCoach=function(S){ S.playcoach={since:S.year,club:S.club.id,club_name:S.club.name}; S.pcYears=0; S.salary=r1(Math.max(.3,S.salary*.75)); S.trust=clamp(S.trust+.06,.05,.95); L.addMoment(S,"플레잉코치","코치","플레잉코치로 새 역할을 시작했어요."); if(L.logStyle) L.logStyle(S,"플레잉코치 전환"); L.feedAdd(S,S.year+" 커리어","플레잉코치로 전환 — 선수와 코치를 겸해요",1); if(L.charDelta) L.charDelta(S,2,"헌신: 플레잉코치"); };
 L.pcSeasonEnd=function(S){ if(!S.playcoach) return; S.pcYears=(S.pcYears||0)+1; S.fame=Math.max(0,S.fame+.8); S.rep=clamp(S.rep+1.2,0,100); };
 L.pcFx=S=>S.playcoach?{team:.5,srCap:.6}:{team:0,srCap:1};
 

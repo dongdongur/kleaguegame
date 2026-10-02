@@ -108,7 +108,7 @@ function homeView(){
    <section class="card"><h3 class="sec">명예의 전당</h3>${hof.length?hof.slice().sort((a,b)=>b.score-a.score).slice(0,10).map((x,i)=>`<div class="hof"><b>${i+1}</b><div><b>${esc(x.name)}</b><br><small>${esc(x.pos)} · ${esc(x.club)} · ${x.years}년 · 통산 ${x.goals}골 ${x.assists}도움${x.retire?" · 영구결번":""}</small></div><span class="pill gold">${x.grade} ${x.score}</span></div>`).join(""):`<p class="muted">아직 은퇴한 선수가 없어요.</p>`}</section>
    <div class="grid2"><button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button><button class="wide" data-act="dex">📖 이벤트 도감</button></div>
    <a class="wide" href="patch-notes.html" style="display:grid;place-items:center;text-decoration:none">📰 패치노트${(()=>{ try{ return window.KL_PATCH_LATEST&&localStorage.getItem("kl-patch-seen")!==window.KL_PATCH_LATEST?" 🔴 NEW":""; }catch(e){ return ""; } })()}</a>
-   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 자녀 대회·유소년 시절 이야기 확대<br>· 감독판: 시즌 전 예상 비교, 시즌 도중 이벤트·인터뷰, 커리어 성장, K리그 기록 업적 (다음 주)</p></section>
+   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 자녀 대회·유소년 시절 이야기, 구단별 진짜 홈 유니폼 도안<br>· 감독판: 시즌 전 예상 비교, 시즌 도중 이벤트·인터뷰, 커리어 성장, K리그 기록 업적 (다음 주)</p></section>
    <p class="muted c"><a class="lnk" href="index.html">게임 선택 메뉴로</a>${S?` · <button class="lnk" data-act="wipe">저장 삭제</button>`:""}</p></main>`;
 }
 
@@ -264,7 +264,8 @@ function planSummary(){
 }
 function runView(){
   const sim=S.sim, nxt=sim.segs[sim.seg];
-  return `<small class="kick">${L.seasonLabel(S)} ${nxt?nxt.label:""}</small><h2>${nxt?nxt.label+" · "+nxt.months:"시즌 종료"}</h2>${timeline()}${meters()}
+  const up=L.upcoming?L.upcoming(S):[];
+  return `<small class="kick">${L.seasonLabel(S)} ${nxt?nxt.label:""}</small><h2>${nxt?nxt.label+" · "+nxt.months:"시즌 종료"}</h2>${timeline()}${up.length?`<section class="card flat"><small class="kick">COMING UP</small><h3 class="sec">이번 구간 빅매치</h3>${up.map(x=>`<div class="ln2"><b>${x.ic}</b><span><b style="color:var(--txt);font-family:var(--f-body)">${esc(x.t)}</b><br><small class="muted">${esc(x.d)}</small></span></div>`).join("")}</section>`:""}${meters()}
    ${seg?segCard(seg):`<section class="card"><p class="muted">훈련 계획이 반영된 채로 시즌이 시작돼요.</p></section>`}
    ${nxt?`<section class="card flat"><div class="row"><div class="grow"><small class="kick">NEXT TRAINING</small><br><b>${esc(nxt.label)} 훈련 설정</b><br><small class="muted">${esc(planSummary())}</small></div><button class="ghost" data-act="planbtn">${planOpen?"접기":"변경"}</button></div></section>${planOpen?planEditor():""}`:""}
    ${tableCard(sim)}
@@ -309,6 +310,7 @@ function resultView(){
    ${R.trophies.length?`<div class="pills">${R.trophies.map(t=>`<span class="pill gold">🏆 ${esc(t)}</span>`).join("")}</div>`:""}
    ${R.awards.length?`<div class="pills">${R.awards.map(a=>`<span class="pill gold">⭐ ${esc(a)} · ${esc(L.awardComp(a,R))}</span>`).join("")}</div>`:""}
    ${(R.records||[]).map(t=>`<p class="note good">🏅 ${esc(t)}</p>`).join("")}
+   ${R.react?`<section class="card flat"><small class="kick">SNS · 팬 반응</small><h3 class="sec">📰 ${esc(R.react.headline)}</h3>${R.react.posts.map(p=>`<div class="sns ${p.tone>0?"up":p.tone<0?"dn":""}"><b>${esc(p.h)}</b><span>${esc(p.t)}</span><small>♥ ${p.likes}</small></div>`).join("")}<p class="muted">※ 모든 계정은 가상이에요.</p></section>`:""}
    ${(R.derbies||[]).length?`<section class="card flat"><h3 class="sec">🔥 ${esc(R.derbies[0].name)}</h3>${R.derbies.map(d=>`<div class="row"><span class="grow">${esc(d.opp)}전${d.min>0?"":" (결장)"}${d.g?" · "+d.g+"골":""}</span><b style="color:${d.res==="W"?"var(--acc)":d.res==="L"?"var(--red)":"var(--gold)"}">${d.f}:${d.a}</b></div>`).join("")}</section>`:""}
    ${(R.moneyNotes||[]).length?`<section class="card flat"><h3 class="sec">재정 리포트</h3>${R.moneyNotes.map(t=>`<p class="muted">${esc(t)}</p>`).join("")}</section>`:""}
    ${R.awards.some(a=>/베스트 11|올해의 팀/.test(a))&&!R.youth?`<button class="wide" data-act="xi">⭐ 이번 시즌 베스트 11 보기</button>`:""}
@@ -555,7 +557,7 @@ function retiredView(){
    <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button><button class="wide" data-act="home">K-라이프 홈</button></main>`;
 }
 function quitView(){
-  const q=S.quit||{text:"축구를 그만두었습니다."};
+  const q=S.quit||{text:"축구를 그만두었어요."};
   return `<main class="body"><small class="kick">ANOTHER LIFE</small><h1>${esc(S.p.name)}, 다른 길을 걷다</h1>
    <section class="hero"><p>${esc(q.text)}</p><p class="muted">${q.age}세 · ${q.year}년. 모든 운동선수가 성공하는 건 아니에요. 하지만 이 시간은 헛되지 않았어요.</p></section>
    <section class="card flat"><div class="pay"><small>최고 OVR</small><b>${S.p.peak}</b><small>유소년 기록</small><b>${S.career.youthApps}경기 ${S.career.youthGoals}골</b><small>가정 환경</small><b>${S.family?esc(S.family.name):"-"}</b></div></section>
@@ -626,6 +628,7 @@ function modalHtml(){
     const shirt=(back)=>`<svg viewBox="0 0 220 240" aria-hidden="true"><defs><linearGradient id="jg${back?1:0}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".35" stop-color="#f6c63a"/><stop offset=".7" stop-color="#c88a10"/><stop offset="1" stop-color="#ffe27a"/></linearGradient></defs><path d="M72 14 L34 38 L8 88 L46 112 L62 88 L62 224 Q62 232 70 232 L150 232 Q158 232 158 224 L158 88 L174 112 L212 88 L186 38 L148 14 Q110 48 72 14 Z" fill="url(#jg${back?1:0})" stroke="#fff6c8" stroke-width="3" stroke-linejoin="round"/><path d="M72 14 Q110 48 148 14" fill="none" stroke="#fff6c8" stroke-width="5"/>${back?`<text x="110" y="84" text-anchor="middle" font-family="Black Han Sans,sans-serif" font-size="22" fill="#5a3b00" letter-spacing="2">${esc(m.name)}</text><text x="110" y="178" text-anchor="middle" font-family="Oswald,sans-serif" font-weight="700" font-size="${fs2}" fill="#5a3b00" stroke="#fff3b8" stroke-width="2" paint-order="stroke">${esc(t)}</text>`:`<text x="110" y="150" text-anchor="middle" font-size="64" fill="#7a5200">★</text>`}</svg>`;
     return `<div class="ov center jerseyov"><div class="jbeams"></div><div class="jstage"><small class="kick" style="color:#ffe27a">PERMANENTLY RETIRED NUMBER</small><div class="jspin"><div class="jface">${shirt(false)}</div><div class="jface jback">${shirt(true)}</div></div><h3>${esc(j.club)}</h3><p class="jsub">No.${esc(t)} 영구결번</p><p class="muted c">${esc(m.name)} · ${j.yrs}시즌 · 우승 ${j.titles}회</p><div class="jsparks"></div><button class="big" data-act="mok"><span>영광의 순간을 마친다</span><b>🏆</b></button></div></div>`; }
   if(m.t==="league"){ const i=m.info; return `<div class="ov center lgw" style="--c:${i.c}"><div class="sheet lgsheet"><div class="lgflag">${i.ic}</div><small class="kick" style="color:${i.c}">${esc(i.tag)}</small><h3>${esc(i.title)}</h3><p class="muted c">${esc(m.club)}에서 새 도전이 시작돼요</p>${i.lines.map(x=>`<p class="lgl">${esc(x)}</p>`).join("")}<p class="muted c">${m.n}개 구단 · 상위권: ${m.top.map(esc).join(" · ")}</p><button class="big" data-act="mok"><span>도전 시작</span><b>→</b></button></div></div>`; }
+  if(m.t==="sns") return `<div class="ov center"><div class="sheet"><small class="kick">NOW ON SNS</small><h3>📱 지금 SNS는</h3>${m.posts.map(p=>`<div class="sns ${p.tone>0?"up":p.tone<0?"dn":""}"><b>${esc(p.h)}</b><span>${esc(p.t)}</span><small>♥ ${p.likes}</small></div>`).join("")}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`;
   if(m.t==="ucl") return `<div class="ov center ucl"><div class="sheet uclsheet"><div class="stars">★ ★ ★ ★ ★ ★ ★ ★</div><small class="kick">CHAMPIONS NIGHT</small><h3>챔피언스리그 · ${esc(m.label)}</h3>${m.recs.map(r=>`<div class="umatch"><span class="rd">${esc(r.cupRound||"")}</span><b>${esc(r.opp)}</b><em class="${r.res==="W"?"w":r.res==="L"?"l":"d"}">${r.f}:${r.a}${r.pk?" (PK "+r.pk[0]+"-"+r.pk[1]+")":""}</em><small>${r.min>0?(r.g?r.g+"골 ":"")+(r.as?r.as+"도움 ":"")+"평점 "+r.rt:"결장"}</small></div>`).join("")}<button class="big" data-act="mok"><span>계속</span><b>→</b></button></div></div>`;
   if(m.t==="xi") return `<div class="ov center"><div class="sheet"><small class="kick">BEST ELEVEN ${S.lastR.year}</small><h3>${esc(S.lastR.leagueName)} 베스트 11</h3><div class="xi">${m.list.map(x=>`<div class="${x.me?"me":""}"><b>${esc(x.slot)}</b><span>${esc(x.name)}${x.me?" ◀":""}</span><small>${esc(x.club)} · ${x.ovr}</small></div>`).join("")}</div><button class="big" data-act="mok"><span>닫기</span><b>→</b></button></div></div>`;
   if(m.t==="gold") return `<div class="ov center gold"><div class="sheet goldsheet"><div class="rays"></div><small class="kick">${esc(m.kick)}</small><div class="ball">⚽</div><h3>${esc(m.title)}</h3><p class="gsub">${esc(m.sub)}</p><p class="muted c">${esc(m.club)}</p>${m.lines.map(x=>`<p class="muted c">${esc(x)}</p>`).join("")}<button class="big" data-act="mok"><span>트로피 받기</span><b>🏆</b></button></div></div>`;
@@ -652,6 +655,7 @@ function afterSegment(out){
   seg=out; const q=[];
   if(out.growth&&out.growth.changes.length) q.push({t:"grow",g:out.growth,label:out.label,notes:out.notes});
   else if(out.notes&&out.notes.length) q.push({t:"grow",g:{changes:[],ovr0:out.growth.ovr0,ovr1:out.growth.ovr1},label:out.label,notes:out.notes});
+  { const sr=L.segReactions?L.segReactions(S,out):null; if(sr) q.push({t:"sns",posts:sr.posts,label:out.label}); }
   out.callups.forEach(c=>q.push({t:"callup",c}));
   const uc=(out.recs||[]).filter(r=>r.cup==="ucl"); if(uc.length) q.push({t:"ucl",recs:uc,label:out.label});
   const uev=L.rollUclEvent?L.rollUclEvent(S,out):null; if(uev) q.push({t:"event",ev:uev});
@@ -670,7 +674,7 @@ function finishSeason(){
   runLoading(S.year+" 시즌","시즌 결산 중",["최종 순위 확정","개인 기록 집계","수상 후보 평가","재능 평가·성장 반영"],()=>{
     const sim=S.sim; const teams=sim?sim.teams:[];
     const R=L.finishSeason(S); R.simTeams=teams; seg=null; boardTab="table";
-    if(R.scoutFinal){ const sf=R.scoutFinal; const hid=sf.hidden?" 그리고 스카우터가 숨은 재능을 발견했습니다 — "+L.traitName(sf.hidden,true)+". "+L.HIDDEN_LIST.find(h=>h.id===sf.hidden).desc:""; const txt={S:"세계 무대에서도 통할 재목입니다. 키우기에 따라 월드클래스가 될 수 있어요.",A:"국가대표급 잠재력이 보입니다. 꾸준히 성장하면 리그 정상급이 될 거예요.",B:"1군 주전으로 충분히 자리 잡을 재목입니다.",C:"재능은 평범하지만 노력으로 길을 개척할 수 있는 선수입니다."}[sf.grade];
+    if(R.scoutFinal){ const sf=R.scoutFinal; const hid=sf.hidden?" 그리고 스카우터가 숨은 재능을 발견했어요 — "+L.traitName(sf.hidden,true)+". "+L.HIDDEN_LIST.find(h=>h.id===sf.hidden).desc:""; const txt={S:"세계 무대에서도 통할 재목입니다. 키우기에 따라 월드클래스가 될 수 있어요.",A:"국가대표급 잠재력이 보입니다. 꾸준히 성장하면 리그 정상급이 될 거예요.",B:"1군 주전으로 충분히 자리 잡을 재목입니다.",C:"재능은 평범하지만 노력으로 길을 개척할 수 있는 선수입니다."}[sf.grade];
       modals.push({t:"msg",kick:"SCOUT REPORT",title:"재능 딱지가 확정됐어요: "+sf.grade,body:"20세까지의 경기 결과와 성장을 종합한 스카우터의 최종 평가입니다. "+txt+hid,banner:sf.grade}); }
     else if(S.history.length===1&&!S.scoutedMid){ S.scoutedMid=true; modals.push({t:"msg",kick:"SCOUT REPORT",title:"스카우터의 첫 중간 평가: "+L.scoutBand(S).label,body:"아직은 범위로만 말할 수 있어요. 20세가 되면 경기 결과와 성장에 따라 하나로 확정됩니다."}); }
     if(R.ballon&&R.ballon.rank===1){ const n=S.ballon.filter(b=>b.rank===1).length; modals.unshift({t:"gold",kick:"BALLON D'OR "+R.year,title:esc0(S.p.name)+", 올해의 발롱도르",sub:(n>1?n+"번째 ":"")+"세계 최고의 선수로 선정됐어요",club:R.club.name,lines:[R.leagueName+" "+R.rank+"위 · "+R.goals+"골 "+R.assists+"도움 · 평점 "+R.rating,...(R.trophies.length?[R.trophies.join(" · ")]:[])]}); }
@@ -745,7 +749,7 @@ document.addEventListener("click",e=>{
     case "signcancel": modals.shift(); keep(render); break;
     case "signdone": { if(!signDirty){ say("사인을 먼저 해 주세요"); break; } const cv=$("signpad"); S.sign=cv.toDataURL("image/png"); const m=modals.shift(); save(); if(m&&m.fn) m.fn(); break; }
     case "univ": L.chooseUniv(S); S.dr=null; view="game"; tab="season"; save(); render(); break;
-    case "quitdraft": L.quitCareer(S,"draft","프로 구단의 지명을 받지 못해 축구를 접기로 했습니다."); S.dr=null; view="quit"; save(); render(); break;
+    case "quitdraft": L.quitCareer(S,"draft","프로 구단의 지명을 받지 못해 축구를 접기로 했어요."); S.dr=null; view="quit"; save(); render(); break;
     case "focus": plan.focus=v; keep(render); break;
     case "tier": plan.tier=v; keep(render); break;
     case "invest": plan.invest=v; keep(render); break;

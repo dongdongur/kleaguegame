@@ -296,7 +296,7 @@ L.assignYouthClub=function(S){
   S.club={id:d.club,name:L.youthTeamName(d.short,age(S)),short:d.short,lg:"YOUTH",code:CODE(d.club),parent:d.club};
 };
 const UNIVS=["연세대학교","고려대학교","한양대학교","성균관대학교","중앙대학교","명지대학교","단국대학교","인천대학교"];
-L.chooseUniv=function(S){ S.stage="univ"; S.club={id:"univ",name:pick(UNIVS),short:"대학",lg:"UNIV",code:null}; S.phase="prep"; S.offers=[]; S.plan=null; L.addMoment(S,"대학 진학","대학 진학",S.club.name+"에 진학했습니다."); };
+L.chooseUniv=function(S){ S.stage="univ"; S.club={id:"univ",name:pick(UNIVS),short:"대학",lg:"UNIV",code:null}; S.phase="prep"; S.offers=[]; S.plan=null; L.addMoment(S,"대학 진학","대학 진학",S.club.name+"에 진학했어요."); };
 L.youthLevel=ag=>26+(ag-13)*4.3;
 
 /* ================= 기록 ================= */
@@ -316,7 +316,7 @@ L.draftOffers=function(S){
     return {club:L.clubRef(S,x.c,x.lg),lvl:r1(x.c.l),salary:L.salaryOf(p.ovr+2,age(S),x.lg),years:2,role:L.roleLabel(sr),sr}; });
 };
 L.signWith=function(S,offer){ if(S.family) S.family.pts=0; offer.bonus=Math.max(.05,r1(offer.salary*.8)); S.funds=r1(S.funds+offer.bonus); S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.phase="prep"; S.offers=[]; S.stage="pro"; S.team=offer.sr<.14?"2군":"1군"; S.plan=null;
-  S.cond=90; S.morale=72; if(!S.history.some(h=>!h.youth)) L.addMoment(S,"프로 입단","입단",S.club.name+"과 프로 계약을 맺었습니다. (연봉 "+offer.salary+"억)"); };
+  S.cond=90; S.morale=72; if(!S.history.some(h=>!h.youth)) L.addMoment(S,"프로 입단","입단",S.club.name+"과 프로 계약을 맺었어요. (연봉 "+offer.salary+"억)"); };
 
 /* ================= 일정 ================= */
 function circle(ids){                       // 라운드 로빈 (홀수면 한 팀은 쉬어요)
@@ -412,7 +412,7 @@ function myRec(S,sim,m,comp){
   if(rec.min>0){
     const mf=rec.min/90;
     const sfx=L.styleFx?L.styleFx(p):{g:1,a:1}; const tfx=L.traitFx(p); const gm=(!rec.st?tfx.joker:1)*tfx.setp*(p.pos==="DF"&&tfx.setp>1?1.25:1), am=tfx.assist*(tfx.setp>1?1.08:1);
-    rec.g=binom(m.f,clamp(L.shareG(sub)*sfx.g*gm*sim.form*Math.exp((ovr-lvl)/18)*mf,0,.6));
+    rec.g=binom(m.f,clamp(L.shareG(sub)*sfx.g*gm*sim.form*Math.exp((ovr-lvl)/20)*mf,0,.5));
     rec.as=binom(Math.max(0,m.f-rec.g),clamp(L.shareA(sub)*sfx.a*am*sim.formA*Math.exp((ovr-lvl)/22)*mf,0,.5));
     let rt=6.05+(ovr-lvl)/20*(.5+mf*.5)+(rec.res==="W"?.35:rec.res==="L"?-.3:0)+rec.g*.95+rec.as*.55+(!rec.st&&tfx.joker>1?.25:0)+rnd(-.5,.5);
     if(p.pos==="GK"||p.pos==="DF"){ if(m.a===0) rt+=.5; else rt-=Math.min(m.a,4)*.12; }
@@ -543,6 +543,7 @@ L.finishSeason=function(S){
   L.seasonPost(S,R,sim); { const sc=L.scoutCheck(S); if(sc) R.scoutFinal=sc; }
   if(L.coachSeasonEnd) L.coachSeasonEnd(S); if(L.pcSeasonEnd) L.pcSeasonEnd(S);
   R.nextAcl=!!S.nextAcl; R.nextUcl=!!S.nextUcl; R.nextUel=!!S.nextUel;
+  if(L.reactions){ try{ R.react=L.reactions(S,R); L.feedAdd(S,S.year+" 반응","📰 "+R.react.headline,0); }catch(e){ R.react=null; } }
   L.commitSeason(S,R);
   S.lastR=R; S.sim=null; S.phase="result"; return R;
 };
@@ -598,8 +599,8 @@ L.growth=function(S,R){
   });
   /* 해외 캠프: 대박(각성) 또는 과열(번아웃) */
   R.famNote=null; if((al.camp|0)>0){ const c=al.camp|0, x=Math.random();
-    if(x<.035*c){ d.stats.forEach(([k])=>{ p.stats[k]=clamp(p.stats[k]+ri(1,3),10,99); }); p.pot=Math.min(99,p.pot+ri(2,5)); R.famNote="해외 캠프에서 눈을 떴어요! 능력치가 한 단계 뛰었습니다."; L.addMoment(S,"각성","각성","해외 캠프에서 재능이 한 단계 열렸습니다."); }
-    else if(x>1-.02*c){ d.stats.forEach(([k])=>{ p.stats[k]=clamp(p.stats[k]-1,10,99); }); S.morale=clamp(S.morale-15,0,100); R.famNote="무리한 일정에 몸과 마음이 지쳤어요. 약간 후퇴했습니다."; } }
+    if(x<.035*c){ d.stats.forEach(([k])=>{ p.stats[k]=clamp(p.stats[k]+ri(1,3),10,99); }); p.pot=Math.min(99,p.pot+ri(2,5)); R.famNote="해외 캠프에서 눈을 떴어요! 능력치가 한 단계 뛰었어요."; L.addMoment(S,"각성","각성","해외 캠프에서 재능이 한 단계 열렸어요."); }
+    else if(x>1-.02*c){ d.stats.forEach(([k])=>{ p.stats[k]=clamp(p.stats[k]-1,10,99); }); S.morale=clamp(S.morale-15,0,100); R.famNote="무리한 일정에 몸과 마음이 지쳤어요. 약간 후퇴했어요."; } }
   p.ovr=ovrOf(p); p.peak=Math.max(p.peak,p.ovr); R.ovr1=p.ovr; R.dOvr=p.ovr-before;
   if(R.rating>=7.3&&ag<=27) p.pot=Math.min(99,(p.pot0||p.pot)+8,p.pot+(Math.random()<.5?1:0)); else if(R.rating>0&&R.rating<6.1&&ag<24) p.pot=Math.max(p.ovr,p.pot-(Math.random()<.4?1:0));
   S.trust=clamp(S.trust+((R.sr-.5)*.25+(R.rating>7?.05:0))*(((R.sr-.5)>0)?tf.trust:1),.05,.95);
@@ -625,14 +626,14 @@ L.slimRecord=function(R,S){ return {year:R.year,age:R.age,club:R.club.name,clubI
   ovr0:R.ovr0,ovr1:R.ovr1,awards:R.awards.slice(),trophies:R.trophies.slice(),role:R.role,salary:S.salary,caps:R.caps||0,military:!!R.military,injury:R.injury?R.injury.text:null,youth:!!R.youth,team:S.team,cups:R.cups,natEvents:R.natEvents,ballon:R.ballon||null,bonus:R.bonus||0}; };
 L.momentsFor=function(S,R){
   const c=S.career, h=S.history.filter(x=>!x.youth);
-  if(h.length===1&&R.apps>0) L.addMoment(S,"1군 데뷔","1군 데뷔","프로 무대에서 "+R.apps+"경기에 출전하며 커리어를 시작했습니다.");
-  if(R.goals>0&&c.goals-R.goals===0) L.addMoment(S,"첫 골","프로 첫 골","프로 무대에서 첫 골을 터뜨렸습니다.");
+  if(h.length===1&&R.apps>0) L.addMoment(S,"1군 데뷔","1군 데뷔","프로 무대에서 "+R.apps+"경기에 출전하며 커리어를 시작했어요.");
+  if(R.goals>0&&c.goals-R.goals===0) L.addMoment(S,"첫 골","프로 첫 골","프로 무대에서 첫 골을 터뜨렸어요.");
   R.awards.forEach(a=>L.addMoment(S,a,a,R.year+"시즌 "+a+" 수상"));
-  R.trophies.forEach(t=>L.addMoment(S,t,t,t+"의 주인공이 되었습니다."));
-  [[100,"apps","100경기 출전"],[200,"apps","200경기 출전"],[300,"apps","300경기 출전"],[50,"goals","50골"],[100,"goals","100골"],[200,"goals","200골"],[50,"assists","50도움"],[100,"assists","100도움"]].forEach(([n,k,t])=>{ if(c[k]>=n&&c[k]-R[k==="apps"?"apps":k==="goals"?"goals":"assists"]<n) L.addMoment(S,t,t,"통산 "+t+"을 달성했습니다."); });
+  R.trophies.forEach(t=>L.addMoment(S,t,t,t+"의 주인공이 되었어요."));
+  [[100,"apps","100경기 출전"],[200,"apps","200경기 출전"],[300,"apps","300경기 출전"],[50,"goals","50골"],[100,"goals","100골"],[200,"goals","200골"],[50,"assists","50도움"],[100,"assists","100도움"]].forEach(([n,k,t])=>{ if(c[k]>=n&&c[k]-R[k==="apps"?"apps":k==="goals"?"goals":"assists"]<n) L.addMoment(S,t,t,"통산 "+t+"을 달성했어요."); });
   if(R.injury&&R.injury.severe) L.addMoment(S,"큰 부상","큰 부상",R.injury.text+" — 긴 재활 끝에 복귀를 준비합니다.");
-  if(R.dOvr>=4) L.addMoment(S,"급성장","급성장","한 시즌 만에 능력치가 "+R.dOvr+" 올랐습니다.");
-  const prev=h[h.length-2]; if(prev&&prev.clubId!==R.club.id) L.addMoment(S,"이적","이적",R.club.name+" 유니폼을 입었습니다.");
+  if(R.dOvr>=4) L.addMoment(S,"급성장","급성장","한 시즌 만에 능력치가 "+R.dOvr+" 올랐어요.");
+  const prev=h[h.length-2]; if(prev&&prev.clubId!==R.club.id) L.addMoment(S,"이적","이적",R.club.name+" 유니폼을 입었어요.");
 };
 
 /* ================= 계약 · 이적 ================= */
@@ -673,17 +674,17 @@ L.transferOffers=function(S,opts){
 };
 L.doTransfer=function(S,offer){
   if(S.military==="serving"||S.military==="sangmu"||(S.club&&S.club.lg==="MIL")) return false;
-  const rvMove=L.isRivalMove?L.isRivalMove(S,offer.club):null; const prevLg=S.club&&S.club.lg; if(rvMove){ S.fame=Math.max(0,S.fame-8); S.rep=clamp(S.rep-4,0,100); if(L.charDelta) L.charDelta(S,-4,"의리: 라이벌 구단으로 이적"); L.addMoment(S,"라이벌 이적","이적","라이벌 "+offer.club.name+"(으)로 이적해 팬들이 분노했습니다. ("+rvMove+")"); L.feedAdd(S,S.year+" 이적","라이벌 "+offer.club.name+"로 이적! 팬들의 분노 ("+rvMove+")",-1); S.rivalMoves=(S.rivalMoves||0)+1; } S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.trust=L.traitFx(S.p).adapt?.5:.35; S.team="1군";
+  const rvMove=L.isRivalMove?L.isRivalMove(S,offer.club):null; const prevLg=S.club&&S.club.lg; if(rvMove){ S.fame=Math.max(0,S.fame-8); S.rep=clamp(S.rep-4,0,100); if(L.charDelta) L.charDelta(S,-4,"의리: 라이벌 구단으로 이적"); L.addMoment(S,"라이벌 이적","이적","라이벌 "+offer.club.name+"(으)로 이적해 팬들이 분노했어요. ("+rvMove+")"); L.feedAdd(S,S.year+" 이적","라이벌 "+offer.club.name+"로 이적! 팬들의 분노 ("+rvMove+")",-1); S.rivalMoves=(S.rivalMoves||0)+1; } S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.trust=L.traitFx(S.p).adapt?.5:.35; S.team="1군";
   if(L.isForeign(offer.club.lg)&&!L.isForeign(prevLg)) L.addMoment(S,"해외 진출","해외 진출",offer.club.name+"(으)로 이적해 "+L.lgLabel(offer.club.lg)+"에 도전합니다. (연봉 "+offer.salary+"억)");
-  else if(!L.isForeign(offer.club.lg)&&L.isForeign(prevLg)) L.addMoment(S,"K리그 복귀","복귀",offer.club.name+"(으)로 돌아왔습니다. (연봉 "+offer.salary+"억)");
+  else if(!L.isForeign(offer.club.lg)&&L.isForeign(prevLg)) L.addMoment(S,"K리그 복귀","복귀",offer.club.name+"(으)로 돌아왔어요. (연봉 "+offer.salary+"억)");
 };
 
 /* ================= 병역 ================= */
 L.militaryPrompt=function(S){ const ag=age(S)+1; if(S.military!=="none"||ag<26) return null; return {must:ag>=29,canMil:S.p.ovr>=66}; };
 L.enlist=function(S,kind){ if(L.charDelta) L.charDelta(S,2.5,"병역: 병역 이행");
   S.military="serving"; S.mildone=0;
-  if(kind==="sangmu"){ S.milOrigSalary=S.salary; S.milKind="sangmu"; S.club={id:K.GIMCHEON.club,name:"김천 상무",short:"김천",lg:"MIL",code:CODE("김천 상무"),origin:S.club}; S.military="sangmu"; S.salary=.3; S.contractYears=2; L.addMoment(S,"입대","군복무","김천 상무에 입대했습니다. 2년 동안 선수 생활과 복무를 병행합니다."); }
-  else { S.milKind="army"; S.origin=S.club; L.addMoment(S,"입대","군복무","현역으로 입대했습니다. 2년 동안 그라운드를 떠납니다."); }
+  if(kind==="sangmu"){ S.milOrigSalary=S.salary; S.milKind="sangmu"; S.club={id:K.GIMCHEON.club,name:"김천 상무",short:"김천",lg:"MIL",code:CODE("김천 상무"),origin:S.club}; S.military="sangmu"; S.salary=.3; S.contractYears=2; L.addMoment(S,"입대","군복무","김천 상무에 입대했어요. 2년 동안 선수 생활과 복무를 병행합니다."); }
+  else { S.milKind="army"; S.origin=S.club; L.addMoment(S,"입대","군복무","현역으로 입대했어요. 2년 동안 그라운드를 떠납니다."); }
 };
 function afterMil(S){ if(S.military==="sangmu"){ S.mildone++; if(S.mildone>=2){ S.military="served"; const o=S.club.origin; if(o) S.club=Object.assign({},o); S.contractYears=2; if(S.milOrigSalary){ S.salary=S.milOrigSalary; S.milOrigSalary=null; } L.addMoment(S,"전역","군복무","전역하고 "+S.club.name+"으로 복귀합니다."); } } }
 /* 현역 복무 시즌: 경기에 못 나가고 몸 상태가 조금 떨어져요 */
@@ -712,14 +713,14 @@ L.applyPromotion=function(S){
   S.promoNote=null; const ft=S.lastFT;
   if(ft){ Object.keys(PAIRS).forEach(top=>{ const sec=PAIRS[top][0], n=PAIRS[top][1]; if(!(ft[top]&&ft[sec])) return;
       const down=ft[top].slice(-n), up=ft[sec].slice(0,n); setIds(S,top,idsOf(S,top).filter(i=>!down.includes(i)).concat(up));
-      if(S.club.lg===top&&down.includes(S.club.id)){ S.club.lg=sec; S.promoNote="강등: "+S.club.name+"이(가) "+L.lgLabel(sec)+"로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) "+L.lgLabel(sec)+"로 강등되었습니다."); }
-      else if(S.club.lg===sec&&up.includes(S.club.id)){ S.club.lg=top; S.promoNote="승격: "+S.club.name+"이(가) "+L.lgLabel(top)+"로 승격했습니다."; L.addMoment(S,"승격","승격",S.club.name+"이(가) "+L.lgLabel(top)+"로 승격했습니다."); } });
+      if(S.club.lg===top&&down.includes(S.club.id)){ S.club.lg=sec; S.promoNote="강등: "+S.club.name+"이(가) "+L.lgLabel(sec)+"로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) "+L.lgLabel(sec)+"로 강등되었어요."); }
+      else if(S.club.lg===sec&&up.includes(S.club.id)){ S.club.lg=top; S.promoNote="승격: "+S.club.name+"이(가) "+L.lgLabel(top)+"로 승격했어요."; L.addMoment(S,"승격","승격",S.club.name+"이(가) "+L.lgLabel(top)+"로 승격했어요."); } });
     S.lastFT=null; }
   const t=S.lastTables; if(!t||!t.K1||!t.K2){ L.syncClubLeague(S); return; } const mil=K.GIMCHEON.club;
   const down=t.K1.filter(c=>c!==mil).slice(-2), up=t.K2.slice(0,2);
   S.league.k1=S.league.k1.filter(c=>!down.includes(c)).concat(up); S.league.k2=S.league.k2.filter(c=>!up.includes(c)).concat(down); S.lastTables=null;
-  if(S.club.lg==="K1"&&down.includes(S.club.id)){ S.club.lg="K2"; if(S.salary>8) S.salary=8; S.promoNote="강등: "+S.club.name+"이(가) K리그2로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) K리그2로 강등되었습니다."); }
-  if(S.club.lg==="K2"&&up.includes(S.club.id)){ S.club.lg="K1"; S.promoNote="승격: "+S.club.name+"이(가) K리그1으로 승격했습니다."; L.addMoment(S,"승격","승격",S.club.name+"이(가) K리그1으로 승격했습니다."); }
+  if(S.club.lg==="K1"&&down.includes(S.club.id)){ S.club.lg="K2"; if(S.salary>8) S.salary=8; S.promoNote="강등: "+S.club.name+"이(가) K리그2로 내려갑니다."; L.addMoment(S,"강등","강등",S.club.name+"이(가) K리그2로 강등되었어요."); }
+  if(S.club.lg==="K2"&&up.includes(S.club.id)){ S.club.lg="K1"; S.promoNote="승격: "+S.club.name+"이(가) K리그1으로 승격했어요."; L.addMoment(S,"승격","승격",S.club.name+"이(가) K리그1으로 승격했어요."); }
   L.syncClubLeague(S);
 };
 /* 이적 직후 승강이 일어나도 소속 리그 표시가 어긋나지 않게 맞춰 줘요 */

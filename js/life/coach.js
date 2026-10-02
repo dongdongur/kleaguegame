@@ -24,7 +24,8 @@ const TAGS={poacher:["attack","counter"],target:["direct","defend"],false9:["pos
  b2b:["press","attack"],regista:["possess"],mezz:["attack","press"],
  anchor:["defend","possess"],winner:["press","defend"],regista2:["possess"],
  stopper:["defend","direct"],ballplay:["possess","press"],libero:["attack"],
- overlap:["attack","press"],invert:["possess"],defend:["defend"],sweeper:["possess","press"],line:["defend","direct"]};
+ overlap:["attack","press"],invert:["possess"],defend:["defend"],sweeper:["possess","press"],line:["defend","direct"],
+ insidewinger:["attack","press"],widepm:["possess"],presswing:["press"],wingst:["attack","counter"],advfw:["counter","direct"],deepfw:["possess"],pressfw:["press"],trequarti:["possess","attack"],advpm:["possess","attack"],secondst:["attack","counter"],carrilero:["press","defend"],cmwinner:["press","defend"],advpm2:["possess","attack"],halfback:["possess","defend"],dmpm:["possess"],nononsense:["defend","direct"],widecb:["attack","press"],covercb:["defend"],wingback:["attack","press"],pmfb:["possess"],balfb:[],ballkeeper:["possess","press"],commandgk:["defend"],supersaver:["defend","direct"]};
 const MGR_FAM=["김","이","박","최","정","강","조","윤","장","임","한","오"], MGR_GIV=["상철","정수","동호","태영","민규","성호","재원","기영","진우","승현"];
 const MGR_FOR=["루이스 마르티네스","안드레아 로시","한스 뮐러","피에르 뒤랑","제임스 카터","라파엘 고메스","토마스 베르그","마르코 이바노비치"];
 function newCoach(S){

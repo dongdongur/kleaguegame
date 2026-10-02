@@ -213,3 +213,7 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .tierline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 6px}
 
 .ln2{display:grid;grid-template-columns:44px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}.ln2 b{color:var(--acc);font-family:var(--f-num)}
+
+.sns{display:grid;gap:2px;padding:9px 11px;margin:6px 0;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.sns b{font:700 12.5px var(--f-num);color:var(--acc2)}.sns span{font-size:14px;line-height:1.5}.sns small{color:var(--muted)}
+.sns.up{border-left:3px solid var(--acc)}.sns.dn{border-left:3px solid var(--red)}

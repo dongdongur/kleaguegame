@@ -56,7 +56,7 @@ L.STUDY={
 L.studyAbroad=function(S,key){ const d=L.STUDY[key]; if(!d) return null; const p=S.p, pos=p.pos, k1=d.stat[pos]; const names=Object.fromEntries(L.POSDEF[pos].stats);
   const others=L.POSDEF[pos].stats.map(s=>s[0]).filter(k=>k!==k1); const k2=others[Math.floor(Math.random()*others.length)];
   const g1=ri(3,5), g2=ri(1,2); p.stats[k1]=clamp(p.stats[k1]+g1,10,99); p.stats[k2]=clamp(p.stats[k2]+g2,10,99); p.ovr=L.ovrOf(p); p.peak=Math.max(p.peak,p.ovr);
-  (S.studies=S.studies||[]).push({year:S.year,key,name:d.name}); S.studied=true; L.addMoment(S,"유학","유학",d.name+" 유학으로 "+names[k1]+" +"+g1+" 성장했습니다."); L.feedAdd(S,S.year+" 유학",d.name+" 유학 — "+names[k1]+" +"+g1+" · "+names[k2]+" +"+g2,1);
+  (S.studies=S.studies||[]).push({year:S.year,key,name:d.name}); S.studied=true; L.addMoment(S,"유학","유학",d.name+" 유학으로 "+names[k1]+" +"+g1+" 성장했어요."); L.feedAdd(S,S.year+" 유학",d.name+" 유학 — "+names[k1]+" +"+g1+" · "+names[k2]+" +"+g2,1);
   if(L.logStyle) L.logStyle(S,d.name+" 유학 ("+names[k1]+" +"+g1+")"); return {k1,g1,k2,g2,names}; };
 L.EVPOOL.push({id:"study_abroad",w:3.2,when:S=>minor(S)&&S.stage==="youth"&&!S.abroadYouth&&!S.studied&&L.age(S)>=14&&L.age(S)<=17,title:"해외 단기 유학 제안",body:"지도자가 '여름 한 철 해외 축구 강국에서 배워 오면 크게 클 것'이라며 유학을 추천해요. 나라마다 배울 수 있는 게 달라요.",
  dynamic:(S,base)=>{ const keys=Object.keys(L.STUDY).sort(()=>Math.random()-.5).slice(0,3); const names=Object.fromEntries(L.POSDEF[S.p.pos].stats); const poor=S.family&&S.family.pts<=4;

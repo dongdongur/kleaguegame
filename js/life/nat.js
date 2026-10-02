@@ -97,7 +97,7 @@ L.planCallups=function(S,sim){
 /* 대회를 치러요. 결과는 {stage, title, medal, caps, goals, text} */
 L.joinTournament=function(S,c){
   const t=TOURN[c.t], p=S.p, sim=S.sim; c.done=true; const YR=c.year||S.year;
-  const inj=sim&&sim.out>3; if(inj){ const r={t:t.id,name:t.name,year:S.year,skipped:true,text:"부상으로 대표팀 소집에서 제외되었습니다."}; sim.natRecs.push(r); return r; }
+  const inj=sim&&sim.out>3; if(inj){ const r={t:t.id,name:t.name,year:S.year,skipped:true,text:"부상으로 대표팀 소집에서 제외되었어요."}; sim.natRecs.push(r); return r; }
   const ref=t.rel!=null?L.youthLevel(Math.min(L.age(S),18))+(S.stage==="youth"?S.youthTier:0)+(S.stage==="pro"?6:0):t.thr;
   const rel=p.ovr-ref+(L.traitFx(p).big-1)*12;
   const sr=clamp(logistic((rel+(t.rel!=null?t.rel:1))/3.2)*.85+.1,.1,.97);               // 대회에서의 비중(선발 확률)
@@ -122,7 +122,7 @@ L.joinTournament=function(S,c){
   const caps=Math.max(0,Math.round(games*sr)); const mf=sr>.5?.9:.5;
   const goals=binom(caps,clamp(L.shareG(p.sub)*mf*.8*Math.exp((p.ovr-ref)/30),0,.5));
   const r={t:t.id,name:t.name,short:t.short,year:YR,host:L.hostOf(t.id,YR),stage,caps,games,goals,title,medal,reached:played,rel:Math.round(rel),sr:Math.round(sr*100),text:""};
-  if(t.id==="wc"&&r.stage==="우승") r.text="월드컵 우승! 온 나라가 뒤집어졌습니다.";
+  if(t.id==="wc"&&r.stage==="우승") r.text="월드컵 우승! 온 나라가 뒤집어졌어요.";
   /* 반영 */
   S.career.caps+=caps; S.career.intGoals+=goals;
   if(sim){ sim.natRecs.push(r); sim.capsAuto+=caps; sim.intGoalsAuto+=goals; }
@@ -131,11 +131,11 @@ L.joinTournament=function(S,c){
   S.morale=clamp(S.morale+(title?12:medal?6:-1),0,100); S.cond=clamp(S.cond-6,20,100);
   const gl=(medal==="금"||title);
   if(sim){ if(title) sim.cupTitles.push(t.medal?t.name+" 금메달":t.name+" 우승"); else if(t.id==="oly"&&medal) sim.cupTitles.push(t.name+" "+stage); }
-  if(t.medal){ if((t.id==="ag"&&gl)||(t.id==="oly"&&medal)){ if(S.military==="none"||S.military==="sangmu"||S.military==="serving"&&S.milKind==="sangmu"){ if(S.military==="none"){ S.military="exempt"; r.exempt=true; L.addMoment(S,"병역 특례","병역 특례",t.name+" "+stage+"! 병역 혜택을 받았습니다."); } } } }
+  if(t.medal){ if((t.id==="ag"&&gl)||(t.id==="oly"&&medal)){ if(S.military==="none"||S.military==="sangmu"||S.military==="serving"&&S.milKind==="sangmu"){ if(S.military==="none"){ S.military="exempt"; r.exempt=true; L.addMoment(S,"병역 특례","병역 특례",t.name+" "+stage+"! 병역 혜택을 받았어요."); } } } }
   if(caps>0) L.addMoment(S,t.short+" "+(stage==="우승"||/금/.test(stage)?"우승":"출전"),t.short,t.name+" "+S.year+" · "+stage+" ("+caps+"경기 "+goals+"골)");
   L.feedAdd(S,S.year+" "+t.short,t.name+" "+stage+" · "+caps+"경기 "+goals+"골",title?1:0);
-  if(title&&carry>=.45){ r.carry=true; r.text=(t.id==="wc"?"월드컵을 혼자 지배했습니다. ":"대회를 혼자 지배했습니다. ")+"결정적인 순간마다 당신이 있었어요."; if(t.id==="wc"||t.id==="ac"){ r.golden=true; S.awards.push({year:S.year,name:t.id==="wc"?"월드컵 골든볼":"아시안컵 MVP",youth:false,comp:t.name}); } }
-  r.text=r.text||(title?"우승을 차지했습니다.":stage);
+  if(title&&carry>=.45){ r.carry=true; r.text=(t.id==="wc"?"월드컵을 혼자 지배했어요. ":"대회를 혼자 지배했어요. ")+"결정적인 순간마다 당신이 있었어요."; if(t.id==="wc"||t.id==="ac"){ r.golden=true; S.awards.push({year:S.year,name:t.id==="wc"?"월드컵 골든볼":"아시안컵 MVP",youth:false,comp:t.name}); } }
+  r.text=r.text||(title?"우승을 차지했어요.":stage);
   try{ r.matches=L.genRun(t,r,c.draw||L.drawTournament(t.id),played,typeof outRound!=="undefined"?outRound:null,title,medal,stage); }catch(e){ r.matches=[]; }
   return r;
 };

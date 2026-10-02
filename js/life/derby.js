@@ -32,7 +32,10 @@ L.derbyStart=function(S,sim){ sim.rival=L.rivalOf(S); sim.derbies=[]; };
 L.derbyMark=function(S,sim,rec,oppId){
   const rv=sim.rival; if(!rv||oppId!==rv.id||!rec) return; rec.derby=rv.name; sim.derbies.push({r:rec.r,name:rv.name,opp:rv.rivalName,f:rec.f,a:rec.a,res:rec.res,g:rec.g||0,as:rec.as||0,min:rec.min});
   if(rec.min>0){ if(rec.res==="W"){ S.morale=clamp(S.morale+4,0,100); S.fame=Math.max(0,S.fame+1.5+(rec.g?1.5:0)); } else if(rec.res==="L"){ S.morale=clamp(S.morale-4,0,100); S.fame=Math.max(0,S.fame-.5); } }
-  L.feedAdd(S,S.year+" 더비",rv.name+" ("+rv.rivalName+"전) "+rec.f+":"+rec.a+(rec.res==="W"?" 승리!":rec.res==="L"?" 패배":" 무승부"),rec.res==="W"?1:rec.res==="L"?-1:0);
+  const sc=rec.f+":"+rec.a, rvn=rv.rivalName, dn=rv.name;
+  const W=[dn+" 승리! "+rvn+"를 "+sc+"로 눌렀어요",rvn+"전 "+sc+" 승리, 서포터즈가 환호했어요",dn+"에서 웃은 쪽은 우리! "+sc,"짜릿한 "+dn+" "+sc+" 승리"], Lo=[dn+" 패배 "+sc+"… 아쉬움이 컸어요",rvn+"에 "+sc+"로 졌어요. 팬들의 한숨이 깊어요,",dn+"에서 무릎 꿇었어요 ("+sc+")",rvn+"전 "+sc+" 패배, 라커룸이 조용했어요"], Dr=[dn+" 무승부 "+sc+" — 팽팽한 승부였어요",rvn+"와 "+sc+"로 비겼어요. 승점 1점을 나눠 가졌어요",dn+" "+sc+" 무승부, 양 팀 모두 아쉬웠어요"];
+  const line=rec.res==="W"?pick(W):rec.res==="L"?pick(Lo):pick(Dr); const extra=rec.g?" ("+rec.g+"골)":"";
+  L.feedAdd(S,S.year+" 더비",line.replace(/,$/,"")+extra,rec.res==="W"?1:rec.res==="L"?-1:0);
 };
 /* 라이벌 구단으로 이적하는 경우 */
 L.isRivalMove=function(S,toClub){ const me=S.club&&(S.club.lg==="MIL"&&S.club.origin?S.club.origin.id:S.club.id); if(!me||!toClub) return null; const p=L.RIVALS.find(x=>(x[0]===me&&x[1]===toClub.id)||(x[1]===me&&x[0]===toClub.id)); return p?p[2]:null; };

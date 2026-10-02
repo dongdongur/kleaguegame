@@ -221,9 +221,9 @@ L.resolveEvent=function(S,ev,idx){
   /* 특수 결과 */
   let ending=null;
   if(o.act){ const a=String(o.act);
-    if(a==="quitNow"&&L.maybeQuit) ending={reason:"family",text:"집안 사정으로 운동을 포기하고 학업에 전념하기로 했습니다."};
-    else if(a==="quitRisk"&&!hit&&!(S.family&&(S.family.id==="rich"||S.family.id==="upper"))&&Math.random()<clamp(.35-.05*((S.points||{}).grit|0),.05,.4)) ending={reason:"family",text:"형편이 어려워 더는 운동을 이어 갈 수 없었습니다. 그래도 한때는 누구보다 빛나는 유망주였어요."};
-    else if(a==="quitRiskLow"&&!hit&&Math.random()<.2) ending={reason:"study",text:"부모님과의 약속대로 축구를 접고 학업에 매진하기로 했습니다."};
+    if(a==="quitNow"&&L.maybeQuit) ending={reason:"family",text:"집안 사정으로 운동을 포기하고 학업에 전념하기로 했어요."};
+    else if(a==="quitRisk"&&!hit&&!(S.family&&(S.family.id==="rich"||S.family.id==="upper"))&&Math.random()<clamp(.35-.05*((S.points||{}).grit|0),.05,.4)) ending={reason:"family",text:"형편이 어려워 더는 운동을 이어 갈 수 없었어요. 그래도 한때는 누구보다 빛나는 유망주였어요."};
+    else if(a==="quitRiskLow"&&!hit&&Math.random()<.2) ending={reason:"study",text:"부모님과의 약속대로 축구를 접고 학업에 매진하기로 했어요."};
     else if(a.startsWith("study:")&&hit){ const sr=L.studyAbroad(S,a.slice(6)); if(sr) lines.push(L.STUDY[a.slice(6)].name+" 유학 성과: "+sr.names[sr.k1]+" +"+sr.g1+" · "+sr.names[sr.k2]+" +"+sr.g2); }
     else if(a.startsWith("sub:")&&hit){ const sub=a.slice(4); const nm=L.POSDEF[S.p.pos].subs.find(s=>s[0]===sub); if(L.changeSub(S,sub)) lines.push("포지션 변경: "+(nm?nm[1]:sub)+" — 역할 "+L.roleName(S.p)); }
     else if(a.startsWith("role:")&&hit){ const id=a.slice(5); if(L.changeRole(S,id)) lines.push("역할 변경: "+L.roleName(S.p)); }

@@ -1,0 +1,146 @@
+/*
+ * K-라이프 시즌별 SNS·팬 반응 (js/life/reactions.js)
+ * 시즌이 끝나면 그 시즌의 성적·수상·더비·부상·이적에 맞춰 기사 제목 하나와 SNS 글 4~6개가 나와요.
+ * 인기가 높을수록 '좋아요'가 많아지고, 인성이 낮으면 비꼬는 글이 섞여요. (모든 계정은 가상이에요)
+ */
+(function(){
+"use strict";
+const L=window.LIFE; if(!L) return;
+const {pick,ri,rnd,clamp,shuffle}=L;
+/* 조사(은/는·이/가·을/를·과/와·으로/로)를 앞 글자의 받침에 맞춰 붙여요 */
+const jong=s=>{ const ch=String(s).trim().slice(-1).charCodeAt(0); if(ch<0xAC00||ch>0xD7A3) return 0; return (ch-0xAC00)%28; };
+const JOSA={"은":["은","는"],"는":["은","는"],"이":["이","가"],"가":["이","가"],"을":["을","를"],"를":["을","를"],"과":["과","와"],"와":["과","와"]};
+const fill=(t,c)=>t.replace(/\{(\w+)\}(으로|로|은|는|이|가|을|를|과|와)?/g,(m,k,j)=>{ if(c[k]==null) return m; const v=String(c[k]); if(!j) return v; if(j==="으로"||j==="로"){ const f=jong(v); return v+((f===0||f===8)?"로":"으로"); } const p=JOSA[j]; return v+(jong(v)?p[0]:p[1]); });
+const HANDLE=["@골은_발끝에서","@직관러_하늘","@축구밥_먹는중","@전술칠판_김씨","@야식과_중계","@주말엔_경기장","@킥오프_5분전","@벤치워머_응원단","@라인업_분석가","@오프사이드_벗어나","@서포터_막내","@엄마가_제일_좋아해","@축덕_밤샘러","@하이라이트_수집가","@수비는_예술이다","@패스마스터_덕후"];
+const likes=(S,tone)=>{ const f=1+L.fameEff(S.fame)/16; const v=Math.round(ri(12,160)*f*(tone>0?1.3:tone<0?1.1:1)); return v>=1000?(Math.round(v/100)/10)+"k":v; };
+
+/* [조건, 어조(+1 칭찬/0 중립/-1 비판), 가중치, 문구들] */
+const P=(cond,tone,w,texts)=>({cond,tone,w,texts});
+const POOL=[
+ /* 우승 */
+ P(c=>c.leagueTitle,1,5,["{c} 우승!!! 울었다 진짜ㅠㅠ 올해 {n} 없었으면 불가능했음","리그 우승 축하해요 {n}! 올 한 해 정말 고마웠어요 🏆","우승 세리머니 보다가 눈물 났다… {c} 팬이라 행복하다"]),
+ P(c=>c.cupTitle,1,3,["{cup} 우승 확정! {n} 선수 활약 미쳤다","트로피 들어 올리는 {n} 보고 소름 😭"]),
+ P(c=>c.uclTitle,1,6,["챔스 우승…? 이게 현실이야? {n} 사랑해요 🏆⭐","유럽 정상에 선 {c}! 오늘 밤은 아무도 못 잔다","{n} 챔피언스리그 우승 한 줄 요약: 전설"]),
+ P(c=>c.wcTitle,1,6,["월드컵 우승!!! 대한민국 만세!!!! {n} 국민 영웅이다","온 나라가 뒤집어졌다… {n} 고마워요 진짜","월드컵 트로피 든 {n} 사진 폰 배경화면 확정"]),
+ P(c=>c.ballonWin,1,6,["{n} 발롱도르 수상… 한국 축구 역사를 새로 썼다","세계 최고의 선수가 우리나라에서 나왔다니 믿기지 않아요","발롱도르 {n}! 올해 이 선수를 응원한 게 자랑스럽다"]),
+ /* 개인 활약 */
+ P(c=>c.goldenBoot,1,4,["득점왕 {n}! {g}골 실화냐 ㅋㅋㅋ","{n} {g}골… 수비수들 오늘도 울었다","올 시즌 골 장인은 {n}, 인정?"]),
+ P(c=>c.mvp,1,4,["올해의 선수 {n}, 이견 없습니다","MVP는 {n}이지 누가 와도 이건 못 이겨요"]),
+ P(c=>c.bestXI,1,2,["베스트 11 {n} 포함 당연한 결과 ㅎㅎ","올해의 팀에 {n} 이름 보이니까 괜히 뿌듯하다"]),
+ P(c=>c.hot&&!c.goldenBoot,1,3,["{n} 요즘 컨디션 미쳤다. 평점 {rt} 실화?","{n} 경기 볼 때마다 한 건 한다","오늘도 {n}한테 눈이 간다… 성장 속도 무섭네"]),
+ P(c=>c.goals>=15&&!c.goldenBoot&&c.pos!=="GK",1,2,["{g}골이나 넣었는데 득점왕이 아니라니… 리그 수준 인정","{n} {g}골 {a}도움! 올해 몫은 충분히 했다"]),
+ P(c=>c.cs>=15&&(c.pos==="GK"||c.pos==="DF"),1,3,["{n} 뒤에 서 있으면 든든하다 클린시트 {cs}번","무실점 {cs}경기… 벽이 있다 벽이"]),
+ P(c=>c.assists>=10&&c.pos!=="GK",1,2,["{n}의 패스는 예술이야. {a}도움 보고 가세요","도움왕은 못 했어도 팬들한테는 이미 도움왕"]),
+ P(c=>c.grow>=4,1,3,["{n} 올해 OVR +{grow} 급성장 실화냐… 내년이 기대된다","한 시즌 만에 이렇게 크다니, 훈련 얼마나 한 거야"]),
+ /* 순위 */
+ P(c=>c.topHalf&&!c.leagueTitle&&c.rank<=4,1,2,["{c} {rank}위! 내년엔 우승 가자","상위권 마무리 고생했어요 {c}! 팬들은 만족해요"]),
+ P(c=>c.rank>=c.N-2&&!c.promoted,-1,4,["{c} 이 성적 뭐냐… 팬들 속 터진다","강등권이라니… 구단 뭐 하는 거야","{n}은 열심히 뛰었는데 팀이 못 받쳐 준다 ㅠ"]),
+ P(c=>c.relegated,-1,6,["강등이라니… 믿기지 않는다. {c} 팬 눈물 마를 날이 없네","{c} 강등 확정… {n}은 어디로 가나요?","1부에서 다시 봅시다. 끝까지 응원할게요"]),
+ P(c=>c.promoted,1,5,["승격!!! {c} 1부로 간다!! {n} 고마워요","2부 지옥 탈출! 올 한 해 고생했어요 모두"]),
+ /* 부진·부상 */
+ P(c=>c.rating>0&&c.rating<6.2&&c.apps>=10,-1,4,["{n} 요즘 폼 왜 이래… 평점 {rt}","솔직히 올해 {n} 아쉬웠다. 내년엔 다를 거라 믿는다","중요한 순간마다 실수가… 팬으로서 속상하다"]),
+ P(c=>c.apps<8&&!c.injury&&c.stage==="pro",-1,3,["{n}은 올 시즌 뭐 했나요? 출전 기록이 거의 없다","벤치만 지키는 {n}… 이적설 나오겠네"]),
+ P(c=>c.injury&&c.severe,0,5,["{n} 큰 부상이라니… 제발 건강하게 돌아와요 🙏","재활 잘 하고 돌아와. 우리는 기다릴게!","부상 소식에 가슴이 철렁했다. 빨리 낫길"]),
+ P(c=>c.injury&&!c.severe,0,2,["잔부상이 많네 ㅠ 관리 잘하세요 {n}!"]),
+ /* 더비 */
+ P(c=>c.derbyW>0&&c.derbyL===0,1,6,["{d} 이겼다!!! {rv}한테 졌다는 소리 안 듣고 산다 😎","{rv}전 승리 기념으로 오늘 치킨은 {c} 팬이 쏩니다","{d}는 우리의 것! {n} 오늘 영웅"]),
+ P(c=>c.derbyL>0&&c.derbyW===0,-1,6,["{d} 졌다… 일주일 동안 {rv} 팬들한테 놀림받겠네","{rv}한테 지다니 자존심이 상한다 ㅠ","{d} 패배… {n} 선수 잘못은 아닌데 마음이 무겁다"]),
+ P(c=>c.derbyW>0&&c.derbyL>0,0,4,["{d} 1승 1패. 올해 {rv}와는 엎치락뒤치락이네요","더비 결과가 이렇게 극과 극이라니 심장에 안 좋다"]),
+ P(c=>c.derbyG>0,1,5,["{n} {d}에서 골!! 서포터즈 난리 났다 🔥","더비에서 골 넣는 {n}, 이래서 응원한다"]),
+ P(c=>c.derbyD>0&&c.derbyW===0&&c.derbyL===0,0,3,["{d} 무승부… 이겼어야 하는데 ㅠ","{rv}와 비겨서 아쉽지만 지지 않은 게 어디야"]),
+ /* 이적·리그 */
+ P(c=>c.newClub,0,5,["{n} {c} 입단 소식! 새 유니폼 입은 모습 기대된다","이적 소식에 팬들 반응 반반… {n} 믿고 가 봅시다","{c} 팬들 {n} 환영합니다! 잘 부탁해요"]),
+ P(c=>c.rivalMove,-1,6,["{n}이 {rv}행이라니… 배신감에 밤새 잠을 못 잤다","팬을 이렇게 떠나가네요. 잊지 않겠습니다"]),
+ P(c=>c.foreign&&c.stage==="pro",1,2,["해외에서 뛰는 {n} 경기 챙겨 보느라 새벽에 일어난다","한국 선수가 이 무대에서 이름을 알리는 게 뿌듯하다"]),
+ P(c=>c.natTitle,1,4,["{nat} 활약 보고 소름… 국대 {n} 최고","국가대표 {n} 오늘도 믿음직했다 🇰🇷"]),
+ P(c=>c.natOut,0,3,["{nat} 아쉽다… 그래도 열심히 뛴 선수들 박수 보냅니다","{n} 고생했어요. 다음 대회에서 다시 만나요"]),
+ /* 유소년 */
+ P(c=>c.stage!=="pro",1,5,["{n} 이번 시즌도 열심히 했네! 부모님도 흐뭇하시겠다","동네에서 {n} 모르는 사람 없음 ㅋㅋ 곧 프로 가겠다","학교 축구부 에이스 {n}, 응원합니다!"]),
+ P(c=>c.stage!=="pro"&&c.rating<6.3,0,3,["{n}은 아직 크는 중. 조급해하지 말고 천천히 가자","이번 시즌은 아쉬웠지만 성장통일 거예요"]),
+ /* 인성 */
+ P(c=>c.char<=30,-1,5,["{n} 인성 논란 또… 실력만 믿고 저러면 안 되죠","팬 서비스가 이게 뭐냐 진짜 실망이다","축구만 잘하면 다인가요? 태도가 문제라고 봅니다"]),
+ P(c=>c.char>=75,1,4,["{n} 인성까지 갖춘 선수. 이런 선수가 오래 사랑받는다","후배 챙기는 모습 보고 팬이 됐어요","기부 소식 보고 감동… 축구 실력도 인성도 최고"]),
+ P(c=>c.fameHi,1,2,["{n} 광고에서 보고 반가웠다 ㅋㅋ 이제 연예인 수준","어디를 가도 {n} 얘기. 월드스타 맞네"]),
+ /* 공통 중립 */
+ P(c=>true,0,3,["올 시즌도 수고했어요 {n}! 내년에도 응원합니다","{n} 시즌 기록 정리해 봤는데 꽤 괜찮은 한 해였다","{c} 팬이라서 행복한 시즌이었다고 해 두자","{n} 경기 하이라이트 돌려 보는 중… 이게 낙이다"])
+];
+const HEAD=[
+ [c=>c.ballonWin,["{n}, 올해의 발롱도르! 세계 최고의 이름이 되다","'세계 최고' {n}, 발롱도르 품에 안았다"]],
+ [c=>c.wcTitle,["{n}의 월드컵 — 온 나라가 환호했다","월드컵 정상 오른 {n}, 우승 주역"]],
+ [c=>c.uclTitle,["{c}, 유럽 정상 등극! 중심에 {n}","{n}과 {c}의 챔피언스리그 우승 동화"]],
+ [c=>c.leagueTitle,["{c} 리그 우승! 에이스 {n}","'우승 청부사' {n}, {c}에 트로피를 안겼다"]],
+ [c=>c.goldenBoot,["{n} {g}골, 올 시즌 득점왕","득점왕 {n}, 발끝이 리그를 지배했다"]],
+ [c=>c.derbyW>0&&c.derbyG>0,["{d}의 주인공은 {n} — 결승골로 라이벌 제압","{n}의 {d}, 서포터즈가 열광했다"]],
+ [c=>c.derbyW>0,["{d} 승리! {c}가 {rv}를 눌렀다","{rv}전 승리로 자존심 지킨 {c}"]],
+ [c=>c.relegated,["{c} 강등의 아픔… {n}의 내일은?","강등된 {c}, 에이스 {n}의 선택은"]],
+ [c=>c.promoted,["승격 성공! {c}, 1부 무대로","{n}이 이끈 {c}의 승격 드라마"]],
+ [c=>c.injury&&c.severe,["{n}, 큰 부상으로 시즌 마감… 재활 돌입","'부상 악재' {n}, 복귀 시점은?"]],
+ [c=>c.grow>=4,["{n}, 한 시즌 만에 OVR +{grow} 급성장","'급성장' {n}, 다음 시즌이 더 기대된다"]],
+ [c=>c.rating>0&&c.rating<6.2&&c.apps>=10,["{n}, 부진의 늪… 반등 필요","흔들린 {n}, 팬들의 시선이 쏠린다"]],
+ [c=>c.newClub,["{n}, {c} 새 유니폼 입고 새 출발","{c}의 선택은 {n} — 기대와 우려 교차"]],
+ [c=>c.stage!=="pro",["유망주 {n}, 올 시즌 성장 리포트","{n}의 시즌 — 어디까지 클 수 있을까"]],
+ [c=>true,["{n}, {c}에서 {rank}위로 시즌 마무리","{n}의 한 시즌 — {c} {rank}위의 기록"]]
+];
+L.reactions=function(S,R){
+  const club=(R.club&&(R.club.short||R.club.name))||(S.club&&S.club.name)||"우리 팀"; const pro=!R.youth&&S.stage==="pro";
+  const prev=[...S.history].reverse().filter(h=>!h.youth&&h.year!==R.year)[0];
+  const D=R.derbies||[]; const dW=D.filter(d=>d.res==="W").length, dL=D.filter(d=>d.res==="L").length, dD=D.filter(d=>d.res==="D").length, dG=D.reduce((s,d)=>s+(d.g||0),0);
+  const nat=(R.natEvents||[]).filter(e=>!e.skipped&&!e.declined); const natT=nat.find(e=>e.title), natO=nat.find(e=>!e.title);
+  const trophies=R.trophies||[]; const awards=R.awards||[];
+  const c={n:S.p.name,c:club,rank:R.rank||0,N:R.N||20,rt:R.rating||0,rating:R.rating||0,apps:R.apps||0,goals:R.goals||0,g:R.goals||0,a:R.assists||0,assists:R.assists||0,cs:R.cs||0,pos:S.p.pos,stage:S.stage,
+    leagueTitle:R.rank===1&&!R.matches_none,
+    cupTitle:trophies.some(t=>/컵|포칼|코파|쿠프|일왕배|킹스컵/.test(t)&&/우승/.test(t)), cup:(trophies.find(t=>/컵|포칼|코파|쿠프|일왕배|킹스컵/.test(t))||"컵대회").replace(/ 우승/,""),
+    uclTitle:trophies.some(t=>/챔피언스리그 우승/.test(t)), wcTitle:natT&&/월드컵/.test(natT.name),
+    ballonWin:awards.includes("발롱도르"), goldenBoot:awards.some(a=>/득점왕|골든부트/.test(a)&&!/공동/.test(a)), mvp:awards.some(a=>/MVP|올해의 선수/.test(a)), bestXI:awards.some(a=>/베스트 11|올해의 팀/.test(a)),
+    hot:R.rating>=7.4, grow:R.dOvr||0, injury:!!R.injury, severe:!!(R.injury&&R.injury.severe), topHalf:R.rank&&R.rank<=R.N/2,
+    relegated:false, promoted:false,
+    derbyW:dW,derbyL:dL,derbyD:dD,derbyG:dG,d:D[0]?D[0].name:"",rv:D[0]?D[0].opp:"",
+    newClub:!!(prev&&prev.clubId&&prev.clubId!==(R.club&&R.club.id)), rivalMove:false, foreign:!!(S.club&&L.isForeign(S.club.lg)),
+    natTitle:!!natT, natOut:!!natO&&!natT, nat:(natT||natO||{}).short||"대표팀",
+    char:L.charOf?L.charOf(S):50, fameHi:S.fame>=100};
+  /* 다음 시즌 준비 때 판정하는 강등·승격은 결과 직후에는 알 수 없어서 순위로 짐작해요 */
+  if(!c.relegated&&pro&&R.rank&&R.N&&R.rank>R.N-3&&["K1","EPL","LAL","BUN","SEA","L1","J1","SPL"].includes(R.leagueKey)) c.relegated=true;
+  if(!c.promoted&&pro&&R.rank&&R.rank<=2&&["K2","EPL2","LAL2","BUN2","SEA2","FR2","J2","SPL2"].includes(R.leagueKey)) c.promoted=true;
+  /* 문구 뽑기: 맞는 후보 중 가중치로, 같은 계열(어조)이 몰리지 않게 */
+  const cand=POOL.filter(p=>p.cond(c)); const posts=[]; const used=new Set(); let guard=0;
+  const want=ri(4,6); const sorted=shuffle(cand).sort((a,b)=>(b.w*Math.random())-(a.w*Math.random()));
+  for(const p of sorted){ if(posts.length>=want||guard++>40) break; const t=pick(p.texts); if(used.has(t)) continue; used.add(t); posts.push({h:pick(HANDLE),t:fill(t,c),tone:p.tone,likes:likes(S,p.tone)}); }
+  /* 좋은 글만/나쁜 글만 나오면 한 줄 중립 글을 섞어요 */
+  const headC=HEAD.find(h=>h[0](c)); const headline=fill(pick(headC[1]),c);
+  const ord=posts.sort((a,b)=>b.tone-a.tone);
+  return {headline,posts:ord};
+};
+/* ===== 구간마다 나오는 '경기 직후 SNS' ===== */
+const SEG=[
+ [x=>x.hat,1,3,["해트트릭!!! {n} 오늘 미쳤다 ㅋㅋㅋㅋ 공은 둥글고 {n}은 위대하다","{n} 해트트릭 실화냐… 하이라이트 계속 돌려 보는 중","오늘 경기 MOM 이견 없음. 해트트릭 {n} 🔥"]],
+ [x=>x.goalDerby,1,3,["{d}에서 {n} 골!!! 서포터즈석 폭발했다","{rv}전 골 넣은 {n} 형 오늘 치킨 쏴라 ㅋㅋ","{d} 득점 {n}… 이건 평생 회자될 장면"]],
+ [x=>x.derbyW&&!x.goalDerby,1,3,["{d} 승리!! 퇴근길 발걸음이 가볍다","{rv} 팬들 오늘 조용하겠네 ㅎㅎ {c} 승리"]],
+ [x=>x.derbyL,-1,3,["{d} 졌다… 월요일이 두렵다","{rv}한테 지는 건 정말 못 참겠다 ㅠㅠ","{d} 패배 후유증 오래 갈 듯"]],
+ [x=>x.derbyD,0,2,["{d} 무승부… 반반 섞인 감정","{rv}전 비겼다. 이긴 것 같기도 진 것 같기도"]],
+ [x=>x.mom,1,2,["오늘 {n} 평점 {rt}… 경기 지배했다","{n} 오늘 컨디션 최고. 공 잡을 때마다 기대된다"]],
+ [x=>x.streakW,1,2,["{c} {w}연승 ㅋㅋㅋ 이 기세 유지하자","연승 분위기 좋다! 이번 구간 {n}이 중심에 있었다"]],
+ [x=>x.streakL,-1,3,["{c} 어쩌다 이렇게… 연패라니","팬들 마음이 무겁다. 반등이 필요해요","{n}도 힘들겠지만 팬들도 힘들다 ㅠ"]],
+ [x=>x.inj,0,3,["{n} 부상이라니… 괜찮은 거 맞죠? 🙏","구단 공식 발표 기다리는 중. 큰 부상 아니길","{n} 쾌유를 빕니다. 천천히 돌아와요"]],
+ [x=>x.bench&&!x.inj,-1,2,["{n} 이번 구간엔 거의 못 봤다… 감독님 왜 안 쓰시나요","{n} 출전 시간이 너무 적다 ㅠ"]],
+ [x=>x.cleanSheets,1,2,["무실점 {cs}경기 😎 뒷문이 단단하다","{n} 뒤에서 막아 주니까 든든하다"]]
+];
+L.segReactions=function(S,out){
+  if(!out||!out.recs) return null; const recs=out.recs.filter(r=>r.min>0); const D=out.recs.filter(r=>r.derby); const club=S.club&&(S.club.short||S.club.name)||"우리 팀";
+  const lg=out.recs.filter(r=>r.comp==="리그"); const W=lg.filter(r=>r.res==="W").length, Lo=lg.filter(r=>r.res==="L").length;
+  const x={n:S.p.name,c:club,hat:recs.some(r=>r.g>=3),goalDerby:D.some(r=>r.g>0),derbyW:D.some(r=>r.res==="W"),derbyL:D.some(r=>r.res==="L"),derbyD:D.some(r=>r.res==="D")&&!D.some(r=>r.res!=="D"),
+    d:D[0]?D[0].derby:"",rv:D[0]?(S.sim&&S.sim.rival?S.sim.rival.rivalName:"라이벌"):"",mom:recs.some(r=>r.rt>=9),rt:Math.max(0,...recs.map(r=>r.rt||0)),streakW:W>=4&&Lo===0,w:W,streakL:Lo>=3&&W===0,inj:!!out.inj,bench:recs.length===0&&lg.length>=3,cs:recs.filter(r=>r.cs).length,cleanSheets:recs.filter(r=>r.cs).length>=3};
+  const cand=SEG.filter(s=>s[0](x)); if(!cand.length||Math.random()>.7) return null;
+  const sorted=shuffle(cand).sort((a,b)=>(b[2]*Math.random())-(a[2]*Math.random())); const posts=[]; const used=new Set();
+  sorted.slice(0,3).forEach(s=>{ const t=pick(s[3]); if(used.has(t)) return; used.add(t); posts.push({h:pick(HANDLE),t:fill(t,x),tone:s[1],likes:likes(S,s[1])}); });
+  return posts.length?{posts:posts.slice(0,3)}:null;
+};
+/* ===== 이번 구간 빅매치 미리보기 (기대감을 올려요) ===== */
+L.upcoming=function(S){
+  const sim=S.sim; if(!sim||sim.seg>=sim.segs.length) return []; const seg=sim.segs[sim.seg], end=sim.segEnd[sim.seg]; const out=[];
+  if(sim.rival){ const rv=sim.rival; const hits=[]; for(let i=sim.r;i<end;i++){ const rd=sim.rounds[i]; if(!rd) continue; rd.forEach(([h,a])=>{ if((h===sim.myId&&a===rv.id)||(a===sim.myId&&h===rv.id)) hits.push({r:i+1,home:h===sim.myId}); }); }
+    hits.forEach(h=>out.push({ic:"🔥",t:rv.name+" · "+rv.rivalName+"전 ("+h.r+"라운드, "+(h.home?"홈":"원정")+")",d:pick(["도시가 들썩이는 경기예요.","지면 한 달이 괴로워지는 경기예요.","서포터즈가 일찌감치 모여들고 있어요.","이 경기만큼은 꼭 이기고 싶어요."])})); }
+  (sim.cups||[]).forEach(c=>{ if(!c.alive) return; const rd=c.rounds[c.round]; if(!rd||rd.at!==seg.id) return; const big=/결승|4강|8강|16강/.test(rd.n); out.push({ic:c.id==="ucl"?"⭐":c.id==="acl"?"🌏":c.id==="uel"?"🟠":"🏆",t:c.name+" "+rd.n,d:big?"한 번 지면 끝이에요. 긴장감이 올라가요.":"이번에도 한 걸음 더 나아가요."}); });
+  (sim.callups||[]).filter(c=>c.after===seg.id&&!c.done).forEach(c=>out.push({ic:"🇰🇷",t:c.name+" 대표팀 소집 ("+(c.host||"")+")",d:"명단에 이름이 올랐어요. 소집 여부를 곧 선택해요."}));
+  return out;
+};
+})();
