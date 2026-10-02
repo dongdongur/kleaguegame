@@ -148,6 +148,24 @@ L.marketValue=function(S){
   return Math.max(.1,r1(1.2*Math.exp((p.ovr-60)/6.2)*ageF*lgF*clamp(.6+S.rep/150,.6,1.3)));
 };
 L.pushValue=function(S){ (S.valueHist=S.valueHist||[]).push({year:S.year,age:age(S),club:S.club?S.club.name:"",lg:S.club?S.club.lg:"",val:L.marketValue(S),ovr:S.p.ovr,mil:S.military==="sangmu"||S.military==="serving"}); };
+/* ================= 세대 계승 =================
+ * 은퇴한 선수의 자녀로 새 인생을 시작해요. 부모의 전성기 능력이 재능의 바탕이 되고, 같은 포지션이면 안정적이지만
+ * 다른 포지션을 고르면 부모보다 훨씬 좋은 재능을 받을 수도, 덜 좋은 재능을 받을 수도 있어요. 집안 형편은 부모의 커리어 점수로 정해져요. */
+L.childTalent=function(S,pos){
+  const P=S.p.peak, same=pos===S.p.pos; const base=58+(P-58)*.5;
+  const spread=same?9:17; const pot=clamp(Math.round(base+(Math.random()+Math.random()-1)*spread+(same?2:0)),55,97);
+  return {pot,grade:pot>=90?"S":pot>=82?"A":pot>=74?"B":"C",same,base:Math.round(base),spread};
+};
+L.childFamily=function(S){
+  const sc=L.legacy(S).total; const id=sc>=2800?"rich":sc>=1900?"upper":sc>=1200?"mid":sc>=700?"tight":"poor"; return FAMILY.find(f=>f.id===id);
+};
+L.createChild=function(S,o){
+  const tal=L.childTalent(S,o.pos); const trait=Math.random()<.5?S.p.trait:o.trait; const hidden=S.p.hidden&&Math.random()<.3?S.p.hidden:L.rollHidden();
+  const C=L.create({name:o.name,pos:o.pos,sub:L.POSDEF[o.pos].subs[0][0],type:L.TYPES[o.pos][Math.floor(Math.random()*3)][0],route:"mid",talent:{pot:tal.pot,grade:tal.grade},trait,hidden,foot:S.p.foot});
+  const f=L.childFamily(S); C.family={id:f.id,name:f.name,pts:f.pts,pts0:f.pts,note:f.note}; C.funds=r1(.1+f.funds*.1);
+  C.gen=(S.gen||1)+1; C.parent={name:S.p.name,pos:S.p.pos,peak:S.p.peak,grade:L.legacyGrade(L.legacy(S).total)};
+  return {state:C,talent:tal};
+};
 /* ================= 구단·리그 ================= */
 const KDEFS=()=>K.TEAMS26.concat([K.GIMCHEON],K.K2_DEFS);
 L.defById=id=>KDEFS().find(d=>d.club===id);

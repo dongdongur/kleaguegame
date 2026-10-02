@@ -360,9 +360,18 @@ function retiredView(){
    ${valueChart()}${playStyle()}${honours()}${legendCard()}
    ${S.moments.length?`<section class="card flat"><h3 class="sec">하이라이트</h3>${S.moments.slice(-12).reverse().map(m=>`<p class="muted">${m.year} · ${esc(m.text)}</p>`).join("")}</section>`:""}
    <section class="card flat"><h3 class="sec">명예의 전당 등록</h3><p class="muted">서버에 등록하면 친구들이 내 선수를 보고 비교할 수 있어요.</p>${S.hofUp?'<p class="note good">등록 완료! 친구 명예의 전당에서 확인해 보세요.</p>':`<input type="text" id="nick" maxlength="12" placeholder="닉네임" value="${esc(((()=>{ try{ return localStorage.getItem("klife-nick")||""; }catch(e){ return ""; } })()))}"><button class="wide" data-act="hofup">서버에 등록</button>`}<button class="ghost" data-act="hoflist">친구들 명예의 전당 보기</button></section>
+   ${childCard()}
    <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button><button class="wide" data-act="home">처음으로</button></main>`;
 }
 
+function childCard(){
+  const fam=L.childFamily(S);
+  return `<section class="card flat"><small class="kick">NEXT GENERATION</small><h3 class="sec">세대 계승 — 자녀로 이어하기</h3>
+   <p class="muted">부모(전성기 OVR ${S.p.peak})의 재능이 자녀에게 이어져요. 같은 포지션이면 안정적이고, 다른 포지션을 고르면 부모보다 훨씬 좋거나 훨씬 나쁜 재능이 나올 수 있어요. 집안 형편은 부모의 커리어로 정해져요 (<b>${esc(fam.name)}</b>).</p>
+   <input type="text" id="kid" maxlength="8" placeholder="자녀 이름" value="${esc(S.p.name.slice(0,1))}">
+   <div class="chips">${Object.keys(L.POSDEF).map(k=>`<button data-act="kidpos" data-v="${k}" class="${(draft.kidPos||S.p.pos)===k?"on":""}">${POSK[k]}${k===S.p.pos?" (부모와 같음)":""}</button>`).join("")}</div>
+   <button class="wide" data-act="kid">자녀 키우기 →</button></section>`;
+}
 /* ================= 팝업 ================= */
 function loadHtml(){
   const L0=loading;
@@ -482,6 +491,9 @@ document.addEventListener("click",e=>{
     case "transfer": { const o=off.transfers[+v]; L.doTransfer(S,o); off.accepted=true; off.transfers=[]; off.contract={last:o.salary,offer:o.salary,rate:0,years:o.years}; S.contractYears=o.years; save(); say(o.club.name+"(으)로 이적했어요"); break; }
     case "mil": { if(v==="skip"){ off.milDone=true; } else { L.enlist(S,v); off.milDone=true; if(v==="army"){ off.transfers=[]; } off.contract=L.contractOffer(S); } save(); render(); break; }
     case "retire": doRetire(); break;
+    case "kidpos": { const k=(document.getElementById("kid")||{}).value; draft.kidName=k; draft.kidPos=v; render(); break; }
+    case "kid": { const nm=((document.getElementById("kid")||{}).value||draft.kidName||"").trim(); if(nm.length<2){ say("자녀 이름을 두 글자 이상 적어 주세요"); break; } const pos=draft.kidPos||S.p.pos; const res=L.createChild(S,{name:nm,pos,trait:S.p.trait}); const par=S; S=res.state; plan={focus:"",invest:"",alloc:{}}; view="game"; tab="season"; save();
+      const tl=res.talent; modals.push({t:"msg",kick:"NEXT GENERATION",title:nm+" — "+par.p.name+"의 "+(S.gen)+"세대",body:(tl.same?"부모와 같은 포지션이라 재능이 안정적으로 이어졌어요.":"다른 포지션을 선택해 재능이 크게 달라질 수 있었어요.")+" 재능 바탕 "+tl.base+" (±"+tl.spread+" 범위)에서 뽑은 결과는 비밀이에요. 첫 시즌 뒤 스카우터가 알려줄 거예요. 집안 형편: "+S.family.name+"."}); render(); break; }
     case "hoflist": view="hof"; render(); hofLoad(); break;
     case "hofcmp": modals.push({t:"hofcmp",a:hofRows[+v]}); render(); break;
     case "hofup": { const nk=(document.getElementById("nick")||{}).value||""; if(!nk.trim()){ say("닉네임을 적어 주세요"); break; } try{ localStorage.setItem("klife-nick",nk.trim()); }catch(_){} hofPost(hofEntry(nk.trim())).then(()=>{ S.hofUp=true; save(); render(); say("명예의 전당에 등록했어요"); }).catch(e=>say(e.message)); break; }
