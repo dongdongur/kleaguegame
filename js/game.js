@@ -260,17 +260,19 @@ function repBars(c){
   return box; }
 function openPress(title,qs,done){
   const m=$("modal"); m.innerHTML=""; m.hidden=false; m.onclick=null;
-  const box=el("div","m-box press"); const c=S.career; let i=0;
+  const box=el("div","m-box press"); const c=S.career; let i=0; const results=[];
   const draw=()=>{
     box.innerHTML="";
-    if(i>=qs.length){ box.append(el("h3",null,title+" 종료"), el("p","hint","기자회견이 끝났어요. 답변에 따라 팬 신뢰, 언론, 선수단 사기가 달라졌어요."), repBars(c));
+    if(i>=qs.length){ box.append(el("h3",null,title+" 종료"), el("p","hint","선택에 따라 팬 신뢰, 언론, 선수단 사기가 달라졌어요."));
+      if(results.length){ const ul=el("ul","swaplog"); results.forEach(t=>ul.appendChild(el("li",null,t))); box.appendChild(ul); }
+      box.appendChild(repBars(c));
       if(c.goal) box.appendChild(el("p","hint","이번 시즌 공개 목표: "+c.goal.label+" (시즌 끝에 달성 여부를 따져요)"));
       const ok=el("button","btn go big","확인 →"); ok.type="button"; ok.onclick=()=>{ m.hidden=true; renderAll(); if(done) done(); }; box.appendChild(ok); return; }
     const q=qs[i];
-    box.append(el("small","c-kicker",title+" · 질문 "+(i+1)+"/"+qs.length), el("p","press-who",q.who), el("h3","press-q","“"+q.text+"”"), repBars(c));
+    box.append(el("small","c-kicker",title+" · "+(i+1)+"/"+qs.length), el("p","press-who",q.who), el("h3","press-q",q.kind==="event"?q.text:"“"+q.text+"”"), repBars(c));
     const ls=el("div","press-ans");
-    q.answers.forEach(a=>{ const b=el("button","press-a",a.label); b.type="button";
-      b.onclick=()=>{ KLPress.apply(c,a); i++; draw(); }; ls.appendChild(b); });
+    q.answers.forEach(a=>{ const b=el("button","press-a",a.label+(a.chance!=null&&a.chance<100?"  (성공 확률 "+a.chance+"%)":"")); b.type="button";
+      b.onclick=()=>{ const r=KLPress.apply(c,a); if(r&&r.text) results.push((r.hit?"✔ ":"✖ ")+r.text); i++; draw(); }; ls.appendChild(b); });
     box.appendChild(ls);
   };
   draw(); m.appendChild(box);
@@ -552,7 +554,8 @@ function runSeason(){
     year:c.year,seasonNo:c.no,div:c.div,k1:c.k1,k2:c.k2,aclQualified:c.aclQ,boost:c.boost,roles:S.roles,morale:KLPress.moraleFx(c)+captainFx()});
   KLPress.settle(R,c);
   recordSeason(R);
-  showResults(R);
+  const pv=KLPress.pivot(R,c);
+  if(pv.length) openPress("결정적 순간",pv,()=>showResults(R)); else showResults(R);
 }
 /* 승강으로 K리그1·K리그2 팀 목록과 내 소속 리그를 바꿔요 */
 function applyMoves(R){
@@ -1199,7 +1202,7 @@ $("spinBtn").onclick=()=>spin(false);
 $("respinBtn").onclick=()=>spin(true);
 $("mgrBtn").onclick=drawMgr;
 $("benchBtn").onclick=startBench;
-$("simBtn").onclick=()=>{ if(S.done){ enterWinter(); } else if(ready()){ const go=()=>openPress("부임 기자회견",KLPress.pre(S.career,S),runSeason); if(!S.sign) openContract(go); else go(); } };
+$("simBtn").onclick=()=>{ if(S.done){ enterWinter(); } else if(ready()){ const go=()=>openPress("부임 기자회견",KLPress.pre(S.career,S),()=>{ const ev=KLPress.events(S.career,S); if(ev.length) openPress("시즌 이벤트",ev,runSeason); else runSeason(); }); if(!S.sign) openContract(go); else go(); } };
 $("hard").onchange=()=>{ renderOffers(); renderPitch(); };
 
 newState(); { const n=store.get("kl38-nick"); if(n) $("nick").value=n; }

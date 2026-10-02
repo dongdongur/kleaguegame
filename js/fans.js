@@ -123,6 +123,66 @@ function post(R){
     answers:[{label:"과감하게 보강하겠습니다. 필요한 자리는 확실히 채우겠습니다.",f:2,p:1,s:1},{label:"지금 선수들을 믿습니다. 큰 변화는 없을 겁니다.",f:0,p:0,s:2},{label:"냉정하게 평가해 정리할 선수는 정리하겠습니다.",f:1,p:1,s:-2}]});
   return qs;
 }
+/* ================= 시즌 이벤트 (선수단·구단·언론) =================
+ * 시즌이 시작되기 전에 일어나는 사건들. 선택지마다 성공 확률(chance)이 있으면 확률로 결과가 갈려요.
+ * 효과는 f 팬 신뢰 · p 언론 · s 선수단 사기 (선수단 사기는 팀 전력에 그대로 반영돼요).
+ * 시즌 막판의 '결정적 순간' 인터뷰(pivot)는 시즌 결과가 나온 뒤, 결과를 보여주기 전에 한 번 나와요. */
+const EVENTS=[
+ {id:"bench",pos:false,who:"라커룸 소식",text:"벤치에 앉아 있던 한 베테랑이 출전 시간에 불만을 드러냈다는 소문이 돌아요.",
+  answers:[{label:"개인 면담으로 풀겠다",chance:70,win:{f:0,p:0,s:3},lose:{f:0,p:0,s:-3},ok:"진솔한 대화로 오해가 풀렸어요.",no:"면담이 오히려 불만을 키웠어요."},
+           {label:"경쟁은 당연하다고 선을 긋는다",chance:45,win:{f:1,p:1,s:2},lose:{f:0,p:-2,s:-5},ok:"단호한 리더십이 먹혔어요.",no:"선수단 분위기가 얼어붙었어요."},
+           {label:"출전 기회를 약속한다",chance:100,win:{f:-1,p:0,s:2},ok:"불만은 가라앉았지만 전술 부담이 생겼어요."}]},
+ {id:"clash",pos:false,who:"훈련장 소식",text:"훈련 중 베테랑과 신예가 크게 부딪혔어요. 선수단이 술렁입니다.",
+  answers:[{label:"주장단에게 중재를 맡긴다",chance:65,win:{f:0,p:0,s:4},lose:{f:0,p:0,s:-2},ok:"주장단이 잘 수습했어요.",no:"중재가 편파라는 말이 나왔어요."},
+           {label:"둘 다 불러 엄하게 경고한다",chance:50,win:{f:0,p:1,s:1},lose:{f:0,p:0,s:-4},ok:"분위기가 단번에 정리됐어요.",no:"감독에 대한 반감이 생겼어요."}]},
+ {id:"sponsor",pos:true,who:"구단 프런트",text:"새 스폰서가 후원금을 크게 늘렸어요. 어디에 쓸까요?",
+  answers:[{label:"훈련 시설과 의무팀에 투자한다",chance:100,win:{f:0,p:0,s:4},ok:"선수단이 환영했어요."},
+           {label:"팬 서비스와 이벤트에 쓴다",chance:100,win:{f:4,p:1,s:0},ok:"팬들의 호응이 컸어요."}]},
+ {id:"banner",pos:true,who:"서포터즈",text:"서포터즈가 경기장 전체를 덮는 대형 걸개를 준비했다고 알려 왔어요.",
+  answers:[{label:"선수단과 함께 감사 인사를 한다",chance:100,win:{f:3,p:0,s:3},ok:"가슴 벅찬 분위기가 만들어졌어요."}]},
+ {id:"press",pos:false,who:"언론 소식",text:"한 매체가 팀 전술을 비판하는 악의적인 기사를 냈어요.",
+  answers:[{label:"기자회견에서 정면 반박한다",chance:40,win:{f:2,p:3,s:2},lose:{f:-1,p:-4,s:-1},ok:"논리적인 반박이 오히려 호평을 받았어요.",no:"괜한 논란만 키웠어요."},
+           {label:"대응하지 않는다",chance:100,win:{f:0,p:-1,s:1},ok:"선수들은 흔들리지 않았어요."}]},
+ {id:"camp",pos:true,who:"코칭스태프",text:"코치진이 단합을 위한 전지훈련을 제안했어요.",
+  answers:[{label:"선수단 MT를 겸해 다녀온다",chance:100,win:{f:0,p:0,s:4},ok:"선수들이 한결 가까워졌어요."},
+           {label:"훈련만 집중해서 간다",chance:100,win:{f:0,p:0,s:1},ok:"훈련 강도가 올랐어요."}]},
+ {id:"rookie",pos:true,who:"유소년 코치",text:"유스 출신 신예가 훈련에서 눈에 띄는 활약을 하고 있어요.",
+  answers:[{label:"기회를 준다",chance:60,win:{f:2,p:1,s:3},lose:{f:0,p:0,s:-1},ok:"신예가 팀에 활력을 불어넣었어요.",no:"아직은 시기상조였어요."},
+           {label:"더 지켜본다",chance:100,win:{f:0,p:0,s:1},ok:"차분히 기다리기로 했어요."}]},
+ {id:"ace",pos:false,who:"이적 시장",text:"에이스를 향한 이적설이 연일 보도되고 있어요.",
+  answers:[{label:"직접 만나 잔류를 설득한다",chance:55,win:{f:2,p:1,s:3},lose:{f:-2,p:0,s:-4},ok:"에이스가 팀에 남기로 마음먹었어요.",no:"설득이 통하지 않아 분위기만 어수선해졌어요."},
+           {label:"협상은 구단에 맡긴다",chance:100,win:{f:-1,p:1,s:-1},ok:"감독은 경기에만 집중하기로 했어요."}]},
+ {id:"owner",pos:false,who:"구단 수뇌부",text:"구단 고위층이 이번 시즌 더 높은 성적을 은근히 요구하고 있어요.",
+  answers:[{label:"자신 있다고 답한다",chance:50,win:{f:2,p:2,s:1},lose:{f:-1,p:-2,s:-2},ok:"자신감이 신뢰를 샀어요.",no:"부담만 키운 말이 됐어요."},
+           {label:"현실적인 목표를 설명한다",chance:100,win:{f:0,p:0,s:2},ok:"차분한 설명에 선수단이 안도했어요."}]},
+ {id:"fans",pos:true,who:"팬 커뮤니티",text:"팬 대표들이 감독과의 대화 자리를 요청했어요.",
+  answers:[{label:"기꺼이 만난다",chance:75,win:{f:4,p:1,s:1},lose:{f:-1,p:0,s:0},ok:"솔직한 대화로 신뢰가 쌓였어요.",no:"기대만큼의 반응은 아니었어요."},
+           {label:"경기 결과로 보여주겠다고 한다",chance:100,win:{f:0,p:0,s:1},ok:"말 대신 결과로 가기로 했어요."}]},
+];
+function events(c,S){
+  const out=[]; const pool=EVENTS.slice(); const n=Math.random()<.72?(Math.random()<.28?2:1):0; const used=c.evSeen||(c.evSeen=[]);
+  for(let i=0;i<n;i++){
+    const cand=pool.filter(e=>!used.includes(e.id)); const src=cand.length?cand:pool; const e=src[Math.floor(Math.random()*src.length)];
+    pool.splice(pool.indexOf(e),1); used.push(e.id); if(used.length>6) used.shift();
+    out.push({kind:"event",pos:e.pos,who:e.who,text:e.text,answers:e.answers.map(a=>Object.assign({},a))});
+  }
+  return out;
+}
+/* 시즌 막판 결정적 순간 (결과가 나온 뒤 · 공개 전) */
+function pivot(R,c){
+  const N=R.N||12, qs=[]; const t=(R.table||[]);
+  const me=t.findIndex(x=>x.me); if(me<0) return qs; const pts=i=>t[i]?t[i].pts:0;
+  if(R.rank===1 && t[1] && pts(0)-pts(1)<=3) qs.push({kind:"title",who:"우승 직후 중계 인터뷰",text:"마지막 순간까지 숨 막히는 우승 경쟁 끝에 정상에 올랐습니다! 지금 기분이 어떠십니까?",
+    answers:[{label:"선수들이 만든 기적입니다. 팬 여러분께 이 우승을 바칩니다!",f:3,p:1,s:2},{label:"끝까지 믿어 준 구단에 감사드립니다.",f:1,p:2,s:1},{label:"아직 시즌이 끝난 것 같지 않네요. 눈물이 나서 말이 안 나옵니다…",f:2,p:0,s:3}]});
+  else if(R.rank===2 && pts(0)-pts(1)<=3) qs.push({kind:"close",who:"시즌 종료 직후 인터뷰",text:"승점 "+(pts(0)-pts(1))+"점 차이로 우승을 놓쳤습니다. 지금 선수들에게 어떤 말을 해 주고 싶으신가요?",
+    answers:[{label:"끝까지 최선을 다했습니다. 내년에는 반드시 정상에 서겠습니다.",f:2,p:1,s:2},{label:"운이 따르지 않았습니다. 하지만 결과는 인정합니다.",f:0,p:1,s:0},{label:"아쉬움이 너무 큽니다… 오늘은 말하지 않겠습니다.",f:-1,p:-1,s:-1}]});
+  const safe=t[N-3]; if(R.div===1&&R.rank>=N-2&&safe&&pts(N-3)-pts(me)<=4) qs.push({kind:"relegation",who:"강등 결정전 후 인터뷰",text:"강등권 싸움의 마지막 라운드가 끝났습니다. 결과를 어떻게 받아들이십니까?",
+    answers:R.rank>=N?[{label:"모든 책임은 제게 있습니다. 다시 돌아오겠습니다.",f:2,p:2,s:-1},{label:"선수들은 최선을 다했습니다. 비판은 제가 받겠습니다.",f:1,p:1,s:2}]
+      :[{label:"선수들이 정말 기특합니다. 잔류가 목표 이상의 성과입니다!",f:3,p:1,s:3},{label:"아슬아슬했습니다. 내년에는 이런 일이 없도록 준비하겠습니다.",f:1,p:1,s:1}]});
+  if(R.fa&&R.fa.champion) qs.push({kind:"fa",who:"FA컵 우승 직후 인터뷰",text:"FA컵을 들어올렸습니다! 이번 우승의 의미는 무엇일까요?",
+    answers:[{label:"선수단 전체가 로테이션하면서 함께 이룬 우승입니다.",f:2,p:1,s:3},{label:"팬들이 응원해 주신 덕분입니다. 이 트로피를 팬들에게 돌려드립니다.",f:4,p:0,s:1}]});
+  return qs;
+}
 /* 시즌 목표 판정 + 평판 갱신 */
 function settle(R,c){
   const N=R.N||12, rank=R.rank, g=c.goal; c.rep=c.rep||{fans:50,press:50,squad:50}; const r=c.rep;
@@ -135,6 +195,7 @@ function settle(R,c){
   return c.goalResult;
 }
 function apply(c,ans){ c.rep=c.rep||{fans:50,press:50,squad:50}; const r=c.rep;
+  if(ans.chance!=null){ const hit=Math.random()*100<ans.chance; const e=hit?ans.win:(ans.lose||ans.win); r.fans=clamp(r.fans+(e.f||0),0,100); r.press=clamp(r.press+(e.p||0),0,100); r.squad=clamp(r.squad+(e.s||0),0,100); return {hit,text:hit?ans.ok:(ans.no||ans.ok),eff:e}; }
   r.fans=clamp(r.fans+(ans.f||0),0,100); r.press=clamp(r.press+(ans.p||0),0,100); r.squad=clamp(r.squad+(ans.s||0),0,100);
   if(ans.goal) c.goal={id:ans.goal,label:ans.goalLabel}; }
 /* 다음 시즌 시작 전, 평판이 보통(50)쪽으로 조금 돌아가요 */
@@ -143,5 +204,5 @@ function drift(c){ if(!c.rep) return; ["fans","press","squad"].forEach(k=>{ c.re
 function moraleFx(c){ const s=c&&c.rep?c.rep.squad:50; return clamp((s-50)/50*1.2,-1.2,1.2); }
 
 window.KLFans={season,match};
-window.KLPress={pre,post,settle,apply,drift,moraleFx};
+window.KLPress={pre,post,settle,apply,drift,moraleFx,events,pivot};
 })();

@@ -478,3 +478,5 @@ td.plink{cursor:pointer}td.plink:hover{color:var(--acc);text-decoration:underlin
 /* 겨울 이적: 일괄 교체 바 — 모바일에서 스크롤해도 화면 아래에 붙어 있어요 */
 .swapbar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0));z-index:15;background:rgba(10,18,38,.96);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:0 -6px 20px rgba(0,0,0,.4)}
 .swapbar .btn{min-height:44px}.swapbar.queue{display:grid}.swapbar .qrow{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px}
+
+.swaplog li{font-size:13px}
