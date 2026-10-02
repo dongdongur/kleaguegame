@@ -52,7 +52,7 @@ L.awardsFor=function(S,R,sim){
 /* 점수 = 능력치·시즌 활약·팀 성과(리그/챔스)·국제대회·인지도. 가상 경쟁자 30명의 점수와 비교해 순위를 정해요 */
 L.ballonCheck=function(S,R,sc){
   const p=S.p; if(p.ovr<76||R.apps<15||R.youth) return;
-  const lgBonus={EPL:0,LAL:0,BUN:-.5,SEA:-1,L1:-2.5,EPL2:-8,LAL2:-8,BUN2:-8,SEA2:-8,FR2:-8,K1:-6,K2:-10,J1:-6,SPL:-5}[R.leagueKey]||-6;
+  const lgBonus={EPL:0,LAL:0,BUN:-.5,SEA:-1,L1:-2.5,EPL2:-8,J2:-8,SPL2:-8,LAL2:-8,BUN2:-8,SEA2:-8,FR2:-8,K1:-6,K2:-10,J1:-6,SPL:-5}[R.leagueKey]||-6;
   const nat=R.natEvents||[]; let natB=0; nat.forEach(n=>{ if(n.skipped) return; natB+=n.t==="wc"?(n.title?6:/준우승|4강/.test(n.stage)?2.5:.6):n.t==="ac"?(n.title?1.5:.4):0; });
   const cup=R.trophies.reduce((a,t)=>a+(/(프리미어리그|라리가|분데스리가|세리에 A) 우승/.test(t)?2.2:/리그 1 우승/.test(t)?1.5:/챔피언스리그 우승/.test(t)?3:0),0);
   const prod=p.pos==="FW"?R.goals*.12+R.assists*.05:p.pos==="MF"?R.goals*.1+R.assists*.1:p.pos==="DF"?R.goals*.15+R.cs*.04:R.cs*.12;

@@ -204,7 +204,7 @@ L.rollEvent=function(S,out){
   if(!pool.length) return null; const tot=pool.reduce((a,e)=>a+e.w,0); let r=Math.random()*tot, e=pool[0];
   for(const c of pool){ r-=c.w; if(r<=0){ e=c; break; } }
   if(e.id==="famcrash") S.famEv=true; if(e.id==="famboom") S.famEv2=true; if(e.id==="studypress") S.famEv3=true;
-  let ev={id:e.id,title:e.title,body:e.body,opts:e.opts}; if(e.dynamic==="abroad"){ ev=buildAbroad(S,ev); if(!ev) return null; } else if(typeof e.dynamic==="function"){ ev=e.dynamic(S,ev); if(!ev) return null; }
+  let ev={id:e.id,title:e.title,body:e.body,opts:e.opts,repeat:e.repeat}; if(e.dynamic==="abroad"){ ev=buildAbroad(S,ev); if(!ev) return null; } else if(typeof e.dynamic==="function"){ ev=e.dynamic(S,ev); if(!ev) return null; }
   return mark(S,clone(ev));
 };
 function clone(ev){ return Object.assign({},ev,{opts:ev.opts.map(o=>Object.assign({},o,{win:Object.assign({},o.win),lose:o.lose?Object.assign({},o.lose):null}))}); }

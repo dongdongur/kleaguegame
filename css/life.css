@@ -211,3 +211,5 @@ input[type=text],input[type=number],select{width:100%;min-height:48px;padding:0 
 .shoptabs{position:sticky;top:44px;z-index:2;background:linear-gradient(180deg,#16224d 70%,transparent);padding:4px 0 8px}
 
 .tierline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-2px 0 6px}
+
+.ln2{display:grid;grid-template-columns:44px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}.ln2 b{color:var(--acc);font-family:var(--f-num)}

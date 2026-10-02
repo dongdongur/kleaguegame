@@ -107,7 +107,7 @@ function homeView(){
     <button class="big" data-act="new"><span>새로운 인생 시작</span><b>→</b></button></section>
    <section class="card"><h3 class="sec">명예의 전당</h3>${hof.length?hof.slice().sort((a,b)=>b.score-a.score).slice(0,10).map((x,i)=>`<div class="hof"><b>${i+1}</b><div><b>${esc(x.name)}</b><br><small>${esc(x.pos)} · ${esc(x.club)} · ${x.years}년 · 통산 ${x.goals}골 ${x.assists}도움${x.retire?" · 영구결번":""}</small></div><span class="pill gold">${x.grade} ${x.score}</span></div>`).join(""):`<p class="muted">아직 은퇴한 선수가 없어요.</p>`}</section>
    <div class="grid2"><button class="wide" data-act="hoflist">🏆 친구들 명예의 전당</button><button class="wide" data-act="dex">📖 이벤트 도감</button></div>
-   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· J2·하부 리그와 승강 (J1·사우디 포함), 컵대회 방식 보강<br>· 월드컵 조 편성·상대국 보기, 라이벌 더비 이벤트<br>· 은퇴 후 지도자·감독 엔딩, 결혼·자녀 이야기 확대<br>· 감독판: 시즌 도중 이벤트·인터뷰, 커리어 성장, K리그 기록 업적 (다음 주)</p></section>
+   <section class="card flat"><h3 class="sec">업데이트 예정</h3><p class="muted">· 결혼·자녀 이야기 확대, 광고 계약 동시 다중 슬롯<br>· 3부 이하 리그와 국가 간 이적 규정, 대표팀 감독 전술<br>· 감독판: 시즌 전 예상 비교, 시즌 도중 이벤트·인터뷰, 커리어 성장, K리그 기록 업적 (다음 주)</p></section>
    <p class="muted c"><a class="lnk" href="index.html">게임 선택 메뉴로</a>${S?` · <button class="lnk" data-act="wipe">저장 삭제</button>`:""}</p></main>`;
 }
 
@@ -163,7 +163,7 @@ function ensureDr(){ if(!S.dr) S.dr={rolled:false,ok:false,chance:L.draftChance(
 function draftView(){
   const dr=ensureDr(); const finalDraft=age()>=22;
   const pay=o=>{ const c=L.clubPayroll(S,o.club.id,o.club.lg); return c?`<small>구단 최고 ${money(c.top.sal)} · 최저 ${money(c.low.sal)}</small>`:""; };
-  const card=(o,i,act)=>`<button class="offer" data-act="${act}" data-v="${i}">${emblem(o.club,52)}<div><b>${esc(o.club.name)}</b><small>${esc(o.tag||L.lgLabel(o.club.lg))} · 전력 ${o.lvl} · 예상 ${esc(o.role)}</small>${pay(o)}<span class="sal">연봉 ${money(o.salary)} · ${o.years}년</span></div></button>`;
+  const card=(o,i,act)=>`<button class="offer" data-act="${act}" data-v="${i}">${emblem(o.club,52)}<div><b>${esc(o.club.name)}</b><small>${esc(o.tag||L.lgLabel(o.club.lg))}${L.isRivalMove&&L.isRivalMove(S,o.club)?" · ⚠ 라이벌":""} · 전력 ${o.lvl} · 예상 ${esc(o.role)}</small>${pay(o)}<span class="sal">연봉 ${money(o.salary)} · ${o.years}년</span></div></button>`;
   let h=`<main class="body"><small class="kick">K LEAGUE DRAFT</small><h2>프로 입단 도전</h2>
    <section class="card"><div class="row"><div class="grow"><b>${esc(S.p.name)}</b><br><small class="muted">${POSK[S.p.pos]} · OVR ${S.p.ovr} · ${esc(scoutLabel())}</small></div><div class="stat"><small>지명 확률</small><b style="color:${dr.chance>=60?"var(--acc)":dr.chance>=30?"var(--gold)":"var(--red)"}">${dr.chance}%</b></div></div>
     <div class="bar ${dr.chance<30?"warn":""}"><i style="width:${dr.chance}%"></i></div>
@@ -308,6 +308,7 @@ function resultView(){
    ${R.trophies.length?`<div class="pills">${R.trophies.map(t=>`<span class="pill gold">🏆 ${esc(t)}</span>`).join("")}</div>`:""}
    ${R.awards.length?`<div class="pills">${R.awards.map(a=>`<span class="pill gold">⭐ ${esc(a)} · ${esc(L.awardComp(a,R))}</span>`).join("")}</div>`:""}
    ${(R.records||[]).map(t=>`<p class="note good">🏅 ${esc(t)}</p>`).join("")}
+   ${(R.derbies||[]).length?`<section class="card flat"><h3 class="sec">🔥 ${esc(R.derbies[0].name)}</h3>${R.derbies.map(d=>`<div class="row"><span class="grow">${esc(d.opp)}전${d.min>0?"":" (결장)"}${d.g?" · "+d.g+"골":""}</span><b style="color:${d.res==="W"?"var(--acc)":d.res==="L"?"var(--red)":"var(--gold)"}">${d.f}:${d.a}</b></div>`).join("")}</section>`:""}
    ${(R.moneyNotes||[]).length?`<section class="card flat"><h3 class="sec">재정 리포트</h3>${R.moneyNotes.map(t=>`<p class="muted">${esc(t)}</p>`).join("")}</section>`:""}
    ${R.awards.some(a=>/베스트 11|올해의 팀/.test(a))&&!R.youth?`<button class="wide" data-act="xi">⭐ 이번 시즌 베스트 11 보기</button>`:""}
    ${R.ballon?`<button class="wide" data-act="ballon">🏅 발롱도르 후보 ${R.ballon.rank}위 — 30인 명단 보기</button>`:""}
@@ -417,7 +418,7 @@ function mainClub(){ const e=Object.entries(S.clubYears||{}).sort((a,b)=>b[1]-a[
 function hofDetail(){
   const p=S.p, d=L.POSDEF[p.pos], pro=S.history.filter(h=>!h.youth), hid=p.hidden?L.HIDDEN_LIST.find(h=>h.id===p.hidden):null, tr=L.TRAIT_ALL.find(t=>t.id===p.trait);
   return {v:1,ovr:p.ovr,stats:d.stats.map(([k,n])=>[n,p.stats[k]]),sub:subName(),role:L.roleName(p),foot:p.foot,height:p.height,weight:p.weight,trait:tr?tr.icon+" "+tr.name:"",hidden:hid?hid.name:"",
-    fame:Math.round(S.fameMax||S.fame),fameTier:L.fameTier(S.fameMax||S.fame).name,char:Math.round(L.charOf(S)),charTier:L.charTier(L.charOf(S)).name,styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
+    after:S.after?{name:S.after.name,title:S.after.title,lines:S.after.lines.map(x=>[x.y,x.t])}:null,fame:Math.round(S.fameMax||S.fame),fameTier:L.fameTier(S.fameMax||S.fame).name,char:Math.round(L.charOf(S)),charTier:L.charTier(L.charOf(S)).name,styleLog:(S.styleLog||[]).map(x=>[x.year,x.age,x.text]),titles:L.titlesOf(S),trophies:S.trophies.filter(t=>!t.youth).map(t=>[t.name,t.year]),awards:S.awards.filter(a=>!a.youth).map(a=>[a.name+(a.comp?" ("+a.comp+")":""),a.year]),
     jerseys:(S.jersey||[]).map(j=>({club:j.club,number:j.number})),chain:L.clubChain(S).map(c=>c.name+" ("+c.from+(c.to>c.from?"~"+c.to:"")+")"),ballon:S.ballon.map(b=>[b.year,b.rank]),
     seasons:pro.map(h=>[h.age,h.club,h.leagueName||h.lg||"",h.apps,h.goals,h.assists,h.rating,h.ovr1])};
 }
@@ -495,6 +496,11 @@ const SRV_CATS=[["goals","최다 득점","골"],["assists","최다 도움","도�
 let srvRows=null, srvLoading=false;
 function srvLoad(){ if(srvRows||srvLoading||!hofOn) return; srvLoading=true;
   fetch(CFG.SUPABASE_URL+"/rest/v1/life_hof?select=id,name,nickname,goals,assists,apps,caps,trophies,awards,ballon,wc,peak,score,cs,jersey,years&limit=1000",{headers:HH}).then(r=>r.ok?r.json():[]).then(l=>{ srvRows=l; srvLoading=false; if(view==="retired") keep(render); }).catch(()=>{ srvRows=[]; srvLoading=false; }); }
+function afterCard(){
+  if(!L.afterPaths) return "";
+  if(S.after){ const a=S.after; return `<section class="card flat"><small class="kick">AFTER CAREER</small><h3 class="sec">${a.icon} 은퇴 후: ${esc(a.name)}</h3>${a.lines.map(x=>`<div class="ln2"><b>${x.y}세</b><span>${esc(x.t)}</span></div>`).join("")}<p class="note good">🏅 ${esc(a.title)} — 커리어 점수 +${a.bonus}</p></section>`; }
+  return `<section class="card flat"><small class="kick">AFTER CAREER</small><h3 class="sec">은퇴 후의 삶</h3><p class="muted">어떤 길을 갈까요? 한 번만 고를 수 있고, 선수 시절의 능력·인기·인성·재산이 이어져요. 길에 따라 커리어 점수가 올라요.</p>${L.afterPaths(S).map(p=>`<button class="opt" data-act="after" data-v="${p.id}"><b>${p.icon} ${esc(p.name)}</b><small>${esc(p.desc)}</small></button>`).join("")}</section>`;
+}
 function lifeCard(){
   const ft=L.fameTier(S.fameMax||S.fame), ct=L.charTier(L.charOf(S)), cs=L.charSummary(S);
   return `<section class="card flat"><small class="kick">LIFE</small><h3 class="sec">어떤 삶을 살았나</h3>
@@ -513,6 +519,10 @@ function srvRecCard(){
    ${rows.map(r=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><div class="grow"><b>${esc(r.label)}</b><br><small class="muted">1위 ${r.best?esc(r.best.name)+" ("+r.rec+r.unit+")":"-"}</small></div><div style="text-align:right"><b style="color:${r.beat?"var(--gold)":r.tie?"var(--acc)":"var(--txt)"};font-family:var(--f-num);font-size:18px">${r.my}${r.unit}</b><br><small class="muted">${r.beat?"👑 신기록!":r.tie?"타이":"서버 "+r.rank+"위"}</small></div></div>`).join("")}
    <p class="muted">내 선수는 등록하면 서버 기록에 포함돼요.</p></section>`;
 }
+function natRun(r){
+  if(!r.matches||!r.matches.length) return ""; const g=r.group;
+  return `<div class="card flat" style="gap:4px;text-align:left">${g?`<b>${esc(g.name)} · ${g.passed?"조 "+g.rank+"위로 통과":"조 "+g.rank+"위 탈락"} (승점 ${g.pts})</b><small class="muted">${g.teams.map(esc).join(" · ")}</small>`:""}${r.matches.map(m=>`<div class="row" style="padding:3px 0"><small class="muted" style="min-width:74px">${esc(m.stage)}</small><span class="grow">${esc(m.opp)} <small class="muted">${esc(m.tier||"")}</small></span><b style="color:${m.res==="W"?"var(--acc)":m.res==="L"?"var(--red)":"var(--gold)"}">${m.f}:${m.a}${m.pk?" (PK "+m.pk[0]+"-"+m.pk[1]+")":""}</b></div>`).join("")}</div>`;
+}
 function legendCard(){
   if(!L.compareLegends) return ""; const cmp=L.compareLegends(S); if(!cmp.list.length) return "";
   return `<section class="card flat"><small class="kick">LEGEND COMPARISON</small><h3 class="sec">역대 레전드와 비교</h3><p class="muted">${esc(cmp.body)} · 내 커리어 점수 <b>${cmp.mine}</b> (역할·체형·주발이 비슷한 레전드를 골랐어요. 수치는 공개 기록 기반 근사치)</p>
@@ -527,7 +537,7 @@ function retiredView(){
   return `<main class="body"><small class="kick">RETIREMENT</small><h1>${esc(S.p.name)}, 그라운드를 떠나다</h1>
    <p class="muted">${L.age(S)}세 · 프로 ${S.history.filter(h=>!h.youth).length}시즌 · ${esc(chainHtml())}</p>
    <div class="pills">${L.titlesOf(S).map(t=>`<span class="pill gold">🏷 ${esc(t)}</span>`).join("")}</div>
-   ${lifeCard()}
+   ${lifeCard()}${afterCard()}
    <section class="card flat"><h3 class="sec">선수 정보</h3><p class="muted">${esc(S.p.height)}cm ${esc(S.p.weight)}kg · ${esc(S.p.foot)} · ${esc(subName())}${L.roleName(S.p)?" · "+esc(L.roleName(S.p)):""} · ${esc(S.p.typeName)}</p>${(S.styleLog||[]).length?`<div class="stylelog">${S.styleLog.map(x=>`<p class="muted"><b>${x.year}</b> (${x.age}세) ${esc(x.text)}</p>`).join("")}</div>`:""}</section>
    ${jr.map(j=>`<section class="banner"><small>PERMANENTLY RETIRED NUMBER</small><div class="no">${j.number}</div><b>${esc(j.club)} 영구결번</b><small>${j.yrs}시즌 활약 · 우승 ${j.titles}회</small></section>`).join("")}
    <section class="hero"><small class="kick">LEGACY</small><div class="row"><h1 style="font-size:64px;color:var(--gold)">${g}</h1><div class="grow"><b style="font-size:24px;font-family:var(--f-num)">${lg.total}</b><br><small class="muted">커리어 점수</small></div></div></section>
@@ -595,8 +605,8 @@ function modalHtml(){
       <p class="muted">${r.safe?"안전한 선택 · 주사위 없이 확정 (효과 60%, 30% 확률로 작은 대가)":"🎲 주사위 "+r.roll+" / 성공 기준 "+r.need+" → "+(r.hit?"성공":"실패")}</p><button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`; }
     return `<div class="ov${uc}"><div class="sheet evt"><div class="grab"></div><span class="tagline">${esc(e.story?"스토리 · "+e.story:"EVENT · "+S.year)}</span><h3>${esc(e.title)}</h3><p class="muted">${esc(e.body)}</p>${e.opts.map((o,i)=>`<button class="opt" data-act="evopt" data-v="${i}"><b>${esc(o.label)}</b>${o.safe?`<p style="color:var(--acc)">안전한 선택 · 확정 (효과 60% · 30% 확률로 작은 대가)</p>`:(o.p!=null&&o.p<100)?`<p>성공 확률 ${o.p}%</p>`:`<p style="color:var(--acc)">확정</p>`}${o.costNote?`<small class="muted">${esc(o.costNote)}</small>`:""}</button>`).join("")}</div></div>`;
   }
-  if(m.t==="nat"){ const r=m.r; return `<div class="ov center"><div class="sheet"><small class="kick">NATIONAL TEAM</small><h3>${esc(r.name)} ${r.year}</h3>${r.host?`<p class="muted c">📍 ${esc(r.host)}</p>`:""}${r.skipped||r.declined?`<p class="note warn">${esc(r.text)}</p>`:`<div class="banner" style="color:var(--txt);border-color:${r.title?"var(--gold)":"var(--line)"};background:var(--panel2)"><div class="no" style="font-size:34px">${esc(r.stage)}</div><small>${r.caps}경기 ${r.goals}골</small></div>${r.carry?`<p class="note good">🌟 ${esc(r.text)}</p>`:""}${r.golden?`<p class="note good">🏅 대회 MVP(골든볼)로 선정!</p>`:""}${r.exempt?`<p class="note good">🎖 병역 특례를 받았어요!</p>`:""}`}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`; }
-  if(m.t==="callup"){ const c=m.c, refused=(S.nat&&S.nat.refused)||0; return `<div class="ov center"><div class="sheet"><small class="kick">CALL-UP</small><h3>${esc(c.name)} 대표팀 소집</h3><p class="note">📍 개최지: ${esc(c.host||"")} · ${esc(c.months||"")}</p><p class="muted">${esc(S.p.name)} 선수가 ${esc(c.name)} 명단에 이름을 올렸어요. 소집에 응할까요?</p>${refused?`<p class="note warn">지금까지 소집을 ${refused}번 거부했어요. 3번이 되면 '대표팀 기피자'로 낙인찍혀요.</p>`:""}
+  if(m.t==="nat"){ const r=m.r; return `<div class="ov center"><div class="sheet"><small class="kick">NATIONAL TEAM</small><h3>${esc(r.name)} ${r.year}</h3>${r.host?`<p class="muted c">📍 ${esc(r.host)}</p>`:""}${r.skipped||r.declined?`<p class="note warn">${esc(r.text)}</p>`:`<div class="banner" style="color:var(--txt);border-color:${r.title?"var(--gold)":"var(--line)"};background:var(--panel2)"><div class="no" style="font-size:34px">${esc(r.stage)}</div><small>${r.caps}경기 ${r.goals}골</small></div>${natRun(r)}${r.carry?`<p class="note good">🌟 ${esc(r.text)}</p>`:""}${r.golden?`<p class="note good">🏅 대회 MVP(골든볼)로 선정!</p>`:""}${r.exempt?`<p class="note good">🎖 병역 특례를 받았어요!</p>`:""}`}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`; }
+  if(m.t==="callup"){ const c=m.c, refused=(S.nat&&S.nat.refused)||0; return `<div class="ov center"><div class="sheet"><small class="kick">CALL-UP</small><h3>${esc(c.name)} 대표팀 소집</h3><p class="note">📍 개최지: ${esc(c.host||"")} · ${esc(c.months||"")}</p>${c.draw?`<div class="card flat" style="gap:4px"><b>조 편성 · ${esc(c.draw.group)}</b><p class="muted">🇰🇷 대한민국 · ${c.draw.opps.map(o=>esc(o.n)+" ("+o.tier+")").join(" · ")}</p></div>`:""}<p class="muted">${esc(S.p.name)} 선수가 ${esc(c.name)} 명단에 이름을 올렸어요. 소집에 응할까요?</p>${refused?`<p class="note warn">지금까지 소집을 ${refused}번 거부했어요. 3번이 되면 '대표팀 기피자'로 낙인찍혀요.</p>`:""}
     <button class="big" data-act="callgo"><span>대회에 합류</span><b>→</b></button><button class="wide red" data-act="calldecl">불참한다 (인기·평판 하락)</button></div></div>`; }
   if(m.t==="ballon"){ const R=S.lastR; const lst=L.ballonList(S,R.ballon.rank); return `<div class="ov"><div class="sheet"><div class="grab"></div><small class="kick">BALLON D'OR ${R.year}</small><h3>후보 30인 · 내 순위 ${R.ballon.rank}위</h3><div class="tab">${lst.map(x=>`<div class="tr ${x.me?"me":""}" style="grid-template-columns:30px 1fr"><span>${x.rank}</span><span>${esc(x.name)}${x.me?" ◀":""}</span></div>`).join("")}</div><button class="wide" data-act="mok">닫기</button></div></div>`; }
   if(m.t==="sign") return `<div class="ov center"><div class="sheet"><small class="kick">CONTRACT</small><h3>${esc(m.title)}</h3>${m.lines.map(x=>`<p class="muted">${esc(x)}</p>`).join("")}<canvas id="signpad" width="640" height="240" class="signpad"></canvas><p class="muted c">아래 칸에 손가락(또는 마우스)으로 사인해 주세요</p><div class="grid2"><button class="ghost" data-act="signclear">지우기</button>${S.sign?`<button class="ghost" data-act="signprev">이전 사인 쓰기</button>`:`<span></span>`}</div><button class="big" data-act="signdone"><span>서명하고 계약 확정</span><b>✍</b></button><button class="wide" data-act="signcancel">다시 생각해 볼게요</button></div></div>`;
@@ -737,6 +747,7 @@ document.addEventListener("click",e=>{
     case "ballon": modals.push({t:"ballon"}); render(); break;
     case "xi": modals.push({t:"xi",list:L.bestXI(S,S.lastR)}); render(); break;
     case "shop": modals.push({t:"shop"}); keep(render); break;
+    case "after": { L.afterDo(S,v); save(); keep(render); break; }
     case "shoptab": { const m=modals[0]; if(m&&m.t==="shop"){ m.tab=v; m.msg=null; } keep(render); break; }
     case "hire": { const r=L.hire(S,v); const m=modals[0]; if(m){ m.msg=r.text; m.ok=r.ok; } save(); keep(render); break; }
     case "fire": { const r=L.fire(S,v); const m=modals[0]; if(m){ m.msg=r.text; m.ok=true; } save(); keep(render); break; }
