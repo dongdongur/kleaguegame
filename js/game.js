@@ -630,7 +630,7 @@ function enterWinter(){
   /* 상대팀 전력 변화: 팀 흐름(전력 보정) + 선수 능력치 변동 + 팀끼리 이적 */
   aiOffseason();
   S.phase="winter";
-  S.winter={moves:CFG.TRANSFERS,rerolls:CFG.REROLLS,offer:null,cand:null,target:null,mgrOffer:null,mgrChanged:false,log:[]};
+  S.winter={moves:CFG.TRANSFERS,rerolls:CFG.REROLLS,offer:null,cand:null,target:null,mgrOffer:null,mgrChanged:false,log:[],queue:[]};
   $("deskDraft").hidden=true; $("deskWinter").hidden=false;
   renderAll(); renderWinter();
   $("desk").scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});
@@ -641,7 +641,7 @@ function winterOffer(){
   return c.slice(0,CFG.WINTER_CANDS);
 }
 function renderWinter(){
-  const w=S.winter, body=$("winterBody"); body.innerHTML="";
+  const w=S.winter, body=$("winterBody"); body.innerHTML=""; w.queue=w.queue||[];
   $("winterLabel").textContent=S.career.year+" → "+(S.career.year+1);
   /* 1) 시즌 사이 변화 */
   const dev=el("div","w-sec"); dev.appendChild(el("h3",null,"시즌 사이 선수 변화"));
@@ -661,10 +661,12 @@ function renderWinter(){
   const show=el("button","btn primary",w.offer?"다른 후보 보기":"영입 후보 보기"); show.type="button";
   show.disabled = w.moves<=0 || (w.offer && w.rerolls<=0);
   show.onclick=()=>{ if(w.offer) w.rerolls--; w.offer=winterOffer(); w.cand=null; w.target=null; renderPitch(); renderWinter(); };
-  row.appendChild(show); tr.appendChild(row);
+  row.appendChild(show);
+  if(w.offer && w.moves>0){ const auto=el("button","btn ghost","추천 교체 자동 담기"); auto.type="button"; auto.title="후보 중 지금보다 나은 선수를 알맞은 자리에 한꺼번에 담아요"; auto.onclick=autoQueue; row.appendChild(auto); }
+  tr.appendChild(row);
   if(w.offer && w.moves>0){
     const ul=el("ul","offers");
-    w.offer.slice().sort((a,b)=>b.ovr-a.ovr).forEach(p=>{
+    w.offer.filter(p=>!w.queue.some(q=>q.cand===p)).sort((a,b)=>b.ovr-a.ovr).forEach(p=>{
       const li=el("li","offer-li"); const b=document.createElement("button"); b.type="button"; b.className="offer";
       const fitsAny=winterSlots(p).length>0;
       b.appendChild(cardEl(p,{blind:false,sub:tag(SQUADS[p.sq]),cls:(w.cand===p?"sel":"")}));
@@ -677,10 +679,18 @@ function renderWinter(){
     const t=w.target; const out = t.xi!=null ? S.xi[t.xi] : S.bench[t.bench];
     const bar=el("div","swapbar");
     bar.append(el("span",null,out.name+" ("+out.ovr+")  →  "+w.cand.name+" ("+w.cand.ovr+")"));
-    const ok=el("button","btn go","이적 확정"); ok.type="button"; ok.onclick=confirmSwap;
+    const room=w.moves-w.queue.length;
+    const add=el("button","btn ghost","목록에 담기"); add.type="button"; add.disabled=room<=1||w.queue.some(q=>q.t.xi===t.xi&&q.t.bench===t.bench); add.onclick=()=>{ w.queue.push({cand:w.cand,t}); w.cand=null; w.target=null; renderPitch(); renderWinter(); };
+    const ok=el("button","btn go","이 이적만 확정"); ok.type="button"; ok.onclick=confirmSwap;
     const no=el("button","btn ghost","취소"); no.type="button"; no.onclick=()=>{ w.target=null; renderPitch(); renderWinter(); };
-    bar.append(ok,no); tr.appendChild(bar);
+    bar.append(add,ok,no); tr.appendChild(bar);
   } else if(w.cand){ tr.appendChild(el("p","hint",w.cand.name+" 카드를 넣을 자리를 스쿼드에서 눌러 주세요. (경기장은 그 자리를 뛸 수 있을 때만, 후보석은 언제든)")); }
+  if(w.queue.length){
+    const qb=el("div","swapbar queue"); qb.appendChild(el("b",null,"일괄 이적 "+w.queue.length+"건 (영입권 "+w.moves+"장)"));
+    w.queue.forEach((q,qi)=>{ const out=q.t.xi!=null?S.xi[q.t.xi]:S.bench[q.t.bench]; const r=el("div","qrow"); r.appendChild(el("span",null,out.name+" ("+out.ovr+") → "+q.cand.name+" ("+q.cand.ovr+")")); const x=el("button","btn ghost small","✕"); x.type="button"; x.onclick=()=>{ w.queue.splice(qi,1); renderWinter(); }; r.appendChild(x); qb.appendChild(r); });
+    const all=el("button","btn go","모두 한꺼번에 확정"); all.type="button"; all.onclick=confirmAll; qb.appendChild(all); tr.appendChild(qb);
+    tr.appendChild(el("p","hint","담은 선수들은 내보낼 자리가 정해진 상태예요. 후보를 더 고르려면 다시 카드를 눌러 자리를 정하고 '목록에 담기'를 누르세요."));
+  }
   if(w.log.length){ const lg=el("ul","swaplog"); w.log.forEach(x=>lg.appendChild(el("li",null,x))); tr.appendChild(lg); }
   body.appendChild(tr);
   /* 3) 감독 */
@@ -707,8 +717,27 @@ function confirmSwap(){
   const out = t.xi!=null ? S.xi[t.xi] : S.bench[t.bench];
   const inn = clone(w.cand); inn.delta=0;
   if(t.xi!=null) S.xi[t.xi]=inn; else S.bench[t.bench]=inn;
-  w.log.push(out.name+" → "+inn.name); w.moves--; w.cand=null; w.target=null; w.offer=null;
+  w.log.push(out.name+" → "+inn.name); w.moves--; w.cand=null; w.target=null; w.offer=null; w.queue=[];
   renderPitch(); renderWinter();
+}
+/* 후보 중 현재 선수보다 나은 카드를 알맞은 자리(같은 포지션에서 가장 약한 선수)에 자동으로 짝지어 담아요. 스크롤 없이 한 번에 바꿀 수 있어요 */
+function autoQueue(){
+  const w=S.winter; if(!w||!w.offer) return; w.queue=w.queue||[];
+  const takenX=new Set(w.queue.filter(q=>q.t.xi!=null).map(q=>q.t.xi)), takenB=new Set(w.queue.filter(q=>q.t.bench!=null).map(q=>q.t.bench));
+  const queued=new Set(w.queue.map(q=>q.cand));
+  w.offer.slice().sort((a,b)=>b.ovr-a.ovr).forEach(p=>{
+    if(w.queue.length>=w.moves||queued.has(p)) return;
+    let best=null;
+    winterSlots(p).forEach(i=>{ if(takenX.has(i)) return; const o=S.xi[i]; const v=o?o.ovr:-1; if(!best||v<best.v) best={t:{xi:i},v}; });
+    if(!best) S.bench.forEach((o,j)=>{ if(takenB.has(j)) return; const v=o?o.ovr:-1; if(!best||v<best.v) best={t:{bench:j},v}; });
+    if(best&&p.ovr>best.v){ w.queue.push({cand:p,t:best.t}); queued.add(p); if(best.t.xi!=null) takenX.add(best.t.xi); else takenB.add(best.t.bench); }
+  });
+  w.cand=null; w.target=null; renderPitch(); renderWinter();
+}
+function confirmAll(){
+  const w=S.winter; if(!w||!w.queue||!w.queue.length) return;
+  w.queue.forEach(q=>{ if(w.moves<=0) return; const out=q.t.xi!=null?S.xi[q.t.xi]:S.bench[q.t.bench]; if(!out) return; const inn=clone(q.cand); inn.delta=0; if(q.t.xi!=null) S.xi[q.t.xi]=inn; else S.bench[q.t.bench]=inn; w.log.push(out.name+" → "+inn.name); w.moves--; });
+  w.queue=[]; w.cand=null; w.target=null; w.offer=null; renderPitch(); renderWinter();
 }
 function startNextSeason(){
   const c=S.career; c.moves=S.winter?S.winter.log.length:0; c.no++; c.year++;
