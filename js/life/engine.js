@@ -199,7 +199,7 @@ L.clubRef=function(S,c,lg){ return {id:c.id,name:c.name,short:c.short||c.name,lg
  * 실제 수치(2025): K리그1 평균 3.1억(국내 2.4억·외국인 8.4억), 최고 국내 15.9억·외국인 21억, K리그2 평균 1.4억,
  *                 프리미어리그 평균 약 70억(연 370만 파운드), 최고 약 500억(연 3,660만 달러 이상) */
 const LG_SAL={K1:1,K2:.7,MIL:.25,YOUTH:.03,UNIV:0,EPL:5.6};
-L.salaryOf=function(ovr,ag,lg){ const base=1.5*Math.exp((ovr-60)/8.5); const ageF=ag<=20?.55:ag<=22?.8:ag<=30?1:ag<=33?.88:.7; const cap={K1:22,K2:8,MIL:.4,YOUTH:.1}[lg]; const v=base*(LG_SAL[lg]!=null?LG_SAL[lg]:1)*ageF; return Math.max(.3,r1(cap?Math.min(cap,v):v)); };
+L.salaryOf=function(ovr,ag,lg){ const base=1.5*Math.exp((ovr-60)/8.5); const ageF=ag<=20?.8:ag<=22?.92:ag<=30?1:ag<=33?.88:.7; const cap={K1:22,K2:8,MIL:.4,YOUTH:.1}[lg]; const v=base*(LG_SAL[lg]!=null?LG_SAL[lg]:1)*ageF; return Math.max(.3,r1(cap?Math.min(cap,v):v)); };
 /* 구단별 연봉 현황: 그 구단 선수들의 추정 연봉으로 최고/최저/평균을 보여줘요 */
 L.clubPayroll=function(S,clubId,lg){
   const def=L.defById(clubId); let list=null;
@@ -245,7 +245,7 @@ L.draftOffers=function(S){
     const idx=clamp(Math.floor((1-hi)*(arr.length-1)*(useK1?.7:.5)+rnd(0,arr.length*.45)),0,arr.length-1); const c=arr[idx];
     if(seen.has(c.id)) continue; seen.add(c.id); out.push({c,lg:useK1?"K1":"K2"}); }
   return out.sort((a,b)=>b.c.l-a.c.l).map(x=>{ const sr=L.startRateAt(p.ovr,x.c.l,S.trust,p);
-    return {club:L.clubRef(S,x.c,x.lg),lvl:r1(x.c.l),salary:L.salaryOf(p.ovr+2,age(S),x.lg),years:3,role:L.roleLabel(sr),sr}; });
+    return {club:L.clubRef(S,x.c,x.lg),lvl:r1(x.c.l),salary:L.salaryOf(p.ovr+2,age(S),x.lg),years:2,role:L.roleLabel(sr),sr}; });
 };
 L.signWith=function(S,offer){ if(S.family) S.family.pts=0; S.club=offer.club; S.salary=offer.salary; S.contractYears=offer.years; S.phase="prep"; S.offers=[]; S.stage="pro"; S.team=offer.sr<.14?"2군":"1군"; S.plan=null;
   S.cond=90; S.morale=72; if(!S.history.some(h=>!h.youth)) L.addMoment(S,"프로 입단","입단",S.club.name+"과 프로 계약을 맺었습니다. (연봉 "+offer.salary+"억)"); };
@@ -519,7 +519,7 @@ L.commitSeason=function(S,R){
   if(R.leagueKey==="EPL") S.foreignYears++;
   if(R.youth){ c.youthApps+=R.apps; c.youthGoals+=R.goals; R.awards.concat(R.trophies).forEach(t=>L.addMoment(S,t,t,S.year+"년 "+t)); }
   else { c.apps+=R.apps; c.starts+=R.starts; c.minutes+=R.minutes; c.goals+=R.goals; c.assists+=R.assists; c.cs+=R.cs||0; c.mom+=R.mom||0; if(R.rating>0){ c.ratingSum+=R.rating*R.apps; c.ratingN+=R.apps; } L.momentsFor(S,R); }
-  S.funds=r1(S.funds+(R.youth?(L.familyPts(S)*.035+.04):S.salary*.55));
+  S.funds=r1(S.funds+(R.youth?(L.familyPts(S)*.035+.04):S.salary*.7));
 };
 /* 수상이 어느 대회(리그)에서 나온 건지 */
 L.awardComp=function(name,R){ if(/^KFA/.test(name)) return "대한축구협회"; if(/^AFC/.test(name)) return "AFC"; if(/발롱도르/.test(name)) return "발롱도르"; return R.leagueName||""; };

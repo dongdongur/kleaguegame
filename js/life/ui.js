@@ -52,8 +52,20 @@ function render(){
   else { nav=true; h=header()+`<main class="body">${tab==="season"?seasonTab():tab==="player"?playerTab():tab==="career"?careerTab():feedTab()}</main>`+navHtml(); }
   app.className="phone"+(nav?"":" nonav");
   app.innerHTML=h+(modals.length?modalHtml():"")+(toast?`<div class="toast">${esc(toast)}</div>`:"");
+  if(modals[0]&&modals[0].t==="sign") bindSign();
   if(!window.__keepScroll) window.scrollTo(0,0);
 }
+let signDirty=false;
+function bindSign(){
+  const cv=$("signpad"); if(!cv) return; const cx=cv.getContext("2d"); cx.lineWidth=5; cx.lineCap="round"; cx.lineJoin="round"; cx.strokeStyle="#ffcf4a"; signDirty=false; let down=false;
+  const pos=e=>{ const r=cv.getBoundingClientRect(), t=e.touches?e.touches[0]:e; return [(t.clientX-r.left)*cv.width/r.width,(t.clientY-r.top)*cv.height/r.height]; };
+  const st=e=>{ e.preventDefault(); down=true; const [x,y]=pos(e); cx.beginPath(); cx.moveTo(x,y); cx.lineTo(x+.1,y); cx.stroke(); signDirty=true; };
+  const mv=e=>{ if(!down) return; e.preventDefault(); const [x,y]=pos(e); cx.lineTo(x,y); cx.stroke(); };
+  const en=()=>{ down=false; };
+  cv.addEventListener("mousedown",st); cv.addEventListener("mousemove",mv); window.addEventListener("mouseup",en);
+  cv.addEventListener("touchstart",st,{passive:false}); cv.addEventListener("touchmove",mv,{passive:false}); cv.addEventListener("touchend",en);
+}
+function askSign(title,lines,fn){ modals.unshift({t:"sign",title,lines,fn}); keep(render); }
 function say(m){ toast=m; keep(render); setTimeout(()=>{ toast=null; keep(render); },2200); }
 function header(){
   const p=S.p;
@@ -486,6 +498,7 @@ function modalHtml(){
   if(m.t==="callup"){ const c=m.c, refused=(S.nat&&S.nat.refused)||0; return `<div class="ov center"><div class="sheet"><small class="kick">CALL-UP</small><h3>${esc(c.name)} 대표팀 소집</h3><p class="muted">${esc(S.p.name)} 선수가 ${esc(c.name)} 명단에 이름을 올렸어요. 소집에 응할까요?</p>${refused?`<p class="note warn">지금까지 소집을 ${refused}번 거부했어요. 3번이 되면 '대표팀 기피자'로 낙인찍혀요.</p>`:""}
     <button class="big" data-act="callgo"><span>대회에 합류</span><b>→</b></button><button class="wide red" data-act="calldecl">불참한다 (인기·평판 하락)</button></div></div>`; }
   if(m.t==="ballon"){ const R=S.lastR; const lst=L.ballonList(S,R.ballon.rank); return `<div class="ov"><div class="sheet"><div class="grab"></div><small class="kick">BALLON D'OR ${R.year}</small><h3>후보 30인 · 내 순위 ${R.ballon.rank}위</h3><div class="tab">${lst.map(x=>`<div class="tr ${x.me?"me":""}" style="grid-template-columns:30px 1fr"><span>${x.rank}</span><span>${esc(x.name)}${x.me?" ◀":""}</span></div>`).join("")}</div><button class="wide" data-act="mok">닫기</button></div></div>`; }
+  if(m.t==="sign") return `<div class="ov center"><div class="sheet"><small class="kick">CONTRACT</small><h3>${esc(m.title)}</h3>${m.lines.map(x=>`<p class="muted">${esc(x)}</p>`).join("")}<canvas id="signpad" width="640" height="240" class="signpad"></canvas><p class="muted c">아래 칸에 손가락(또는 마우스)으로 사인해 주세요</p><div class="grid2"><button class="ghost" data-act="signclear">지우기</button>${S.sign?`<button class="ghost" data-act="signprev">이전 사인 쓰기</button>`:`<span></span>`}</div><button class="big" data-act="signdone"><span>서명하고 계약 확정</span><b>✍</b></button><button class="wide" data-act="signcancel">다시 생각해 볼게요</button></div></div>`;
   if(m.t==="gold") return `<div class="ov center gold"><div class="sheet goldsheet"><div class="rays"></div><small class="kick">${esc(m.kick)}</small><div class="ball">⚽</div><h3>${esc(m.title)}</h3><p class="gsub">${esc(m.sub)}</p><p class="muted c">${esc(m.club)}</p>${m.lines.map(x=>`<p class="muted c">${esc(x)}</p>`).join("")}<button class="big" data-act="mok"><span>트로피 받기</span><b>🏆</b></button></div></div>`;
   if(m.t==="msg") return`<div class="ov center"><div class="sheet"><small class="kick">${esc(m.kick||"알림")}</small><h3>${esc(m.title)}</h3><p>${esc(m.body)}</p>${m.banner?`<div class="banner"><div class="no">${esc(m.banner)}</div></div>`:""}<button class="big" data-act="mok"><span>확인</span><b>→</b></button></div></div>`;
   return "";
@@ -593,8 +606,12 @@ document.addEventListener("click",e=>{
       if(S.phase==="draft") S.dr=null; else modals.push({t:"msg",kick:"FAMILY",title:S.family.name,body:S.family.note+". 해마다 지원 포인트 "+S.family.pts+"점으로 성장 투자를 고를 수 있고, 구간마다 다시 나눌 수 있어요. 가정 형편은 살다 보면 바뀌기도 해요."});
       save(); render(); break; }
     case "draftgo": { const dr=ensureDr(); dr.rolled=true; dr.ok=Math.random()*100<dr.chance; if(dr.ok) S.offers=L.draftOffers(S); else S.offers=[]; save(); render(); break; }
-    case "sign": { const o=S.offers[+v]; L.signWith(S,o); S.dr=null; view="game"; tab="season"; save(); render(); break; }
-    case "signdirect": { const o=S.dr.direct[+v]; L.signWith(S,o); S.abroadYouth=true; S.dr=null; view="game"; tab="season"; save(); render(); break; }
+    case "sign": { const o=S.offers[+v]; askSign("프로 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","예상 역할 "+o.role],()=>{ L.signWith(S,o); S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
+    case "signdirect": { const o=S.dr.direct[+v]; askSign("해외 직행 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약","프리미어리그 2군(U21)에서 시작해요"],()=>{ L.signWith(S,o); S.abroadYouth=true; S.dr=null; view="game"; tab="season"; save(); render(); }); break; }
+    case "signclear": { const cv=$("signpad"); if(cv){ cv.getContext("2d").clearRect(0,0,cv.width,cv.height); signDirty=false; } break; }
+    case "signprev": { const cv=$("signpad"), im=new Image(); im.onload=()=>{ const c=cv.getContext("2d"); c.clearRect(0,0,cv.width,cv.height); c.drawImage(im,0,0,cv.width,cv.height); signDirty=true; }; im.src=S.sign; break; }
+    case "signcancel": modals.shift(); keep(render); break;
+    case "signdone": { if(!signDirty){ say("사인을 먼저 해 주세요"); break; } const cv=$("signpad"); S.sign=cv.toDataURL("image/png"); const m=modals.shift(); save(); if(m&&m.fn) m.fn(); break; }
     case "univ": L.chooseUniv(S); S.dr=null; view="game"; tab="season"; save(); render(); break;
     case "quitdraft": L.quitCareer(S,"draft","프로 구단의 지명을 받지 못해 축구를 접기로 했습니다."); S.dr=null; view="quit"; save(); render(); break;
     case "focus": plan.focus=v; keep(render); break;
@@ -615,8 +632,8 @@ document.addEventListener("click",e=>{
     case "nextyear": if(off&&S.stage==="pro"&&S.contractYears<=1&&!off.accepted&&!(S.club.lg==="MIL"||S.military==="serving"||S.military==="sangmu")){ hint("[data-act=accept]","계약을 먼저 확정해 주세요"); break; } nextYear(); break;
     case "inc": chosenInc=chosenInc.includes(v)?chosenInc.filter(x=>x!==v):chosenInc.concat(v); keep(render); break;
     case "renego": { if(off.renego) break; const n=L.negotiate(S,off.contract); off.renego=true; const o=Object.assign({},off.contract,{offer:n.offer,rate:n.rate}); off.contract=o; say(n.mult>1?"협상 성공! 연봉이 올랐어요":n.mult<1?"역효과… 구단이 제시액을 낮췄어요":"구단이 기존 제안을 유지했어요"); break; }
-    case "accept": { const o=L.applyIncentives(S,off.contract,chosenInc); L.acceptContract(S,o); off.accepted=true; save(); keep(render); break; }
-    case "transfer": { const o=off.transfers[+v]; if(L.doTransfer(S,o)===false){ say("군 복무 중에는 이적할 수 없어요"); break; } off.accepted=true; off.transfers=[]; off.contract={last:o.salary,offer:o.salary,rate:0,years:o.years}; S.contractYears=o.years; save(); say(o.club.name+"(으)로 이적했어요"); break; }
+    case "accept": { const o=L.applyIncentives(S,off.contract,chosenInc); askSign("재계약서 · "+S.club.name,["연봉 "+money(o.offer)+" · "+o.years+"년"],()=>{ L.acceptContract(S,o); off.accepted=true; save(); keep(render); }); break; }
+    case "transfer": { const o=off.transfers[+v]; askSign("이적 계약서 · "+o.club.name,["연봉 "+money(o.salary)+" · "+o.years+"년 계약"],()=>{ if(L.doTransfer(S,o)===false){ say("군 복무 중에는 이적할 수 없어요"); return; } off.accepted=true; off.transfers=[]; off.contract={last:o.salary,offer:o.salary,rate:0,years:o.years}; S.contractYears=o.years; save(); say(o.club.name+"(으)로 이적했어요"); }); break; }
     case "mil": { if(v==="skip"){ off.milDone=true; } else { L.enlist(S,v); off.milDone=true; off.transfers=[]; off.endorse=[]; off.contract=L.contractOffer(S); } save(); keep(render); break; }
     case "retire": doRetire(); break;
     case "kidpos": { const k=(document.getElementById("kid")||{}).value; draft.kidName=k; draft.kidPos=v; keep(render); break; }
